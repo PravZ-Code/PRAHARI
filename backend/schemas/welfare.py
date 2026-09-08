@@ -29,6 +29,7 @@ class ShapFactor(BaseModel):
     value: Optional[float] = None
     impact: float
     display_name: Optional[str] = None
+    contribution_pct: Optional[float] = None
 
 class PredictionSummary(BaseModel):
     risk_score: float

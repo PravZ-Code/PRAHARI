@@ -38,7 +38,6 @@ def record_buddy_signal(db: Session, unit_id: str, concern_level: int, concern_c
                 representative_p = unit.personnel[0]
                 existing_case = db.query(WelfareCase).filter(
                     WelfareCase.personnel_id == representative_p.id,
-                    WelfareCase.triggered_by == "buddy_signal",
                     WelfareCase.status.in_(["pending", "acknowledged", "plan_created"])
                 ).first()
 

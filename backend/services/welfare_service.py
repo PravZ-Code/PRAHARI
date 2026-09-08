@@ -25,8 +25,17 @@ def get_welfare_cases(
     if status_filters:
         query = query.filter(WelfareCase.status.in_(status_filters))
 
-    total = query.count()
-    cases = query.order_by(WelfareCase.created_at.desc()).offset((page - 1) * per_page).limit(per_page).all()
+    all_cases = query.order_by(WelfareCase.created_at.desc()).all()
+    # Guarantee zero data redundancy - each trooper has at most one case entry in triage list
+    seen_personnel = set()
+    unique_cases = []
+    for c in all_cases:
+        if c.personnel_id not in seen_personnel:
+            seen_personnel.add(c.personnel_id)
+            unique_cases.append(c)
+
+    total = len(unique_cases)
+    cases = unique_cases[(page - 1) * per_page : page * per_page]
 
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     items = []
@@ -79,14 +88,19 @@ def get_welfare_case_detail(db: Session, case_id: str) -> Optional[Dict[str, Any
 
     pred_summary = None
     if pred:
+        raw_factors = pred.shap_values or []
+        total_abs = sum(abs(f.get("impact", 0.0)) for f in raw_factors) or 1.0
         shap_factors = []
-        for factor in (pred.shap_values or []):
+        for factor in raw_factors:
             feat = factor.get("feature", "")
+            raw_imp = factor.get("impact", 0.0)
+            contrib_pct = round((abs(raw_imp) / total_abs) * 100.0, 1)
             shap_factors.append({
                 "feature": feat,
                 "display_name": DISPLAY_NAME_MAP.get(feat, feat),
                 "value": factor.get("value"),
-                "impact": factor.get("impact", 0.0)
+                "impact": round(raw_imp, 4),
+                "contribution_pct": contrib_pct
             })
 
         pred_summary = {

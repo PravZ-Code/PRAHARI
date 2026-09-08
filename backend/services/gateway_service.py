@@ -45,6 +45,44 @@ def _map_concern_category(cat: str) -> str:
         return "aggression"
     return "general"
 
+def _get_or_create_welfare_case(
+    db: Session,
+    personnel_id: str,
+    triggered_by: str,
+    risk_level: str,
+    ack_hours: int,
+    plan_hours: int,
+    intervention_type: str,
+    intervention_notes: str,
+    now: datetime
+) -> str:
+    """Guarantee no duplicate active welfare cases exist for the same trooper."""
+    existing = db.query(WelfareCase).filter(
+        WelfareCase.personnel_id == personnel_id,
+        WelfareCase.status.in_(["pending", "acknowledged", "plan_created"])
+    ).first()
+    if existing:
+        existing.triggered_by = triggered_by
+        if risk_level == "red":
+            existing.risk_level_at_creation = "red"
+        existing.intervention_notes = (existing.intervention_notes or "") + f" | Additional trigger ({triggered_by}): {intervention_notes}"
+        db.commit()
+        return existing.id
+
+    new_case = WelfareCase(
+        personnel_id=personnel_id,
+        triggered_by=triggered_by,
+        risk_level_at_creation=risk_level,
+        status="pending",
+        sla_acknowledge_deadline=now + timedelta(hours=ack_hours),
+        sla_plan_deadline=now + timedelta(hours=plan_hours),
+        intervention_type=intervention_type,
+        intervention_notes=intervention_notes
+    )
+    db.add(new_case)
+    db.commit()
+    return new_case.id
+
 def process_ivr_dtmf(db: Session, req: IVRDTMFRequest) -> IVRDTMFResponse:
     now = datetime.now(timezone.utc)
     personnel = _resolve_personnel(db, req.service_number, req.caller_phone)
@@ -71,19 +109,17 @@ def process_ivr_dtmf(db: Session, req: IVRDTMFRequest) -> IVRDTMFResponse:
         status_text = "IN_PROGRESS"
     elif digit == "3":
         if p_id:
-            new_case = WelfareCase(
+            case_created_id = _get_or_create_welfare_case(
+                db=db,
                 personnel_id=p_id,
                 triggered_by="ivr_emergency_call",
-                risk_level_at_creation="red",
-                status="pending",
-                sla_acknowledge_deadline=now + timedelta(hours=12),
-                sla_plan_deadline=now + timedelta(hours=48),
+                risk_level="red",
+                ack_hours=12,
+                plan_hours=48,
                 intervention_type="immediate_callback",
-                intervention_notes=f"Emergency callback requested via IVR DTMF (Phone: {req.caller_phone}, CallSid: {req.call_sid})"
+                intervention_notes=f"Emergency callback requested via IVR DTMF (Phone: {req.caller_phone}, CallSid: {req.call_sid})",
+                now=now
             )
-            db.add(new_case)
-            db.commit()
-            case_created_id = new_case.id
 
         prompt = (
             "Your emergency callback request has been logged with Priority RED. "
@@ -94,17 +130,17 @@ def process_ivr_dtmf(db: Session, req: IVRDTMFRequest) -> IVRDTMFResponse:
         status_text = "DISPATCHED"
     elif digit == "4":
         if p_id:
-            new_case = WelfareCase(
+            case_created_id = _get_or_create_welfare_case(
+                db=db,
                 personnel_id=p_id,
                 triggered_by="leave_grievance",
-                risk_level_at_creation="orange",
-                status="pending",
-                sla_acknowledge_deadline=now + timedelta(hours=24),
-                sla_plan_deadline=now + timedelta(hours=72),
+                risk_level="orange",
+                ack_hours=24,
+                plan_hours=72,
                 intervention_type="administrative_leave_audit",
-                intervention_notes=f"Confidential leave grievance registered via IVR (Caller: {req.caller_phone})"
+                intervention_notes=f"Confidential leave grievance registered via IVR (Caller: {req.caller_phone})",
+                now=now
             )
-            db.add(new_case)
 
             try:
                 from services.grievance_service import file_grievance_or_leave
@@ -120,7 +156,6 @@ def process_ivr_dtmf(db: Session, req: IVRDTMFRequest) -> IVRDTMFResponse:
                 print(f"[IVR Grievance Filing Warning] {ge}")
 
             db.commit()
-            case_created_id = new_case.id
 
         prompt = (
             "Your leave administration grievance has been formally filed with the Welfare Board. "
@@ -212,18 +247,17 @@ def process_ussd(db: Session, req: USSDRequest) -> USSDResponse:
             return USSDResponse(session_id=sess_id, message=msg, continue_session=False)
         elif user_input == "4":
             if p_id:
-                new_case = WelfareCase(
+                case_id = _get_or_create_welfare_case(
+                    db=db,
                     personnel_id=p_id,
                     triggered_by="ussd_sos",
-                    risk_level_at_creation="red",
-                    status="pending",
-                    sla_acknowledge_deadline=now + timedelta(hours=12),
-                    sla_plan_deadline=now + timedelta(hours=48),
+                    risk_level="red",
+                    ack_hours=12,
+                    plan_hours=48,
                     intervention_type="urgent_welfare_call",
-                    intervention_notes=f"Emergency callback requested via USSD from {req.phone_number}"
+                    intervention_notes=f"Emergency callback requested via USSD from {req.phone_number}",
+                    now=now
                 )
-                db.add(new_case)
-                db.commit()
             msg = "END Emergency SOS registered with High Priority. Welfare Officer dispatched to contact you."
             USSD_SESSIONS.pop(sess_id, None)
             return USSDResponse(session_id=sess_id, message=msg, continue_session=False)
@@ -269,19 +303,17 @@ def process_sms_incoming(db: Session, req: SMSIncomingRequest) -> SMSIncomingRes
 
     if upper.startswith("HELP") or upper.startswith("SOS") or upper.startswith("MADAD"):
         if p_id:
-            new_case = WelfareCase(
+            case_created_id = _get_or_create_welfare_case(
+                db=db,
                 personnel_id=p_id,
                 triggered_by="sms_sos",
-                risk_level_at_creation="red",
-                status="pending",
-                sla_acknowledge_deadline=now + timedelta(hours=12),
-                sla_plan_deadline=now + timedelta(hours=48),
+                risk_level="red",
+                ack_hours=12,
+                plan_hours=48,
                 intervention_type="emergency_sms_response",
-                intervention_notes=f"Emergency SOS received via SMS text: '{body}' from {req.sender_phone}"
+                intervention_notes=f"Emergency SOS received via SMS text: '{body}' from {req.sender_phone}",
+                now=now
             )
-            db.add(new_case)
-            db.commit()
-            case_created_id = new_case.id
 
         reply = "PRAHARI ALERT: Your emergency request is received with RED status. Welfare cell notified immediately. Stand by."
         action = "EMERGENCY_CASE_CREATED"
