@@ -202,18 +202,12 @@ cp .env.example .env
 ```
 *(The default configuration is ready to use immediately without any extra setup).*
 
-### Step 4: Populate Sample Demonstration Data
-Run the database seed script to populate a realistic demonstration setup:
+### Step 4: Populate 100% Realistic Battalion Data
+Run the database seed script to populate the complete realistic paramilitary dataset:
 ```bash
 python scripts/seed_db.py
 ```
-*Seeds an initial demonstration dataset of **202 personnel across 4 tactical bases** (Srinagar, Sukma, Leh, and Hyderabad), initializes duty rosters, and prepares active welfare cases in ~15 seconds.*
-
-> **Optional (Full-Scale 1,000-Troop Battalion)**:
-> If you want to simulate a full battalion of 1,000 troops across 5 tactical formations (including Battalion HQ in New Delhi) with 90 days of longitudinal duty shifts, you can run:
-> ```bash
-> python scripts/seed_battalion_1000.py
-> ```
+*Initializes a **100% realistic battalion of 1,000 personnel across 5 tactical formations** (Alpha Company in Srinagar, Bravo Company in Sukma, Charlie Company in Hyderabad, Delta Company in Leh, and Battalion HQ in New Delhi), 90 days of duty rosters (90,000 shift entries), 2,140+ leave records with operational denial reasons, fast-lane emergency grievances with SLA countdowns, URO shift swap proposals, and a cryptographically chained SHA-256 audit ledger in ~20 seconds.*
 
 ### Step 5: Start the PRAHARI Server
 ```bash

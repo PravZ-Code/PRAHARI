@@ -643,7 +643,8 @@ def seed_battalion():
         print("  [TRAIN] Training XGBoost classifier on battalion feature matrix...")
         y = np.array([1 if profile_map[p.id] in ("red", "orange") else 0 for p in personnel_objs])
         model, metrics = train_model(df, y)
-        print(f"  [METRIC] Model Trained successfully. AUROC: {metrics['auroc']:.4f} | F1: {metrics['f1']:.4f} | Brier: {metrics['brier']:.4f}")
+        brier_val = metrics.get("brier_score", metrics.get("brier", 0.0))
+        print(f"  [METRIC] Model Trained successfully. AUROC: {metrics['auroc']:.4f} | F1: {metrics['f1']:.4f} | Brier: {brier_val:.4f}")
 
         # Batch Risk Predictions with SHAP values
         raw_predictions = predict_batch(features)
@@ -775,8 +776,132 @@ def seed_battalion():
         print(f"  [OK] Current Day Predictions Stored. Calibrated Distribution: {final_dist}")
         print(f"  [ALERT] Urgent Welfare Cases Created: {cases_created} (Red: {final_dist['red']}, Orange: {final_dist['orange']})")
 
-        # 10. Cryptographic SHA-256 Audit Log Backfill
-        print("\n[STEP 10/10] Constructing Cryptographically Chained SHA-256 Audit Ledger...")
+        # 10. Provision Realistic Fast-Lane Grievances and URO Shift Optimizations
+        print("\n[STEP 10/11] Provisioning Realistic Fast-Lane Grievances & URO Optimizations...")
+        grievances_data = [
+            {
+                "personnel_id": rajesh.id,
+                "request_type": "family_crisis",
+                "category": "medical_emergency",
+                "description": "Urgent domestic leave: Mother admitted to ICU in Bareilly District Hospital following severe myocardial infarction. Primary caregiver attendance urgently required.",
+                "start_date": (today + timedelta(days=1)).isoformat(),
+                "end_date": (today + timedelta(days=15)).isoformat(),
+                "filing_channel": "pwa",
+                "is_fast_lane": True,
+                "status": "fast_tracked",
+                "sla_deadline_hours": 72,
+                "sla_deadline": now_dt_utc + timedelta(hours=14),
+                "collision_status": "safe",
+                "suggested_replacement_id": ankit.id,
+            },
+            {
+                "personnel_id": personnel_objs[205].id,
+                "request_type": "leave",
+                "category": "acute_domestic_crisis",
+                "description": "Ancestral home severely damaged by flash flooding in Gorakhpur embankment collapse. Family evacuated to temporary shelter camp. Immediate salvage and relocation leave required.",
+                "start_date": (today + timedelta(days=2)).isoformat(),
+                "end_date": (today + timedelta(days=16)).isoformat(),
+                "filing_channel": "ivr",
+                "is_fast_lane": True,
+                "status": "filed",
+                "sla_deadline_hours": 72,
+                "sla_deadline": now_dt_utc + timedelta(hours=48),
+                "collision_status": "warning",
+                "suggested_replacement_id": personnel_objs[210].id,
+            },
+            {
+                "personnel_id": personnel_objs[410].id,
+                "request_type": "grievance",
+                "category": "administrative_delay",
+                "description": "Routine annual leave application submitted 45 days prior remains unadjudicated at company orderly room.",
+                "start_date": (today + timedelta(days=10)).isoformat(),
+                "end_date": (today + timedelta(days=25)).isoformat(),
+                "filing_channel": "sms",
+                "is_fast_lane": False,
+                "status": "filed",
+                "sla_deadline_hours": 168,
+                "sla_deadline": now_dt_utc + timedelta(hours=96),
+                "collision_status": "safe",
+                "suggested_replacement_id": None,
+            },
+            {
+                "personnel_id": personnel_objs[615].id,
+                "request_type": "leave",
+                "category": "bereavement",
+                "description": "Demise of father-in-law in Sikar, Rajasthan. Participation in last rites and familial obligations.",
+                "start_date": today.isoformat(),
+                "end_date": (today + timedelta(days=10)).isoformat(),
+                "filing_channel": "pwa",
+                "is_fast_lane": True,
+                "status": "approved",
+                "sla_deadline_hours": 72,
+                "sla_deadline": now_dt_utc - timedelta(hours=24),
+                "collision_status": "safe",
+                "suggested_replacement_id": None,
+            }
+        ]
+
+        for g_dict in grievances_data:
+            g_req = GrievanceRequest(
+                id=str(uuid.uuid4()),
+                personnel_id=g_dict["personnel_id"],
+                request_type=g_dict["request_type"],
+                category=g_dict["category"],
+                description=g_dict["description"],
+                start_date=g_dict["start_date"],
+                end_date=g_dict["end_date"],
+                filing_channel=g_dict["filing_channel"],
+                is_fast_lane=g_dict["is_fast_lane"],
+                status=g_dict["status"],
+                filed_at=now_dt_utc - timedelta(hours=24),
+                sla_deadline_hours=g_dict["sla_deadline_hours"],
+                sla_deadline=g_dict["sla_deadline"],
+                sla_breached=False,
+                escalation_level=0,
+                collision_status=g_dict["collision_status"],
+                suggested_replacement_id=g_dict["suggested_replacement_id"],
+                commander_approved=(g_dict["status"] == "approved"),
+                welfare_approved=(g_dict["status"] == "approved"),
+                cost_of_inaction_active=False
+            )
+            db.add(g_req)
+
+        # URO Optimization Proposal for Alpha Company (Srinagar)
+        uro_swaps = [
+            {
+                "source_personnel_id": rajesh.id,
+                "source_name": rajesh.name,
+                "source_trade": rajesh.trade,
+                "source_shift": "Night Guard (00:00 - 06:00)",
+                "target_personnel_id": ankit.id,
+                "target_name": ankit.name,
+                "target_trade": ankit.trade,
+                "target_shift": "Day Rest / Reserve",
+                "reason": "Relieve 4-night circadian exhaustion barrier; MOS trade match (GD <-> GD)"
+            }
+        ]
+        alpha_uro = URORun(
+            id=str(uuid.uuid4()),
+            unit_id=alpha_unit.id,
+            run_at=now_dt_utc - timedelta(hours=2),
+            roster_date_start=today.isoformat(),
+            roster_date_end=(today + timedelta(days=7)).isoformat(),
+            before_risk_summary={"acute_stress_count": 8, "high_fatigue_shifts": 14},
+            after_risk_summary={"acute_stress_count": 2, "high_fatigue_shifts": 0},
+            swaps_proposed=len(uro_swaps),
+            swaps=uro_swaps,
+            risk_reduction_pct=75.0,
+            status="proposed",
+            commander_approved=False,
+            welfare_approved=False,
+            roster_committed=False
+        )
+        db.add(alpha_uro)
+        db.flush()
+        print(f"  [OK] Seeded {len(grievances_data)} realistic grievances & 1 URO optimization proposal.")
+
+        # 11. Cryptographic SHA-256 Audit Log Backfill
+        print("\n[STEP 11/11] Constructing Cryptographically Chained SHA-256 Audit Ledger...")
         admin_user = db.query(User).filter(User.username == "admin_sys").first()
         admin_id = str(admin_user.id) if admin_user else "system"
 
