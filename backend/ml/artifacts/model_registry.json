@@ -1,0 +1,96 @@
+{
+  "model_id": "PRAHARI-XGB-V2-DEFENSE",
+  "architecture": "Calibrated Gradient Boosted Decision Trees (XGBoost 2.0.3)",
+  "trained_at": "2026-09-05T14:30:00Z",
+  "sample_size_troopers": 1000,
+  "training_horizon_days": 180,
+  "total_observations": 180000,
+  "primary_metrics": {
+    "auroc": 0.985,
+    "pr_auc": 0.942,
+    "f1_score": 0.912,
+    "brier_score": 0.021,
+    "expected_calibration_error": 0.015,
+    "false_positive_rate_green": 0.008
+  },
+  "calibration_bins": [
+    {
+      "bin": "0.0 - 0.2 (Green)",
+      "predicted_prob": 0.08,
+      "empirical_prob": 0.075,
+      "count": 850
+    },
+    {
+      "bin": "0.2 - 0.5 (Yellow)",
+      "predicted_prob": 0.36,
+      "empirical_prob": 0.355,
+      "count": 95
+    },
+    {
+      "bin": "0.5 - 0.75 (Orange)",
+      "predicted_prob": 0.63,
+      "empirical_prob": 0.64,
+      "count": 35
+    },
+    {
+      "bin": "0.75 - 1.0 (Red)",
+      "predicted_prob": 0.89,
+      "empirical_prob": 0.885,
+      "count": 20
+    }
+  ],
+  "subgroup_fairness_audit": {
+    "General Duty (GD)": {
+      "disparate_impact_ratio": 1.01,
+      "equalized_odds": 0.96
+    },
+    "Armorer": {
+      "disparate_impact_ratio": 0.99,
+      "equalized_odds": 0.97
+    },
+    "Radio Operator": {
+      "disparate_impact_ratio": 1.0,
+      "equalized_odds": 0.98
+    },
+    "Driver": {
+      "disparate_impact_ratio": 1.02,
+      "equalized_odds": 0.95
+    },
+    "Medic": {
+      "disparate_impact_ratio": 0.98,
+      "equalized_odds": 0.97
+    }
+  },
+  "top_global_shap_factors": [
+    {
+      "feature": "consecutive_duty_days",
+      "display": "Continuous Duty Without Rest",
+      "mean_abs_shap": 0.342
+    },
+    {
+      "feature": "night_shift_density_14d",
+      "display": "14-Day Night Shift Density",
+      "mean_abs_shap": 0.285
+    },
+    {
+      "feature": "leave_denial_rate_6m",
+      "display": "6-Month Leave Denial Ratio",
+      "mean_abs_shap": 0.241
+    },
+    {
+      "feature": "hard_area_months",
+      "display": "Hard Area Deployment Tenure",
+      "mean_abs_shap": 0.198
+    },
+    {
+      "feature": "sleep_quality_trend",
+      "display": "Sleep Quality Deterioration Trend",
+      "mean_abs_shap": 0.165
+    },
+    {
+      "feature": "unit_buddy_signals_4w",
+      "display": "Unit Peer Concern Signal Density",
+      "mean_abs_shap": 0.124
+    }
+  ]
+}

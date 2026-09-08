@@ -1,0 +1,100 @@
+# =============================================================================
+# PRAHARI Defense Platform - Git Ignore Rules
+# =============================================================================
+
+# --- Environment & Secrets ---
+.env
+.env.local
+.env.*.local
+!.env.example
+*.pem
+*.key
+*.cert
+*.crt
+
+# --- Node.js & Frontend ---
+node_modules/
+**/node_modules/
+.next/
+**/.next/
+out/
+build/
+dist/
+.npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.turbo
+
+# --- Python & Backend ---
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+*.egg-info/
+.eggs/
+.pytest_cache/
+**/.pytest_cache/
+.coverage
+htmlcov/
+
+# --- Mobile (Flutter / Dart) ---
+.dart_tool/
+**/.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+.gradle/
+**/.gradle/
+**/mobile/build/
+**/mobile/.idea/
+**/android_native_build/
+
+# --- Databases & Large Runtime Binaries ---
+*.db*
+*.sqlite*
+*.zip
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+
+# --- Temporary & Generated Files ---
+*.tmp
+*.log
+COI_Dossier_*.pdf
+graphify-out/cache/
+
+# --- OS & Editor Files ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# --- Windows Junctions ---
+PS26186
+
+# --- Local Hackathon Workspace & Research Files ---
+.github/
+prahari/
+graphify-out/
+.agents/
+.knowledge/
+*.docx
+/*.txt
+!backend/requirements.txt
+!requirements.txt
+FEATURES.md
+PRAHARI_*.md

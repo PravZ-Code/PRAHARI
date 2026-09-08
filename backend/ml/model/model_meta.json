@@ -1,0 +1,104 @@
+{
+  "model_version": "v2.0-defense-calibrated",
+  "model_architecture": "Calibrated Regularized Gradient Boosted Trees (XGBoost 3.4)",
+  "trained_at": "2026-09-08T11:42:00.314678+00:00",
+  "total_features": 26,
+  "dataset": {
+    "total_samples": 1200,
+    "positive_samples": 250,
+    "negative_samples": 950,
+    "imbalance_ratio": 3.8
+  },
+  "metrics": {
+    "auroc": 0.8267,
+    "pr_auc": 0.7008,
+    "brier_score": 0.1068,
+    "ece": 0.0265,
+    "f1": 0.6154,
+    "fold_aurocs": [
+      0.8098,
+      0.8127,
+      0.8653,
+      0.8016,
+      0.8614
+    ]
+  },
+  "calibration": {
+    "method": "Platt Scaling (Empirical Logistic Sigmoid)",
+    "validation_split": "StratifiedGroupKFold (Person-Level Zero Leakage)",
+    "platt_slope": 4.9289,
+    "platt_intercept": -3.2477,
+    "brier_score": 0.1068,
+    "ece": 0.0265
+  },
+  "risk_bands": {
+    "green": [
+      0.0,
+      0.25
+    ],
+    "yellow": [
+      0.25,
+      0.5
+    ],
+    "orange": [
+      0.5,
+      0.75
+    ],
+    "red": [
+      0.75,
+      1.0
+    ]
+  },
+  "top_predictive_features": [
+    {
+      "feature": "leave_denial_rate_6m",
+      "gain": 44.9324,
+      "weight": 194
+    },
+    {
+      "feature": "hard_area_months",
+      "gain": 11.3048,
+      "weight": 137
+    },
+    {
+      "feature": "stress_level_avg_14d",
+      "gain": 11.1875,
+      "weight": 186
+    },
+    {
+      "feature": "consecutive_duty_days",
+      "gain": 10.3801,
+      "weight": 178
+    },
+    {
+      "feature": "mood_score_avg_7d",
+      "gain": 9.6761,
+      "weight": 113
+    },
+    {
+      "feature": "mood_score_avg_14d",
+      "gain": 8.8753,
+      "weight": 124
+    },
+    {
+      "feature": "months_at_current_posting",
+      "gain": 8.6904,
+      "weight": 121
+    },
+    {
+      "feature": "leave_applications_30d",
+      "gain": 7.5786,
+      "weight": 20
+    },
+    {
+      "feature": "sleep_hours_avg_7d",
+      "gain": 7.5515,
+      "weight": 247
+    },
+    {
+      "feature": "mood_score_trend",
+      "gain": 7.131,
+      "weight": 250
+    }
+  ]
+}
