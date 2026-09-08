@@ -1,4 +1,4 @@
-# 🛡️ PRAHARI (प्रहारी)
+# 🛡️ PRAHARI (प्रहरी)
 ### Smart Personnel Welfare & Fatigue Management Platform for Paramilitary Forces
 #### Developed by Team USHARP for Smart India Hackathon (SIH) 2026 | Problem Statement PS26186
 
