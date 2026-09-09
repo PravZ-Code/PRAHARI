@@ -28,11 +28,10 @@ async def get_copilot_status(
     current_user: User = Depends(require_role("welfare", "admin", "commander"))
 ):
     """
-    Checks connection status with NVIDIA AI engine and local Ollama.
+    Checks connection status with local Ollama AI engine.
     """
-    nvidia_online = bool(settings.NVIDIA_API_KEY and len(settings.NVIDIA_API_KEY) > 10)
     ollama_online = False
-    models_available = [settings.NVIDIA_MODEL]
+    models_available = [settings.OLLAMA_MODEL]
 
     try:
         timeout = httpx.Timeout(2.0, connect=1.0)
@@ -41,20 +40,19 @@ async def get_copilot_status(
             if resp.status_code == 200:
                 ollama_online = True
                 data = resp.json()
-                models_available.extend([m.get("name") for m in data.get("models", [])])
+                detected_models = [m.get("name") for m in data.get("models", [])]
+                if detected_models:
+                    models_available = detected_models
     except Exception:
         ollama_online = False
-
-    active_model = settings.NVIDIA_MODEL if settings.LLM_PROVIDER == "nvidia" else settings.OLLAMA_MODEL
 
     return {
         "status": "operational",
         "primary_provider": settings.LLM_PROVIDER,
-        "primary_model": settings.NVIDIA_MODEL,
-        "nvidia_connected": nvidia_online,
+        "primary_model": settings.OLLAMA_MODEL,
         "ollama_base_url": settings.OLLAMA_BASE_URL,
-        "ollama_target_model": active_model,
-        "ollama_connected": nvidia_online or ollama_online,
+        "ollama_target_model": settings.OLLAMA_MODEL,
+        "ollama_connected": ollama_online,
         "available_models": models_available,
         "clinical_lexicon_guardrail": "ACTIVE (Mental Healthcare Act 2017 compliant)",
         "fallback_engine": "ACTIVE (Grounded Deterministic Defense Intelligence)"

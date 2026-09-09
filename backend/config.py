@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     REQUIRE_ML_ARTIFACTS: bool = os.getenv("REQUIRE_ML_ARTIFACTS", "true").lower() == "true"
     ALLOWED_ORIGINS: str = os.getenv(
         "ALLOWED_ORIGINS",
-        "http://localhost:3000,http://127.0.0.1:3000",
+        "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173,http://localhost:3001,http://127.0.0.1:3001,http://localhost:8080,http://127.0.0.1:8080",
     )
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "prahari")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "prahari_dev_2026")
@@ -27,14 +27,10 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "prahari-jwt-secret-key-sih-2026-hackathon-secure-tokens")
     JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
     JWT_EXPIRY_HOURS: int = int(os.getenv("JWT_EXPIRY_HOURS", "24"))
-    # LLM Settings (NVIDIA Cloud API Nemotron-3 Super 120B / Local Ollama)
-    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "nvidia")
-    NVIDIA_BASE_URL: str = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
-    NVIDIA_API_KEY: str = os.getenv("NVIDIA_API_KEY", "")
-    NVIDIA_MODEL: str = os.getenv("NVIDIA_MODEL", "nvidia/nemotron-3-super-120b-a12b")
-
+    # LLM Settings (Local Ollama Intelligence Engine)
+    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "ollama")
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
-    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "phi3:mini")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "qwen3:0.6b")
 
     RATE_LIMIT_ENABLED: bool = os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "true"
 

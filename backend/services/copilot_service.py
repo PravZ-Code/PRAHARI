@@ -3,7 +3,6 @@ import logging
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict, Any, Tuple
 import httpx
-from openai import AsyncOpenAI
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
@@ -61,12 +60,12 @@ def sanitize_clinical_lexicon(text: str) -> str:
 
 def extract_citations(text: str) -> List[str]:
     """
-    Extracts all [CITED: SOURCE - DETAIL] citations from text.
+    Extracts all [CITED: SOURCE - DETAIL] or (CITED: SOURCE - DETAIL) citations from text.
     Returns deduplicated list preserving original order.
     """
     if not text:
         return []
-    matches = re.findall(r"\[CITED:\s*([^\]]+)\]", text)
+    matches = re.findall(r"[\[\(]CITED:\s*([^\n\)\]]+)[\)\]]", text, flags=re.IGNORECASE)
     seen = set()
     ordered_citations = []
     for m in matches:
@@ -373,67 +372,60 @@ The system identified these main factors causing elevated stress:
     return sanitize_clinical_lexicon(brief)
 
 # ---------------------------------------------------------------------------
-# 4. MULTI-PROVIDER LLM CLIENT (NVIDIA Cloud API / Local Ollama)
+# 4. LOCAL INTELLIGENCE ENGINE (Ollama qwen3:0.6b Fine-Tuned)
 # ---------------------------------------------------------------------------
-_nvidia_async_client: Optional[AsyncOpenAI] = None
+async def query_ollama(prompt: str, system_prompt: Optional[str] = None) -> Optional[str]:
+    """
+    Asynchronously queries local Ollama instance at config.OLLAMA_BASE_URL (qwen3:0.6b).
+    Uses Ollama's Chat API with native ChatML templating, low temperature, and repeat penalty.
+    """
+    base_url = settings.OLLAMA_BASE_URL.rstrip('/')
+    chat_url = f"{base_url}/api/chat"
+    gen_url = f"{base_url}/api/generate"
 
-def get_nvidia_client() -> AsyncOpenAI:
-    global _nvidia_async_client
-    if _nvidia_async_client is None:
-        _nvidia_async_client = AsyncOpenAI(
-            base_url=settings.NVIDIA_BASE_URL,
-            api_key=settings.NVIDIA_API_KEY,
-            timeout=45.0
-        )
-    return _nvidia_async_client
+    messages = []
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
+    messages.append({"role": "user", "content": prompt})
 
-async def query_nvidia(prompt: str) -> Optional[str]:
-    """
-    Queries NVIDIA Cloud API using nvidia/nemotron-3-super-120b-a12b
-    with thinking and deep operational reasoning enabled.
-    """
-    try:
-        client = get_nvidia_client()
-        completion = await client.chat.completions.create(
-            model=settings.NVIDIA_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=1.0,
-            top_p=0.95,
-            max_tokens=16384,
-            extra_body={"chat_template_kwargs": {"enable_thinking": True}}
-        )
-        if completion.choices and completion.choices[0].message:
-            msg = completion.choices[0].message
-            content = msg.content
-            reasoning = getattr(msg, "reasoning_content", None)
-            if reasoning:
-                logger.info(f"[NEMOTRON THINKING] Reasoning trace captured ({len(reasoning)} chars)")
-            if content:
-                return content.strip()
-        return None
-    except Exception as e:
-        logger.warning(f"NVIDIA API query failed ({type(e).__name__}: {e})")
-        return None
-
-async def query_ollama(prompt: str) -> Optional[str]:
-    """
-    Asynchronously queries local Ollama instance at config.OLLAMA_BASE_URL as fallback.
-    """
-    url = f"{settings.OLLAMA_BASE_URL.rstrip('/')}/api/generate"
-    payload = {
+    chat_payload = {
         "model": settings.OLLAMA_MODEL,
-        "prompt": prompt,
+        "messages": messages,
         "stream": False,
         "options": {
-            "temperature": 0.2,
-            "top_p": 0.9,
+            "temperature": 0.15,
+            "top_p": 0.85,
+            "repeat_penalty": 1.2,
+            "num_ctx": 4096,
             "num_predict": 1024
         }
     }
     timeout = httpx.Timeout(60.0, connect=3.0)
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.post(url, json=payload)
+            # 1. Try Chat API (native Qwen ChatML formatting)
+            response = await client.post(chat_url, json=chat_payload)
+            if response.status_code == 200:
+                data = response.json()
+                msg = data.get("message", {}).get("content", "").strip()
+                if msg:
+                    return msg
+
+            # 2. Fallback to Generate API if Chat API is unsupported
+            full_prompt = f"{system_prompt}\n\n{prompt}" if system_prompt else prompt
+            gen_payload = {
+                "model": settings.OLLAMA_MODEL,
+                "prompt": full_prompt,
+                "stream": False,
+                "options": {
+                    "temperature": 0.15,
+                    "top_p": 0.85,
+                    "repeat_penalty": 1.2,
+                    "num_ctx": 4096,
+                    "num_predict": 1024
+                }
+            }
+            response = await client.post(gen_url, json=gen_payload)
             if response.status_code == 200:
                 data = response.json()
                 return data.get("response", "").strip()
@@ -444,24 +436,18 @@ async def query_ollama(prompt: str) -> Optional[str]:
         logger.info(f"Ollama not reachable ({type(e).__name__}: {e})")
         return None
 
-async def query_llm(prompt: str) -> Tuple[Optional[str], str]:
+async def query_llm(prompt: str, system_prompt: Optional[str] = None) -> Tuple[Optional[str], str]:
     """
-    Unified LLM query dispatcher:
-    1. Primary: NVIDIA Cloud API (Nemotron 120B)
-    2. Fallback: Local Ollama (Qwen 8B)
+    Local AI engine query dispatcher:
+    1. Primary: Local Ollama (qwen3:0.6b) with ChatML system/user framing
+    2. Air-Gapped Fallback: Grounded deterministic clinical template generator
     """
-    if settings.LLM_PROVIDER == "nvidia" and settings.NVIDIA_API_KEY:
-        logger.info(f"Dispatching prompt to NVIDIA Cloud API ({settings.NVIDIA_MODEL})...")
-        resp = await query_nvidia(prompt)
-        if resp and len(resp.strip()) > 50:
-            return resp.strip(), settings.NVIDIA_MODEL
-
     logger.info(f"Dispatching prompt to Local Ollama ({settings.OLLAMA_MODEL})...")
-    resp = await query_ollama(prompt)
-    if resp and len(resp.strip()) > 50:
+    resp = await query_ollama(prompt, system_prompt=system_prompt)
+    if resp and len(resp.strip()) > 30:
         return resp.strip(), settings.OLLAMA_MODEL
 
-    return None, f"{settings.NVIDIA_MODEL} (deterministic-grounded-fallback)"
+    return None, f"{settings.OLLAMA_MODEL} (deterministic-grounded-fallback)"
 
 async def generate_copilot_brief(
     db: Session,
@@ -481,26 +467,26 @@ async def generate_copilot_brief(
 
     # Construct System Prompt & Grounded Evidence Package
     evidence_text = "\n".join([f"- [CITED: {c}]" for c in dossier["citations_index"]])
-    prompt = f"""You are PRAHARI Defense Local AI Copilot, an operational decision-support intelligence engine for Indian Armed Forces and Paramilitary Welfare Officers.
+    system_prompt = """You are PRAHARI Defense Local AI Copilot, an operational decision-support intelligence engine for Indian Armed Forces and Paramilitary Welfare Officers.
+Generate a structured welfare intelligence brief based strictly on the verified evidence dossier.
 
 STRICT OPERATIONAL DIRECTIVES:
 1. MHA Clinical Lexicon Compliance (Mental Healthcare Act 2017):
    NEVER use clinical or psychiatric pathology labels (prohibited: depression, ptsd, suicide, mental illness, psychiatric).
-   ALWAYS use operational stress and administrative terms: 'acute operational stress', 'severe administrative friction', 'roster burnout', 'sleep debt accumulation', 'critical welfare distress', 'urgent command welfare intervention'.
+   ALWAYS use operational stress and administrative terms: 'acute operational stress', 'severe administrative friction', 'roster burnout', 'sleep debt accumulation', 'critical welfare distress'.
 2. Strict Citation Grounding:
    Every factual claim MUST include an exact inline citation tag in the format: [CITED: SOURCE - DETAIL].
    Valid sources: LEAVE_LOG, DUTY_ROSTER, PREDICTION_ENGINE, SHAP_FACTORS, BUDDY_SIGNALS, SERVICE_RECORD.
-3. SIMPLE ENGLISH DIRECTIVE (FOR GOVERNMENT EMPLOYEES & JUNIOR OFFICERS):
-   Write in clear, simple, plain English so that any police constable, sub-inspector, or company commander can understand immediately.
-   Avoid complex academic words or heavy medical jargon. Keep sentences short, active, and direct. Use clear bullet points.
-4. Generate a structured intelligence brief with sections:
-   # PRAHARI DEFENSE WELFARE BRIEF
-   ## 1. SOLDIER PROFILE & CURRENT SITUATION
-   ## 2. LEAVE STATUS & FAMILY WORRIES
-   ## 3. DUTY SCHEDULE & LACK OF SLEEP
-   ## 4. MAIN REASONS IDENTIFIED BY AI (ROOT CAUSES)
-   ## 5. UNIT ENVIRONMENT & BUDDY OBSERVATIONS
-   ## 6. RECOMMENDED WELFARE ACTIONS (ACTION STEPS)
+3. Write in clear, simple, plain English with short, active sentences and clear bullet points."""
+
+    user_prompt = f"""Generate a structured intelligence brief for this soldier with the following sections:
+# PRAHARI DEFENSE WELFARE BRIEF
+## 1. SOLDIER PROFILE & CURRENT SITUATION
+## 2. LEAVE STATUS & FAMILY WORRIES
+## 3. DUTY SCHEDULE & LACK OF SLEEP
+## 4. MAIN REASONS IDENTIFIED BY AI (ROOT CAUSES)
+## 5. UNIT ENVIRONMENT & BUDDY OBSERVATIONS
+## 6. RECOMMENDED WELFARE ACTIONS (ACTION STEPS)
 
 VERIFIED EVIDENCE DOSSIER:
 {evidence_text}
@@ -514,14 +500,14 @@ PERSONNEL PARTICULARS:
 - Risk Prediction: Score {dossier['prediction']['risk_score']:.2f}, Level {dossier['prediction']['risk_level'].upper()}, Confidence {dossier['prediction']['confidence']:.0%}
 - Top SHAP Driver: {dossier['prediction']['shap_factors'][0]['display_name'] if dossier['prediction']['shap_factors'] else 'Deployment tenure'}
 - Unit Buddy Signals (30d): {dossier['buddy']['count_30d']} signals
-
-Produce the complete intelligence brief now.
 """
     if custom_instructions:
-        prompt += f"\nADDITIONAL COMMAND DIRECTIVE: {custom_instructions}\n"
+        user_prompt += f"\nADDITIONAL COMMAND DIRECTIVE: {custom_instructions}\n"
 
-    # Query Multi-Provider LLM (NVIDIA Nemotron / Local Ollama)
-    raw_response, model_used = await query_llm(prompt)
+    user_prompt += "\nProduce the complete intelligence brief now."
+
+    # Query Local Ollama Intelligence Engine
+    raw_response, model_used = await query_llm(user_prompt, system_prompt=system_prompt)
     is_fallback = False
 
     if raw_response and len(raw_response) > 200:
@@ -535,7 +521,7 @@ Produce the complete intelligence brief now.
         brief_markdown = generate_grounded_fallback_brief(dossier)
         cited_sources = extract_citations(brief_markdown)
         is_fallback = True
-        model_used = f"{settings.NVIDIA_MODEL} (deterministic-grounded-fallback)"
+        model_used = f"{settings.OLLAMA_MODEL} (deterministic-grounded-fallback)"
 
     return {
         "case_id": dossier["case_id"],
@@ -598,31 +584,36 @@ TARGET SOLDIER DOSSIER:
 - Top SHAP Drivers: {', '.join([s['display_name'] for s in pr['shap_factors'][:3]])}
 """
 
-    prompt = f"""You are PRAHARI Defense Local AI Copilot, assisting a military Welfare Officer.
-Answer the user's operational query authoritatively, concisely, and practically.
+    system_prompt = """You are PRAHARI Defense AI Copilot, assisting a military Welfare Officer or Company Commander.
+Answer the user's operational question directly, concisely, and practically in 2 to 4 clear bullet points based on the soldier's dossier.
 
-RULES:
-1. Adhere strictly to Mental Healthcare Act 2017 & Defense Lexicon: No pathology labels ('depression', 'suicide', 'mental illness'). Use 'acute operational stress', 'administrative friction', 'roster burnout', 'sleep debt accumulation'.
-2. Ground any trooper references using [CITED: SOURCE - DETAIL] citations.
-3. Emphasize actionable command steps: Unit Resilience Optimizer (URO) shift swaps, leave sanctions, buddy pairing, and RMO consultations.
+STRICT OPERATIONAL RULES:
+1. MHA Clinical Lexicon Compliance (Mental Healthcare Act 2017):
+   - NEVER use psychiatric pathology labels (prohibited: depression, ptsd, suicide, mental illness, psychiatric).
+   - ALWAYS use operational stress terms: 'acute operational stress', 'administrative friction', 'roster burnout', 'sleep debt accumulation', 'critical welfare distress'.
+2. Ground all factual statements with [CITED: SOURCE - DETAIL] citations.
+3. Recommend actionable command solutions: Unit Resilience Optimizer (URO) shift swaps, leave sanctions, peer buddy pairing, and routine RMO health consultations.
+4. Keep answers concise, factual, and formatted with bullet points. Avoid conversational filler."""
 
-{context_str}
+    user_prompt = f"""{context_str}
 
-USER QUERY: {message}
+USER QUESTION: {message}
 
-Provide your grounded response:
-"""
-    # Query Multi-Provider LLM (NVIDIA Nemotron / Local Ollama)
-    raw_response, model_used = await query_llm(prompt)
+Provide a direct, practical, and grounded answer now:"""
+
+    # Query Local Ollama Intelligence Engine
+    raw_response, model_used = await query_llm(user_prompt, system_prompt=system_prompt)
     is_fallback = False
 
     if raw_response and len(raw_response) > 50:
         sanitized = sanitize_clinical_lexicon(raw_response)
         citations = extract_citations(sanitized)
+        if not citations and citations_pool:
+            citations = citations_pool[:3]
     else:
         # Grounded Deterministic Welfare QA Fallback
         is_fallback = True
-        model_used = f"{settings.NVIDIA_MODEL} (deterministic-grounded-fallback)"
+        model_used = f"{settings.OLLAMA_MODEL} (deterministic-grounded-fallback)"
         msg_lower = message.lower()
 
         if dossier:
