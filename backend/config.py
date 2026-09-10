@@ -24,7 +24,7 @@ class Settings(BaseSettings):
         f"sqlite:///{os.path.join(os.path.dirname(os.path.abspath(__file__)), 'prahari.db')}"
     )
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "prahari-jwt-secret-key-sih-2026-hackathon-secure-tokens")
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "prahari-dev-secret-key-mha-defense-grid-2026-secure")
     JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
     JWT_EXPIRY_HOURS: int = int(os.getenv("JWT_EXPIRY_HOURS", "24"))
     # LLM Settings (Local Ollama Intelligence Engine)
@@ -39,13 +39,15 @@ class Settings(BaseSettings):
 settings = Settings()
 
 if settings.APP_ENV == "production":
-    if (
-        settings.JWT_SECRET_KEY == "prahari-jwt-secret-key-sih-2026-hackathon-secure-tokens"
-        or len(settings.JWT_SECRET_KEY) < 32
-    ):
+    if not settings.JWT_SECRET_KEY or settings.JWT_SECRET_KEY == "prahari-dev-secret-key-mha-defense-grid-2026-secure":
         raise ValueError(
             "FATAL SECURITY ERROR: Insecure or default JWT_SECRET_KEY detected in production environment! "
             "Set a cryptographically strong JWT_SECRET_KEY of at least 32 characters in your environment."
+        )
+    if len(settings.JWT_SECRET_KEY) < 32:
+        raise ValueError(
+            "FATAL SECURITY ERROR: JWT_SECRET_KEY is too short (must be at least 32 characters). "
+            "Generate a strong key using: openssl rand -hex 32"
         )
 
 

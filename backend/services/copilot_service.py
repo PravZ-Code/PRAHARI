@@ -238,15 +238,15 @@ def gather_trooper_dossier(
         from services.conflict_service import analyze_evidence_conflict
         conflict_rep = analyze_evidence_conflict(db, personnel.id)
         citations_index.append(f"EVIDENCE_CONFLICT - {conflict_rep.conflict_type} (Severity: {conflict_rep.severity}, Org Burden: {conflict_rep.organizational_burden_score:.2f}, Self Strain: {conflict_rep.self_reported_strain_score:.2f})")
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"Failed to analyze evidence conflict: {e}")
 
     try:
         from services.trend_service import analyze_personnel_trend
         trend_rep = analyze_personnel_trend(db, personnel.id)
         citations_index.append(f"LONGITUDINAL_TREND - {trend_rep.trajectory_classification} (Risk velocity: {trend_rep.velocity_score:+.2f}/30d, 30d Delta: {trend_rep.delta_risk:+.2f})")
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"Failed to analyze trend: {e}")
 
     return {
         "case_id": case_id or (welfare_case.id if welfare_case else "N/A"),

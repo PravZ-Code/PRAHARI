@@ -81,4 +81,5 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             response.headers.setdefault("Referrer-Policy", "no-referrer")
             response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
             response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
+            response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
         return response

@@ -89,7 +89,9 @@ def get_welfare_case_detail(db: Session, case_id: str) -> Optional[Dict[str, Any
     pred_summary = None
     if pred:
         raw_factors = pred.shap_values or []
-        total_abs = sum(abs(f.get("impact", 0.0)) for f in raw_factors) or 1.0
+        total_abs = sum(abs(f.get("impact", 0.0)) for f in raw_factors)
+        if total_abs == 0:
+            total_abs = 1.0
         shap_factors = []
         for factor in raw_factors:
             feat = factor.get("feature", "")
