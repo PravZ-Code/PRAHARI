@@ -123,7 +123,7 @@ def get_db_path() -> Path:
     return preferred
 
 def find_python():
-    """Locate the Python runtime shipped with the distribution."""
+    """Locate the Python runtime shipped with the distribution or on system PATH."""
     bundled = [
         PRAHARI_DIR / "runtime" / "python" / "python.exe",
         PRAHARI_DIR / "runtime" / "python" / "pythonw.exe",
@@ -133,33 +133,35 @@ def find_python():
             return str(candidate)
     if not getattr(sys, 'frozen', False):
         return sys.executable
+    p = shutil.which("python.exe") or shutil.which("python")
+    if p:
+        return p
     return ""
 
 def find_pythonw():
-    """Locate the bundled pythonw.exe without using a machine installation."""
+    """Locate pythonw or python on system PATH or bundled."""
     bundled = PRAHARI_DIR / "runtime" / "python" / "pythonw.exe"
     if bundled.exists():
         return str(bundled)
     py = find_python()
-    if py and os.path.isabs(py) and not getattr(sys, "frozen", False):
+    if py and os.path.isabs(py):
         candidate = os.path.join(os.path.dirname(py), "pythonw.exe")
         if os.path.exists(candidate):
             return candidate
-    return py if py and not getattr(sys, "frozen", False) else ""
+    pw = shutil.which("pythonw.exe") or shutil.which("pythonw")
+    if pw:
+        return pw
+    return py or ""
 
 def find_node():
-    """Locate the Node.js runtime shipped with the distribution."""
+    """Locate the Node.js runtime shipped with the distribution or on system PATH."""
     bundled = PRAHARI_DIR / "runtime" / "node" / "node.exe"
     if bundled.exists():
         return str(bundled)
-    if not getattr(sys, "frozen", False):
-        return shutil.which("node.exe") or shutil.which("node") or ""
-    return ""
+    return shutil.which("node.exe") or shutil.which("node") or ""
 
 def find_npm():
-    """Locate npm only for source-development mode; production is standalone."""
-    if getattr(sys, "frozen", False):
-        return ""
+    """Locate npm on system PATH or bundled."""
     return shutil.which("npm.cmd") or shutil.which("npm") or ""
 
 def find_ollama():
@@ -530,8 +532,25 @@ class ServiceManager:
         py_bin = find_pythonw()
         backend_exe = bundled_backend_executable()
         if not backend_exe and not py_bin:
-            self.log("Backend runtime missing. Install the portable PRAHARI package with runtime\\python or backend\\PRAHARI_Backend.exe.")
+            self.log("Backend runtime missing. Please ensure Python is installed or present in runtime\\python.")
             return False
+
+        # Auto-seed database if missing
+        db_file = get_db_path()
+        if not db_file.exists():
+            self.log("Database prahari.db not found. Auto-seeding 1,000-troop battalion...")
+            try:
+                py_cli = find_python()
+                if py_cli:
+                    subprocess.run(
+                        [py_cli, "-m", "scripts.seed_db"],
+                        cwd=str(BACKEND_DIR),
+                        capture_output=True,
+                        timeout=45
+                    )
+                    self.log("Database initialized successfully.")
+            except Exception as e:
+                self.log(f"Database auto-seed notice: {e}")
 
         self.log(
             f"Starting FastAPI Backend via {backend_exe or py_bin} on port 8000..."
@@ -606,7 +625,7 @@ class ServiceManager:
         env["NEXT_TELEMETRY_DISABLED"] = "1"
 
         if not node_bin:
-            self.log("Frontend runtime missing. Install the portable PRAHARI package with runtime\\node\\node.exe.")
+            self.log("Frontend runtime missing. Please ensure Node.js is installed or present in runtime\\node\\node.exe.")
             frontend_log.close()
             return False
 
@@ -625,23 +644,20 @@ class ServiceManager:
             standalone_dir = FRONTEND_DIR / ".next" / "standalone"
             cmd = [node_bin, "server.js"]
             self.log("Starting Next.js Portal on port 3000 (standalone)...")
-        elif not getattr(sys, "frozen", False) and next_bin.exists():
+        elif next_bin.exists():
             standalone_dir = FRONTEND_DIR
             cmd = [node_bin, str(next_bin), "start"]
             self.log("Starting Next.js Portal on port 3000 (next start)...")
-        elif not getattr(sys, "frozen", False):
+        else:
             npm_bin = find_npm()
-            if not npm_bin:
-                self.log("npm is unavailable in development mode.")
+            if npm_bin:
+                standalone_dir = FRONTEND_DIR
+                cmd = [npm_bin, "run", "start"]
+                self.log("Starting Next.js Portal on port 3000 (npm run start)...")
+            else:
+                self.log("Frontend production bundle is missing .next\\standalone\\server.js or node_modules.")
                 frontend_log.close()
                 return False
-            standalone_dir = FRONTEND_DIR
-            cmd = [npm_bin, "run", "start"]
-            self.log("Starting Next.js Portal on port 3000 (npm run start)...")
-        else:
-            self.log("Frontend production bundle is missing .next\\standalone\\server.js.")
-            frontend_log.close()
-            return False
 
         try:
             self.procs["frontend"] = subprocess.Popen(

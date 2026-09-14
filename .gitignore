@@ -43,6 +43,7 @@ runtime/
 logs/
 .agents/
 *.exe
+!PRAHARI_Launcher.exe
 *.zip
 *.ps1
 build_production_zip.py

@@ -213,16 +213,27 @@ PRAHARI/
 
 ## 🚀 Easy Setup Guide (How to Run Locally)
 
-You can set up and explore the backend in just a few minutes:
+### ⚡ Quickest Start (1-Click Windows Launcher)
+Simply double-click **`PRAHARI_Launcher.exe`** in the root directory!
+* Starts the entire 4-service platform: **FastAPI Backend (port 8000)**, **Next.js Web Portal (port 3000)**, **Flutter Mobile Server (port 8080)**, and **Local AI Engine (port 11434)**.
+* Automatically initializes and seeds the **1,000-troop paramilitary battalion** on first launch if `prahari.db` is not present.
+* Real-time telemetry, deep HTTP health probes, socket latency indicators, and live SQLite database inspection.
 
-### Step 1: Clone the Repository
+---
+
+### Manual / Developer Setup Guide
+
+You can also run services independently from source:
+
+#### Step 1: Clone the Repository
 ```bash
 git clone https://github.com/PravZ-Code/PRAHARI.git
-cd PRAHARI/backend
+cd PRAHARI
 ```
 
-### Step 2: Install Required Packages
+#### Step 2: Backend Setup
 ```bash
+cd backend
 pip install -r requirements.txt
 ```
 
