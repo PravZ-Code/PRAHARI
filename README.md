@@ -120,45 +120,45 @@ flowchart TB
 
 ## ✨ Key Features Explained in Simple Terms
 
-### 1. 📋 72-Hour Emergency Leave Fast-Lane
-When a soldier applies for leave due to a family medical emergency, PRAHARI starts an automated 12-hour decision countdown. Standard requests use 72 hours. If a deadline is missed, the system escalates the request to higher welfare authorities without requiring the soldier to re-petition.
+### 1. 📋 Self-Service Welfare & 12h/72h Leave Fast-Lane
+Soldiers can apply directly for annual leave, welfare assistance, or emergency support from their phone, web portal, or field post. Urgent family medical crises automatically enter a **12-hour statutory emergency decision lane**, while standard requests follow a strict **72-hour resolution target**. If an approval deadline is missed, the request automatically escalates up the chain of command without the soldier having to beg or re-petition.
 
-### 2. 🛡️ 100% Confidentiality & Stigma-Free Design
-Under Section 21 of the Mental Healthcare Act 2017, a soldier's personal well-being is private. PRAHARI ensures company commanders only see operational fatigue tags (like *"Needs Rest Rotation"* or *"Rest Compliant"*). Sensitive personal details remain strictly confidential between the soldier and the welfare counselor.
+### 2. 🛡️ AI as a Protective Safety Net (Support Before Prediction)
+Many soldiers suffer in silence due to fear of stigma, career consequences, or losing their weapons. PRAHARI's AI acts as a quiet safety net: it looks strictly at objective operational signals (such as long streaks of night shifts, cancelled rest, and denied leave) to spot deteriorating wellbeing *before* exhaustion sets in. It provides early rest and relief without ever labeling the soldier as "high-risk" or punitive.
 
-### 3. ⚖️ Smart Duty Swap Optimizer
-When a soldier has worked multiple night watches in a row, PRAHARI suggests fair duty swaps. Crucially:
-* It matches soldiers with identical trades (for example: an Armorer is only swapped with another qualified Armorer).
-* It enforces a mandatory **8-hour continuous rest window** before any soldier is assigned back to post.
-* Both the field commander and welfare officer review and approve the roster before it goes live.
+### 3. ⚖️ Welfare-Aware Duty Planning & Smart Swaps
+When an exhausted soldier needs rest, PRAHARI's intelligent roster assistant suggests fair duty swaps rather than leaving a post vacant:
+* **Exact Skill Matching**: An Armorer is only swapped with another qualified Armorer; a Radio Operator with a Radio Operator.
+* **8-Hour Rest Barrier**: It guarantees a mandatory 8 hours of continuous sleep before any soldier returns to guard duty.
+* **Squad Protection**: It verifies that swapping a soldier does not create an operational shortage or leave the base vulnerable.
 
-### 4. 🔗 Tamper-Evident Record Keeping
-Every shift change, leave decision, and welfare action is saved in a cryptographically chained digital log (SHA-256). Any tampering is immediately detectable through hash-chain verification. If a formal Court of Inquiry is required, an official, verifiable electronic dossier can be generated with a single click.
+### 4. 🤝 Human-in-the-Loop Dual Approval
+PRAHARI never makes automated or unilateral changes to duty rosters. Any suggested shift swap or leave intervention requires explicit co-signatures from **both the Company Commander (operational readiness) and the Welfare Officer (soldier wellbeing)** before it goes live. Technology recommends; human commanders decide.
 
-### 5. 📡 Multi-Modal Access (Made for Real Paramilitary Conditions)
-* **Mobile App (Prahari Bandhu)**: Works completely offline in remote operating bases and syncs automatically when connection returns.
-* **Keypad Phone Support (Prahari Vani)**: Troops can dial an automated helpline from any basic 2G feature phone and use simple keypad numbers to check leave or request support.
-* **Air-Gap USB Sync**: In high-security or radio-silent areas, welfare reports can be transferred securely using encrypted USB files.
+### 5. ⏱️ Resolution Tracking & Bottleneck Detection
+Every grievance, leave request, and welfare intervention is tracked through an open 6-stage lifecycle with a live countdown clock. PRAHARI actively pinpoints command bottlenecks—showing whether delays are occurring at the Company, Battalion, or Headquarters level—ensuring accountability and eliminating "lost in paperwork" excuses.
 
-### 6. 🧠 Calibrated Prospective AI & Multi-Horizon Trajectories
-Predicts true forward-looking 14-day strain escalation ($Y([T_0, T_0 + 14d])$) derived strictly from subsequent duty outcomes, eliminating synthetic circularity. Validated via 5-fold `StratifiedGroupKFold` (zero soldier leakage) across 2,002 longitudinal records. Features Platt scaling calibration ($ECE = 0.0378$, Brier = $0.0922$), multi-horizon forecasting (7d, 14d, 30d), dynamic trajectory classification, and automated model abstention when data completeness is $<40\%$.
+### 6. 📈 Recovery & Outcome Tracking
+Most systems forget about a soldier the moment leave is approved. PRAHARI follows up after the intervention (tracking wellbeing at 7, 14, and 30-day intervals) to measure whether the soldier has actually recovered and if the relief provided was effective.
 
-### 7. 🔍 Soldier Transparency & 48-Hour Data Dispute Redressal
-In compliance with the Digital Personal Data Protection Act, 2023, frontline personnel can inspect a transparent log of every officer who has viewed their welfare data (`/access-log`) and submit formal dispute grievances on incorrect duty records with a mandatory 48-hour statutory SLA.
+### 7. ⚖️ Helper Burnout Guard (Intervention Equity)
+When an exhausted soldier is relieved, someone else steps in to cover. To prevent the "willing worker" trap, PRAHARI audits replacement duty distribution over 30 and 90 days. If the same well-rested soldier is being repeatedly overburdened as a substitute, the system raises a **Helper Burnout Alert** to protect team morale.
 
-### 8. 📊 Resolution Bottleneck Detection & Company League Table (Section 12)
-Aggregates force-wide welfare resolution performance (`/api/grievance/resolution-bottlenecks`), ranking company compliance (% within SLA), isolating approval bottleneck tiers (Company Commander vs. Battalion Desk vs. Commandant), and highlighting frequent request delays.
+### 8. 🔍 Soldier Privacy Shield & DPDP Act Transparency
+* **Privacy Firewall**: Company commanders only see operational fatigue tags (e.g., *"Needs Rest Rotation"* or *"Rest Compliant"*), never confidential personal or psychological counseling notes.
+* **"Who Viewed My Data?" Log**: In full compliance with India's Digital Personal Data Protection (DPDP) Act 2023, every soldier can view an unalterable log showing every officer who inspected their welfare file.
+* **48-Hour Dispute Redressal**: Troops can formally challenge incorrect duty records or unrecorded rest days with a mandatory 48-hour resolution SLA.
 
-### 9. 🏥 Intervention Effectiveness Registry (Section 28)
-Empirically tracks the recovery success rate across standard intervention archetypes (`/api/resilience/intervention-effectiveness`), comparing historical efficacy (24h rest: 88.4%, leave: 94.1%), average days to recovery, and operational friction scores.
+### 9. 🔗 Tamper-Proof Digital Ledger (Court of Inquiry Ready)
+Every roster adjustment, leave approval, and welfare action is permanently recorded in a cryptographically chained digital log (SHA-256). Any unauthorized alteration breaks the cryptographic hash and is immediately detected. If a formal inquiry is conducted under Section 63 of the Bharatiya Sakshya Adhiniyam (BSA) 2023, an unalterable legal dossier with verification QR codes can be exported in one click.
 
-### 10. ⚖️ Intervention Equity Audit & Helper Burnout Alert (Section 29)
-Audits replacement duty distribution within tactical companies (`/api/resilience/intervention-equity/{unit_id}`) over 30 and 90-day windows, raising an automated `INTERVENTION_EQUITY_ALERT` to prevent repeatedly burdening the same well-rested soldiers.
+### 10. 📡 Multi-Modal Access (Engineered for Forward Borders)
+* **PRAHARI Bandhu (Mobile App)**: Operates completely offline at remote forward outposts; queues check-ins and emergency requests locally, syncing seamlessly when connectivity is restored.
+* **Prahari Vani (2G Keypad Phone Helpline)**: Jawans with basic feature phones can dial a toll-free helpline and use simple touch-tone keypad numbers (1–9) to check leave status or request emergency callbacks.
+* **Air-Gap USB Sync**: In high-security radio-silent or air-gapped posts, encrypted welfare reports and roster data can be transferred safely via removable media with cryptographic integrity checks.
 
-### 11. 📈 Welfare Debt Composite Index (Section 31)
-A non-punitive, explainable 0–100 scalar backlog metric (`/api/commander/unit/{unit_id}/welfare-debt`) combining unresolved grievance backlogs (35%), rest deficit overload (35%), and reserve depletion (30%), providing commanders with clear institutional pressure diagnostics.
-
----
+### 11. 🚀 One-Click Master Launcher (`PRAHARI_Launcher.exe`)
+No complex command lines or developer setups required. Anyone can run the entire platform by double-clicking `PRAHARI_Launcher.exe`. It automatically provisions a realistic 1,000-troop battalion database, starts the defense backend, web portal, mobile server, and AI engine in background mode without popup windows, and provides real-time system health meters.
 
 ---
 
