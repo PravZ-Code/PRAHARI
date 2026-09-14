@@ -15,6 +15,7 @@ from models.personnel import Unit, Personnel
 from models.leave import LeaveRecord
 from models.duty_roster import DutyRoster
 from models.prediction import RiskPrediction
+from models.grievance import GrievanceRequest
 
 
 def compute_structural_stress_attribution(db: Session, unit_id: str) -> Dict[str, Any]:
@@ -177,3 +178,159 @@ def compute_structural_stress_attribution(db: Session, unit_id: str) -> Dict[str
         "actionable_self_correction_recommendations": recommendations,
         "battalion_oversight_escalation_required": escalate_to_hq
     }
+
+
+def compute_unit_welfare_debt(db: Session, unit_id: str) -> Dict[str, Any]:
+    """
+    Section 31: Welfare Debt.
+    A PRAHARI concept representing accumulated unresolved welfare pressure,
+    not a medical score.
+    Combines:
+    - Delayed welfare requests & unresolved grievances (35%)
+    - Rest deficit & repeated workload overload (35%)
+    - Depleted welfare reserve & deferred recovery interventions (30%)
+    """
+    unit = db.query(Unit).filter(Unit.id == unit_id).first()
+    if not unit:
+        raise ValueError(f"Unit {unit_id} not found")
+
+    personnel_list = db.query(Personnel).filter(Personnel.unit_id == unit_id).all()
+    p_ids = [p.id for p in personnel_list]
+
+    if not p_ids:
+        return {
+            "unit_id": unit_id,
+            "unit_name": unit.name,
+            "welfare_debt_score": 0.0,
+            "welfare_debt_level": "LOW",
+            "primary_contributors": ["No active personnel assigned to unit."],
+            "simple_verdict": "No welfare debt data available."
+        }
+
+    # 1. Unresolved Grievances & SLA Breaches (35% weight)
+    grievances = db.query(GrievanceRequest).filter(GrievanceRequest.personnel_id.in_(p_ids)).all()
+    tot_g = len(grievances)
+    unresolved_g = [g for g in grievances if g.status not in ("resolved", "approved")]
+    breached_g = [g for g in grievances if g.sla_breached]
+    family_crises_pending = [
+        g for g in unresolved_g
+        if (g.category or "").lower() in ("family_emergency", "bereavement", "family_crisis", "acute_domestic_crisis")
+    ]
+
+    if tot_g > 0:
+        raw_g_score = ((len(unresolved_g) * 1.5) + (len(breached_g) * 3.0) + (len(family_crises_pending) * 4.0)) / max(1, tot_g * 1.5)
+        grievance_component = min(100.0, raw_g_score * 100.0)
+    else:
+        grievance_component = 15.0
+
+    # 2. Rest Deficit & Duty Overload (35% weight)
+    # Consecutive night duties and long streaks
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    cutoff_30d = (now - timedelta(days=30)).date()
+    night_shifts = db.query(
+        DutyRoster.personnel_id,
+        func.count(DutyRoster.id).label("cnt")
+    ).filter(
+        DutyRoster.unit_id == unit_id,
+        DutyRoster.date >= cutoff_30d,
+        DutyRoster.shift_type == "night"
+    ).group_by(DutyRoster.personnel_id).all()
+    night_counts = [r[1] for r in night_shifts]
+    high_night_troopers = sum(1 for c in night_counts if c >= 8)
+
+    # Consecutive days without rest (true calendar-consecutive streaks)
+    rosters_30d = db.query(DutyRoster.personnel_id, DutyRoster.date).filter(
+        DutyRoster.unit_id == unit_id,
+        DutyRoster.date >= cutoff_30d
+    ).order_by(DutyRoster.personnel_id, DutyRoster.date.asc()).all()
+    duty_dates_by_p: Dict[str, list] = {}
+    for pid, d_date in rosters_30d:
+        duty_dates_by_p.setdefault(pid, []).append(d_date)
+
+    streaks_exceeded = 0
+    for pid, dlist in duty_dates_by_p.items():
+        sorted_dates = sorted(set(dlist))
+        cur_streak = 1
+        max_streak = 1 if sorted_dates else 0
+        for idx in range(1, len(sorted_dates)):
+            if (sorted_dates[idx] - sorted_dates[idx - 1]).days == 1:
+                cur_streak += 1
+                max_streak = max(max_streak, cur_streak)
+            else:
+                cur_streak = 1
+        if max_streak >= 10:
+            streaks_exceeded += 1
+
+    rest_component = min(100.0, (streaks_exceeded * 12.0) + (high_night_troopers * 8.0) + 15.0)
+
+    # 3. Reserve Depletion & Deferred Interventions (30% weight)
+    from services.welfare_resilience_service import compute_welfare_reserve
+    reserve_data = compute_welfare_reserve(db, unit_id)
+    reserve_pct = reserve_data.get("reserve_percentage", 25.0)
+
+    if reserve_pct < 15.0:
+        reserve_component = 85.0
+    elif reserve_pct < 25.0:
+        reserve_component = 55.0
+    elif reserve_pct < 35.0:
+        reserve_component = 35.0
+    else:
+        reserve_component = 12.0
+
+    # Composite Score
+    welfare_debt_score = round(
+        (0.35 * grievance_component) + (0.35 * rest_component) + (0.30 * reserve_component),
+        1
+    )
+
+    if welfare_debt_score < 30.0:
+        welfare_debt_level = "LOW"
+    elif welfare_debt_score < 60.0:
+        welfare_debt_level = "MODERATE"
+    elif welfare_debt_score < 80.0:
+        welfare_debt_level = "HIGH"
+    else:
+        welfare_debt_level = "CRITICAL"
+
+    # Primary Contributors (Section 31 specification format)
+    contributors = []
+    if family_crises_pending:
+        contributors.append(f"unresolved family request ({len(family_crises_pending)} active)")
+    if streaks_exceeded > 0 or high_night_troopers > 0:
+        contributors.append(f"repeated rest deficit ({streaks_exceeded} extended streaks, {high_night_troopers} high night shifts)")
+    if len(breached_g) > 0:
+        contributors.append(f"repeated unresolved grievance ({len(breached_g)} SLA breached)")
+    if reserve_pct < 20.0:
+        contributors.append(f"deferred recovery intervention (welfare reserve low at {reserve_pct}%)")
+
+    if not contributors:
+        contributors.append("Normal operational rotation, minimal welfare accumulation")
+
+    return {
+        "unit_id": unit_id,
+        "unit_name": unit.name,
+        "welfare_debt_score": welfare_debt_score,
+        "welfare_debt_level": welfare_debt_level,
+        "primary_contributors": contributors,
+        "component_breakdown": {
+            "unresolved_grievance_pressure": round(grievance_component, 1),
+            "rest_deficit_pressure": round(rest_component, 1),
+            "reserve_depletion_pressure": round(reserve_component, 1)
+        },
+        "metrics_summary": {
+            "pending_grievances": len(unresolved_g),
+            "sla_breaches": len(breached_g),
+            "pending_family_crises": len(family_crises_pending),
+            "troopers_with_duty_streaks": streaks_exceeded,
+            "welfare_reserve_percentage": reserve_pct
+        },
+        "non_punitive_disclaimer": (
+            "Welfare Debt measures administrative backlog and systemic workload friction, "
+            "never individual soldier capability or disciplinary standing."
+        ),
+        "simple_verdict": (
+            f"Welfare Debt is {welfare_debt_level} ({welfare_debt_score}/100). "
+            f"Primary friction: {', '.join(contributors[:2])}."
+        )
+    }
+

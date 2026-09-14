@@ -38,12 +38,13 @@ def analyze_evidence_conflict(db: Session, personnel_id: str) -> EvidenceConflic
             break
 
     # 2. HR & LEAVE ADMINISTRATION
+    cutoff_180d = now.date() - timedelta(days=180)
     leave_records = db.query(LeaveRecord).filter(
         LeaveRecord.personnel_id == personnel_id,
-        LeaveRecord.start_date >= (now.date() - timedelta(days=180))
+        (LeaveRecord.applied_date >= cutoff_180d) | (LeaveRecord.start_date >= cutoff_180d)
     ).all()
     total_leaves = len(leave_records)
-    denied_leaves = sum(1 for l in leave_records if l.status == "rejected")
+    denied_leaves = sum(1 for l in leave_records if (l.status or "").lower() in ("denied", "rejected"))
     leave_denial_rate = (denied_leaves / total_leaves) if total_leaves > 0 else 0.0
 
     hard_area_months = personnel.hard_area_months or 0
@@ -91,9 +92,9 @@ def analyze_evidence_conflict(db: Session, personnel_id: str) -> EvidenceConflic
     buddy_count = len(buddy_signals)
     buddy_factor = min(1.0, buddy_count / 5.0)
 
-    # 5. MATHEMATICAL STOIC MASKING DECEPTION INDEX (SMDI)
-    # SMDI = 1 / (1 + exp(-k * (alpha * OrgBurden + beta * Buddy - gamma * SelfStrain - theta)))
-    # High score (> 0.65) indicates active concealment/masking under military stigma pressure.
+    # 5. MATHEMATICAL SIGNAL DISCORDANCE / STOIC CONCEALMENT INDEX (SDI / SMDI)
+    # SDI = 1 / (1 + exp(-k * (alpha * OrgBurden + beta * Buddy - gamma * SelfStrain - theta)))
+    # High score (> 0.65) indicates potential under-reporting under operational stoicism / stigma pressure.
     logit = 6.0 * (0.50 * org_burden + 0.30 * buddy_factor - 0.45 * self_strain - 0.15)
     smdi_score = round(1.0 / (1.0 + math.exp(-logit)), 4)
 
@@ -108,21 +109,21 @@ def analyze_evidence_conflict(db: Session, personnel_id: str) -> EvidenceConflic
             severity = "CRITICAL"
 
             narrative = (
-                f"CRITICAL Evidence conflict with peer corroboration: Self-reported strain is low ({self_strain:.2f}/1.0), "
-                f"contradicted by heavy operational duty indicators ({org_burden:.2f}/1.0) "
+                f"CRITICAL Evidence discordance with peer corroboration: Self-reported strain is low ({self_strain:.2f}/1.0), "
+                f"in sharp contrast to heavy operational duty indicators ({org_burden:.2f}/1.0) "
                 f"comprising {consecutive_days} consecutive duty days, {night_shifts} night shifts in 30d, "
                 f"and {denied_leaves} recent leave denials. Additionally, {buddy_count} anonymous peer buddy signals "
                 f"have been raised for this unit in 30d, corroborating systemic strain. "
-                f"Trooper may be exhibiting stoic masking under acute fatigue and stigma pressure."
+                f"Trooper may be exhibiting operational stoicism or under-reporting acute fatigue under unit expectations."
             )
             recommendation = "URGENT: Initiate discreet welfare officer personal visit. Do NOT rely solely on self-reports. Cross-reference duty roster for immediate rest rotation."
         else:
             severity = "ELEVATED"
             narrative = (
-                f"Evidence conflict detected: Self-reported strain is low ({self_strain:.2f}/1.0), "
+                f"Evidence discordance detected: Self-reported strain is low ({self_strain:.2f}/1.0), "
                 f"in contrast with heavy operational duty indicators ({org_burden:.2f}/1.0) "
                 f"comprising {consecutive_days} consecutive duty days, {night_shifts} night shifts in 30d, "
-                f"and {denied_leaves} recent leave denials. Trooper may be masking acute fatigue or experiencing stigma."
+                f"and {denied_leaves} recent leave denials. Trooper may be under-reporting acute fatigue under operational stoicism."
             )
             recommendation = "Initiate discreet, non-stigmatizing administrative welfare check and schedule routine rest rotation."
     elif org_burden <= 0.35 and self_strain >= 0.60:
@@ -203,6 +204,7 @@ def analyze_evidence_conflict(db: Session, personnel_id: str) -> EvidenceConflic
         self_reported_strain_score=round(self_strain, 4),
         divergence_delta=delta,
         stoic_masking_deception_index=smdi_score,
+        signal_discordance_index=smdi_score,
         cold_start_imputed=cold_start_imputed,
         decision_support_narrative=narrative,
         recommended_welfare_action=recommendation,

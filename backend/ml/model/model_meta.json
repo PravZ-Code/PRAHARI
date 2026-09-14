@@ -1,35 +1,66 @@
 {
   "model_version": "v2.0-defense-calibrated",
   "model_architecture": "Calibrated Regularized Gradient Boosted Trees (XGBoost 3.4)",
-  "trained_at": "2026-09-13T23:04:03.846578+00:00",
+  "trained_at": "2026-09-14T14:35:07.043165+00:00",
   "total_features": 26,
   "dataset": {
-    "total_samples": 1000,
-    "positive_samples": 55,
-    "negative_samples": 945,
-    "imbalance_ratio": 17.18
+    "total_samples": 2004,
+    "positive_samples": 312,
+    "negative_samples": 1692,
+    "imbalance_ratio": 5.42,
+    "validation_strategy": "5-Fold StratifiedGroupKFold (Zero Soldier Leakage)"
   },
   "metrics": {
-    "auroc": 0.9999,
-    "pr_auc": 0.9988,
-    "brier_score": 0.0015,
-    "ece": 0.0013,
-    "f1": 0.9818,
+    "auroc": 0.7636,
+    "pr_auc": 0.6018,
+    "brier_score": 0.0908,
+    "ece": 0.0302,
+    "f1": 0.4978,
     "fold_aurocs": [
-      1.0,
-      1.0,
-      1.0,
-      1.0,
-      0.9995
+      0.7713,
+      0.7594,
+      0.7359,
+      0.7834,
+      0.7701
     ]
   },
+  "model_comparison": {
+    "Logistic_Regression": {
+      "auroc": 0.7658,
+      "pr_auc": 0.6076,
+      "f1": 0.553,
+      "brier_score": 0.153,
+      "ece": 0.2309
+    },
+    "Random_Forest": {
+      "auroc": 0.7677,
+      "pr_auc": 0.608,
+      "f1": 0.5799,
+      "brier_score": 0.1315,
+      "ece": 0.1956
+    },
+    "XGBoost_Standard": {
+      "auroc": 0.7636,
+      "pr_auc": 0.6018,
+      "f1": 0.5672,
+      "brier_score": 0.1221,
+      "ece": 0.1481
+    },
+    "Calibrated_XGBoost": {
+      "auroc": 0.7636,
+      "pr_auc": 0.6018,
+      "f1": 0.4978,
+      "brier_score": 0.0908,
+      "ece": 0.0302
+    }
+  },
   "calibration": {
-    "method": "Platt Scaling (Empirical Logistic Sigmoid)",
+    "method": "Platt Scaling (Logit-Calibrated Empirical Sigmoid)",
     "validation_split": "StratifiedGroupKFold (Person-Level Zero Leakage)",
-    "platt_slope": 11.8223,
-    "platt_intercept": -7.044,
-    "brier_score": 0.0015,
-    "ece": 0.0013
+    "platt_slope": 0.8355,
+    "platt_intercept": -1.2877,
+    "brier_score": 0.0908,
+    "ece": 0.0302
   },
   "risk_bands": {
     "green": [
@@ -51,54 +82,64 @@
   },
   "top_predictive_features": [
     {
-      "feature": "mood_score_avg_14d",
-      "gain": 118.3739,
-      "weight": 143
+      "feature": "stress_level_avg_7d",
+      "gain": 51.823,
+      "weight": 80
+    },
+    {
+      "feature": "appetite_score_avg_7d",
+      "gain": 30.971,
+      "weight": 118
+    },
+    {
+      "feature": "energy_level_avg_7d",
+      "gain": 30.6942,
+      "weight": 134
     },
     {
       "feature": "sleep_quality_avg_14d",
-      "gain": 118.1873,
-      "weight": 61
-    },
-    {
-      "feature": "stress_level_avg_14d",
-      "gain": 101.5083,
-      "weight": 7
-    },
-    {
-      "feature": "mood_score_avg_7d",
-      "gain": 16.8718,
-      "weight": 8
+      "gain": 28.6595,
+      "weight": 135
     },
     {
       "feature": "sleep_hours_avg_7d",
-      "gain": 7.8878,
-      "weight": 7
-    },
-    {
-      "feature": "social_connection_avg_7d",
-      "gain": 2.0308,
-      "weight": 2
+      "gain": 25.08,
+      "weight": 237
     },
     {
       "feature": "hard_area_months",
-      "gain": 0.7751,
-      "weight": 1
+      "gain": 16.2494,
+      "weight": 161
+    },
+    {
+      "feature": "mood_score_avg_14d",
+      "gain": 15.208,
+      "weight": 171
+    },
+    {
+      "feature": "mood_score_trend",
+      "gain": 13.2122,
+      "weight": 220
+    },
+    {
+      "feature": "social_connection_avg_7d",
+      "gain": 12.9237,
+      "weight": 157
+    },
+    {
+      "feature": "avg_hours_per_day_14d",
+      "gain": 12.0018,
+      "weight": 135
     },
     {
       "feature": "total_transfers",
-      "gain": 0.0,
-      "weight": 0
+      "gain": 11.7562,
+      "weight": 39
     },
     {
-      "feature": "months_at_current_posting",
-      "gain": 0.0,
-      "weight": 0
-    },
-    {
-      "feature": "leave_denial_rate_6m",
-      "gain": 0.0,
-      "weight": 0
+      "feature": "consecutive_duty_days",
+      "gain": 11.3155,
+      "weight": 79
     }
   ]
 }

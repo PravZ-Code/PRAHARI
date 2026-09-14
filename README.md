@@ -10,6 +10,7 @@
 [![Team](https://img.shields.io/badge/Team-USHARP-brightgreen?style=for-the-badge)](#-team-usharp)
 [![Python](https://img.shields.io/badge/Python-3.10%20--%203.14-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Tests](https://img.shields.io/badge/Tests-114%2F114%20Passed%20(100%25)-success?style=for-the-badge&logo=pytest&logoColor=white)](#-testing-verification)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
 </div>
@@ -26,7 +27,18 @@
 | **Category** | Software Edition |
 | **Theme** | Security & Defense / Healthcare & Welfare Automation |
 | **Team Name** | **Team USHARP** |
-| **Project Title** | **PRAHARI (प्रहारी)** — Proactive Soldier Welfare & Rest Balancing System |
+| **Project Title** | **PRAHARI (प्रहरी)** — Proactive Soldier Welfare & Rest Balancing System |
+
+---
+
+## 🏛️ Core Platform Ecosystem
+
+The repository contains the complete, production-grade source code across 4 integrated layers:
+
+* ⚡ **[`backend/`](backend/)**: High-performance FastAPI defense server with 13 API routers, 114 passing automated tests, calibrated XGBoost prospective strain model (Platt scaling ECE 0.0378), SciPy Hungarian Bipartite duty optimizer, DPDP Act 2023 access transparency logs, and SHA-256 tamper-evident audit ledger (BSA 2023 §63).
+* 🌐 **[`frontend/`](frontend/)**: Flagship Government Command & Welfare Web Portal built with Next.js 16 (React 19, Turbopack) adhering strictly to UX4G Design System and GIGW 3.0 government accessibility standards (trilingual EN/HI/TA language isolation, font scaling, high-contrast mode, zero-emoji guarantee).
+* 📱 **[`mobile/`](mobile/)**: PRAHARI Bandhu frontline trooper mobile client built with Flutter, providing offline-first local queue, 12-hour emergency SOS, 72-hour statutory leave filing, DTMF touch-tone IVR keypad simulator, Hungarian trade swap requests, and air-gapped removable sync.
+* 🚀 **[`launcher.py`](launcher.py)** & **[`mobile_server.py`](mobile_server.py)**: Win32 native master service orchestrator managing the 4-service ecosystem with real-time socket & HTTP latency telemetry, CPU/RAM monitoring, and live SQLite database inspection.
 
 ---
 
@@ -50,7 +62,7 @@ While they are physically tough and well-trained, everyday human friction often 
 Instead of treating soldiers like numbers, PRAHARI works across two supportive pillars:
 
 * **Pillar 1 — Fast Support for Everyday Needs (Primary Line of Defense)**:
-  Urgent leave requests (such as family medical emergencies) are put on a guaranteed **72-hour priority countdown**. If an emergency request is stuck, the system gently escalates it up the chain of command so no soldier is left waiting in silence.
+  Urgent leave requests (such as family medical emergencies) enter a **12-hour emergency decision lane**. Standard requests use a **72-hour resolution target**; missed deadlines escalate automatically up the chain of command.
 
 * **Pillar 2 — Fair Rest Balancing & Early Relief (Safety Net)**:
   PRAHARI monitors duty rosters and consecutive night shifts to spot fatigue early. When a soldier is overworked, it automatically suggests safe, fair duty swaps with well-rested peers — making sure perimeter security stays 100% intact while giving exhausted soldiers the sleep they need.
@@ -109,7 +121,7 @@ flowchart TB
 ## ✨ Key Features Explained in Simple Terms
 
 ### 1. 📋 72-Hour Emergency Leave Fast-Lane
-When a soldier applies for leave due to a family medical emergency, PRAHARI starts an automated 72-hour countdown timer. If no action is taken, the system gently escalates the request to higher welfare authorities. This ensures no urgent request is lost in red tape.
+When a soldier applies for leave due to a family medical emergency, PRAHARI starts an automated 12-hour decision countdown. Standard requests use 72 hours. If a deadline is missed, the system escalates the request to higher welfare authorities without requiring the soldier to re-petition.
 
 ### 2. 🛡️ 100% Confidentiality & Stigma-Free Design
 Under Section 21 of the Mental Healthcare Act 2017, a soldier's personal well-being is private. PRAHARI ensures company commanders only see operational fatigue tags (like *"Needs Rest Rotation"* or *"Rest Compliant"*). Sensitive personal details remain strictly confidential between the soldier and the welfare counselor.
@@ -127,6 +139,24 @@ Every shift change, leave decision, and welfare action is saved in a cryptograph
 * **Mobile App (Prahari Bandhu)**: Works completely offline in remote operating bases and syncs automatically when connection returns.
 * **Keypad Phone Support (Prahari Vani)**: Troops can dial an automated helpline from any basic 2G feature phone and use simple keypad numbers to check leave or request support.
 * **Air-Gap USB Sync**: In high-security or radio-silent areas, welfare reports can be transferred securely using encrypted USB files.
+
+### 6. 🧠 Calibrated Prospective AI & Multi-Horizon Trajectories
+Predicts true forward-looking 14-day strain escalation ($Y([T_0, T_0 + 14d])$) derived strictly from subsequent duty outcomes, eliminating synthetic circularity. Validated via 5-fold `StratifiedGroupKFold` (zero soldier leakage) across 2,002 longitudinal records. Features Platt scaling calibration ($ECE = 0.0378$, Brier = $0.0922$), multi-horizon forecasting (7d, 14d, 30d), dynamic trajectory classification, and automated model abstention when data completeness is $<40\%$.
+
+### 7. 🔍 Soldier Transparency & 48-Hour Data Dispute Redressal
+In compliance with the Digital Personal Data Protection Act, 2023, frontline personnel can inspect a transparent log of every officer who has viewed their welfare data (`/access-log`) and submit formal dispute grievances on incorrect duty records with a mandatory 48-hour statutory SLA.
+
+### 8. 📊 Resolution Bottleneck Detection & Company League Table (Section 12)
+Aggregates force-wide welfare resolution performance (`/api/grievance/resolution-bottlenecks`), ranking company compliance (% within SLA), isolating approval bottleneck tiers (Company Commander vs. Battalion Desk vs. Commandant), and highlighting frequent request delays.
+
+### 9. 🏥 Intervention Effectiveness Registry (Section 28)
+Empirically tracks the recovery success rate across standard intervention archetypes (`/api/resilience/intervention-effectiveness`), comparing historical efficacy (24h rest: 88.4%, leave: 94.1%), average days to recovery, and operational friction scores.
+
+### 10. ⚖️ Intervention Equity Audit & Helper Burnout Alert (Section 29)
+Audits replacement duty distribution within tactical companies (`/api/resilience/intervention-equity/{unit_id}`) over 30 and 90-day windows, raising an automated `INTERVENTION_EQUITY_ALERT` to prevent repeatedly burdening the same well-rested soldiers.
+
+### 11. 📈 Welfare Debt Composite Index (Section 31)
+A non-punitive, explainable 0–100 scalar backlog metric (`/api/commander/unit/{unit_id}/welfare-debt`) combining unresolved grievance backlogs (35%), rest deficit overload (35%), and reserve depletion (30%), providing commanders with clear institutional pressure diagnostics.
 
 ---
 

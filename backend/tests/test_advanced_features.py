@@ -103,9 +103,11 @@ def test_ivr_dtmf_language_selection(client):
     assert res_en.json()["action_taken"] == "LANGUAGE_SET_ENGLISH"
 
 def test_ivr_dtmf_emergency_callback_escalation(client, db):
+    service_number = db.query(Personnel.service_number).first()[0]
     res = client.post("/api/gateway/ivr/dtmf", json={
         "call_sid": "CALL-EMERGENCY-999",
         "caller_phone": "+919876543210",
+        "service_number": service_number,
         "digits_pressed": "3"
     })
     assert res.status_code == 200
@@ -123,9 +125,11 @@ def test_ivr_dtmf_emergency_callback_escalation(client, db):
     db.commit()
 
 def test_ivr_dtmf_leave_grievance(client, db):
+    service_number = db.query(Personnel.service_number).first()[0]
     res = client.post("/api/gateway/ivr/dtmf", json={
         "call_sid": "CALL-GRIEVANCE-001",
         "caller_phone": "+919876543210",
+        "service_number": service_number,
         "digits_pressed": "4"
     })
     assert res.status_code == 200
@@ -193,9 +197,11 @@ def test_ussd_fatigue_reporting_flow(client):
     assert "Fatigue score 4/5 logged successfully" in res_score.json()["message"]
 
 def test_sms_emergency_sos(client, db):
+    service_number = db.query(Personnel.service_number).first()[0]
     res = client.post("/api/gateway/sms/incoming", json={
         "message_sid": "SMS-SOS-001",
         "sender_phone": "+919876543210",
+        "service_number": service_number,
         "message_body": "HELP NEED URGENT WELFARE SUPPORT"
     })
     assert res.status_code == 200
@@ -209,10 +215,12 @@ def test_sms_emergency_sos(client, db):
         db.delete(case)
         db.commit()
 
-def test_sms_buddy_signal(client):
+def test_sms_buddy_signal(client, db):
+    service_number = db.query(Personnel.service_number).first()[0]
     res = client.post("/api/gateway/sms/incoming", json={
         "message_sid": "SMS-BUDDY-001",
         "sender_phone": "+919876543210",
+        "service_number": service_number,
         "message_body": "BUDDY EXHAUSTION 3"
     })
     assert res.status_code == 200
@@ -262,3 +270,66 @@ def test_production_secret_key_guard():
             or len(s.JWT_SECRET_KEY) < 32
         ):
             raise ValueError("FATAL SECURITY ERROR: Insecure or default JWT_SECRET_KEY detected in production environment!")
+
+
+def test_section_12_resolution_bottlenecks_endpoint(client, admin_headers):
+    """Verifies that the cross-company resolution bottleneck endpoint returns compliant analytics."""
+    resp = client.get("/api/grievance/resolution-bottlenecks", headers=admin_headers)
+    assert resp.status_code == 200, f"Failed: {resp.text}"
+    data = resp.json()
+    assert "force_within_sla_percentage" in data
+    assert "company_league_table" in data
+    assert "repeated_bottleneck_tier" in data
+    assert "frequent_request_types" in data
+    assert isinstance(data["company_league_table"], list)
+    if data["company_league_table"]:
+        first = data["company_league_table"][0]
+        assert "within_sla_percentage" in first
+        assert "bottleneck_status" in first
+
+
+def test_section_28_intervention_effectiveness_registry(client, welfare_headers):
+    """Verifies that the institutional intervention effectiveness registry returns empirical success rates."""
+    resp = client.get("/api/resilience/intervention-effectiveness", headers=welfare_headers)
+    assert resp.status_code == 200, f"Failed: {resp.text}"
+    data = resp.json()
+    assert "registry" in data
+    assert "top_performing_intervention" in data
+    assert "most_cost_effective_intervention" in data
+    assert len(data["registry"]) >= 4
+    for item in data["registry"]:
+        assert "name" in item
+        assert "observed_improvement" in item
+        assert "avg_recovery_time_days" in item
+        assert "operational_impact" in item
+
+
+def test_section_29_intervention_equity_audit(client, db, commander_alpha_headers):
+    """Verifies that the intervention equity audit detects replacement duty distribution and helper fatigue."""
+    from models.personnel import Unit
+    unit = db.query(Unit).first()
+    resp = client.get(f"/api/resilience/intervention-equity/{unit.id}", headers=commander_alpha_headers)
+    assert resp.status_code == 200, f"Failed: {resp.text}"
+    data = resp.json()
+    assert "is_equity_alert" in data
+    assert "max_replacement_count" in data
+    assert "equity_disparity_ratio" in data
+    assert "recommendation" in data
+    assert "objective" in data
+    assert "Protect one person without repeatedly exhausting another" in data["objective"]
+
+
+def test_section_31_welfare_debt_metric(client, db, commander_alpha_headers):
+    """Verifies that the Welfare Debt composite score and primary contributors are returned."""
+    from models.personnel import Unit
+    unit = db.query(Unit).first()
+    resp = client.get(f"/api/commander/unit/{unit.id}/welfare-debt", headers=commander_alpha_headers)
+    assert resp.status_code == 200, f"Failed: {resp.text}"
+    data = resp.json()
+    assert "welfare_debt_score" in data
+    assert "welfare_debt_level" in data
+    assert data["welfare_debt_level"] in ("LOW", "MODERATE", "HIGH", "CRITICAL")
+    assert "primary_contributors" in data
+    assert isinstance(data["primary_contributors"], list)
+    assert "non_punitive_disclaimer" in data
+

@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/dashboard_provider.dart';
+import '../providers/theme_locale_provider.dart';
 import '../models/grievance_model.dart';
+import '../theme/ux4g_defense_theme.dart';
+import '../widgets/ux4g_widgets.dart';
 import 'request_help_screen.dart';
 
 class MyRequestsScreen extends StatefulWidget {
@@ -23,7 +26,6 @@ class _MyRequestsScreenState extends State<MyRequestsScreen> {
       context.read<DashboardProvider>().loadGrievances();
     });
 
-    // 1-second countdown ticker for live 72h countdown timers
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
     });
@@ -38,29 +40,28 @@ class _MyRequestsScreenState extends State<MyRequestsScreen> {
   @override
   Widget build(BuildContext context) {
     final dash = context.watch<DashboardProvider>();
+    final themeLocale = context.watch<ThemeLocaleProvider>();
+    final isDark = themeLocale.isDark;
     final requests = dash.activeGrievances;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0F1D),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F172A),
-        elevation: 0,
-        title: const Column(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: const [
             Text(
-              'MY REQUESTS & LEAVE TRACKER',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+              'APPLICATION & LEAVE TRACKER',
+              style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w800, letterSpacing: 0.5),
             ),
             Text(
-              '72-Hour Guaranteed SLA & Resolution Audit',
-              style: TextStyle(fontSize: 10, color: Colors.white54),
+              'Statutory Resolution SLA & Lifecycle Audit',
+              style: TextStyle(fontSize: 10.5, color: Color(0xFFCBD5E1)),
             ),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white70),
+            icon: const Icon(Icons.refresh, size: 20.0),
             tooltip: 'Refresh Status',
             onPressed: () => dash.loadGrievances(),
           ),
@@ -68,85 +69,58 @@ class _MyRequestsScreenState extends State<MyRequestsScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: () => dash.loadGrievances(),
-        backgroundColor: const Color(0xFF1E293B),
-        color: const Color(0xFF10B981),
         child: requests.isEmpty
-            ? _buildEmptyState(context)
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16.0),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.assignment_outlined, size: 48.0, color: Ux4gDefenseTheme.mhaNavy),
+                      ),
+                      const SizedBox(height: 16.0),
+                      const Text(
+                        'No Active Applications',
+                        style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 6.0),
+                      Text(
+                        'All submitted leave petitions, welfare requests, and grievances will appear here with real-time countdown SLAs.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: isDark ? Ux4gDefenseTheme.textSecondaryDark : Ux4gDefenseTheme.textSecondaryLight,
+                        ),
+                      ),
+                      const SizedBox(height: 20.0),
+                      Ux4gButton(
+                        label: 'Submit New Request',
+                        icon: Icons.add,
+                        isFullWidth: false,
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const RequestHelpScreen()),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              )
             : ListView.separated(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
                 itemCount: requests.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 14),
+                separatorBuilder: (context, index) => const SizedBox(height: 12.0),
                 itemBuilder: (ctx, idx) => _RequestCard(request: requests[idx]),
               ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: const Color(0xFF10B981),
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('New Request', style: TextStyle(fontWeight: FontWeight.bold)),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const RequestHelpScreen()),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildEmptyState(BuildContext context) {
-    return ListView(
-      children: [
-        SizedBox(height: MediaQuery.of(context).size.height * 0.18),
-        Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFF1E293B),
-                  border: Border.all(color: const Color(0xFF334155)),
-                ),
-                child: const Icon(Icons.inbox_outlined, color: Colors.white38, size: 36),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'No Active or Historical Requests',
-                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 6),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 32),
-                child: Text(
-                  'You have not submitted any emergency leave, welfare support, or grievance requests yet.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white54, fontSize: 12),
-                ),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const RequestHelpScreen()),
-                  );
-                },
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('SUBMIT A REQUEST'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF10B981),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }
@@ -156,246 +130,190 @@ class _RequestCard extends StatelessWidget {
 
   const _RequestCard({required this.request});
 
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'approved':
-      case 'resolved':
-        return const Color(0xFF10B981);
-      case 'fast_tracked':
-      case 'in_progress':
-      case 'under_review':
-        return const Color(0xFF38BDF8);
-      case 'escalated':
-        return const Color(0xFFFBBF24);
-      case 'rejected':
-        return const Color(0xFFEF4444);
-      case 'filed':
-      case 'submitted':
-      default:
-        return const Color(0xFF94A3B8);
-    }
-  }
-
-  String _formatStatus(String status) {
-    switch (status.toLowerCase()) {
-      case 'fast_tracked':
-        return 'Fast-Track Active';
-      case 'in_progress':
-        return 'In Progress';
-      case 'under_review':
-        return 'Under Review';
-      case 'approved':
-        return 'Approved';
-      case 'rejected':
-        return 'Rejected';
-      case 'resolved':
-        return 'Resolved';
-      case 'filed':
-      default:
-        return 'Submitted';
-    }
-  }
-
-  String _formatCategory(String cat) {
-    return cat
-        .replaceAll('_', ' ')
-        .split(' ')
-        .map((w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '')
-        .join(' ');
-  }
-
   @override
   Widget build(BuildContext context) {
-    final statusColor = _getStatusColor(request.status);
-    final isDone = request.status == 'approved' || request.status == 'resolved' || request.status == 'rejected';
+    final themeLocale = context.watch<ThemeLocaleProvider>();
+    final isDark = themeLocale.isDark;
 
-    // Calculate live SLA remaining time
-    final now = DateTime.now();
-    final diff = request.slaDeadline.difference(now);
-    final hours = diff.inHours;
-    final minutes = diff.inMinutes % 60;
-    final seconds = diff.inSeconds % 60;
-    final isOverdue = diff.isNegative && !isDone;
+    final isEmergency = request.isFastLane;
+    final isResolved = request.status.toLowerCase() == 'resolved';
+    final remainingSeconds = (request.hoursRemaining * 3600).toInt();
 
-    final filedFmt = DateFormat('dd MMM yyyy, HH:mm').format(request.filedAt);
+    String slaCountdownText;
+    if (isResolved) {
+      slaCountdownText = 'RESOLVED WITHIN SLA';
+    } else if (remainingSeconds <= 0) {
+      slaCountdownText = 'AUTO-ESCALATED TO BATTALION 2IC';
+    } else {
+      final hours = remainingSeconds ~/ 3600;
+      final minutes = (remainingSeconds % 3600) ~/ 60;
+      final seconds = remainingSeconds % 60;
+      slaCountdownText = '${hours}h ${minutes}m ${seconds}s remaining';
+    }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B).withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: request.isFastLane ? const Color(0xFFFBBF24).withValues(alpha: 0.5) : const Color(0xFF334155),
-          width: request.isFastLane ? 1.2 : 1.0,
-        ),
-      ),
+    final createdAtStr = DateFormat('dd MMM yyyy, HH:mm').format(request.filedAt);
+
+    return Ux4gCard(
+      accentColor: isResolved
+          ? Ux4gDefenseTheme.defenseGreen
+          : (isEmergency ? Ux4gDefenseTheme.crisisRed : Ux4gDefenseTheme.mhaNavy),
+      padding: const EdgeInsets.all(16.0),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Bar
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Docket: PRH-2026-${request.id.toString().padLeft(5, "0")}',
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.0, letterSpacing: 0.3),
+              ),
+              Ux4gBadge(
+                text: isResolved
+                    ? 'RESOLVED'
+                    : (isEmergency ? '12h FAST-LANE' : 'UNDER REVIEW'),
+                type: isResolved
+                    ? Ux4gBadgeType.success
+                    : (isEmergency ? Ux4gBadgeType.danger : Ux4gBadgeType.info),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 8.0),
+
+          Text(
+            request.category.replaceAll('_', ' ').toUpperCase(),
+            style: TextStyle(
+              fontSize: 12.0,
+              fontWeight: FontWeight.w700,
+              color: isDark ? const Color(0xFF60A5FA) : Ux4gDefenseTheme.mhaNavy,
+            ),
+          ),
+
+          const SizedBox(height: 4.0),
+
+          Text(
+            request.description ?? 'No additional details provided.',
+            style: TextStyle(
+              fontSize: 12.5,
+              color: isDark ? Colors.white70 : Colors.black87,
+              height: 1.3,
+            ),
+          ),
+
+          const SizedBox(height: 12.0),
+          const Divider(),
+          const SizedBox(height: 8.0),
+
+          // SLA Countdown Box
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
             decoration: BoxDecoration(
-              color: const Color(0xFF0F172A),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-              border: Border(bottom: BorderSide(color: const Color(0xFF334155).withValues(alpha: 0.6))),
+              color: isResolved
+                  ? const Color(0xFFDCFCE7)
+                  : (remainingSeconds <= 0 ? const Color(0xFFFEE2E2) : const Color(0xFFEFF6FF)),
+              borderRadius: BorderRadius.circular(4.0),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Icon(
-                      request.requestType == 'leave' ? Icons.flight_takeoff : Icons.volunteer_activism,
-                      color: request.isFastLane ? const Color(0xFFFBBF24) : const Color(0xFF60A5FA),
-                      size: 16,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      request.requestType.toUpperCase(),
-                      style: TextStyle(
-                        color: request.isFastLane ? const Color(0xFFFBBF24) : const Color(0xFF60A5FA),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                    if (request.isFastLane) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFBBF24).withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Text(
-                          '72H FAST-LANE',
-                          style: TextStyle(color: Color(0xFFFBBF24), fontSize: 9, fontWeight: FontWeight.w900),
-                        ),
-                      ),
-                    ],
-                  ],
+                Icon(
+                  isResolved ? Icons.check_circle : (remainingSeconds <= 0 ? Icons.warning : Icons.timer),
+                  size: 16.0,
+                  color: isResolved
+                      ? const Color(0xFF166534)
+                      : (remainingSeconds <= 0 ? const Color(0xFF991B1B) : const Color(0xFF1E40AF)),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: statusColor.withValues(alpha: 0.5)),
-                  ),
+                const SizedBox(width: 8.0),
+                Expanded(
                   child: Text(
-                    _formatStatus(request.status).toUpperCase(),
-                    style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.w900),
+                    slaCountdownText,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      color: isResolved
+                          ? const Color(0xFF166534)
+                          : (remainingSeconds <= 0 ? const Color(0xFF991B1B) : const Color(0xFF1E40AF)),
+                    ),
                   ),
+                ),
+                Text(
+                  createdAtStr,
+                  style: const TextStyle(fontSize: 10.5, color: Colors.grey),
                 ),
               ],
             ),
           ),
 
-          // Content Body
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _formatCategory(request.category),
-                  style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Filed on $filedFmt',
-                  style: const TextStyle(color: Colors.white38, fontSize: 11),
-                ),
+          const SizedBox(height: 12.0),
 
-                if (request.description != null && request.description!.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Text(
-                    request.description!,
-                    style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.3),
-                  ),
-                ],
-
-                if (request.startDate != null) ...[
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      const Icon(Icons.date_range, color: Color(0xFF10B981), size: 14),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Leave Window: ${request.startDate} to ${request.endDate ?? "Open"}',
-                        style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ],
-
-                const SizedBox(height: 14),
-                const Divider(color: Color(0xFF334155)),
-                const SizedBox(height: 8),
-
-                // Live 72h SLA Countdown or Final Resolution status
-                if (!isDone)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('STATUTORY SLA DEADLINE', style: TextStyle(color: Colors.white38, fontSize: 9)),
-                          const SizedBox(height: 2),
-                          Text(
-                            isOverdue
-                                ? 'OVERDUE - AUTO ESCALATED'
-                                : '${hours.toString().padLeft(2, '0')}h ${minutes.toString().padLeft(2, '0')}m ${seconds.toString().padLeft(2, '0')}s remaining',
-                            style: TextStyle(
-                              color: isOverdue ? const Color(0xFFEF4444) : const Color(0xFF10B981),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0F172A),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          'Tier ${request.escalationLevel} Review',
-                          style: const TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
-                  )
-                else ...[
-                  // Resolved / Approved / Rejected notes
-                  Row(
-                    children: [
-                      Icon(
-                        request.status == 'approved' || request.status == 'resolved'
-                            ? Icons.check_circle
-                            : Icons.cancel,
-                        color: statusColor,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          request.resolutionNotes ??
-                              request.rejectionReason ??
-                              'Request has been processed and recorded in the audit ledger.',
-                          style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
+          // 6-Stage Lifecycle Progress
+          _buildStageTimeline(isResolved ? 6 : 3, isDark),
         ],
       ),
+    );
+  }
+
+  Widget _buildStageTimeline(int currentStage, bool isDark) {
+    final stages = ['Filed', 'Ops Check', 'Review', 'Decision', 'Relief', 'Closed'];
+
+    return Row(
+      children: List.generate(stages.length, (idx) {
+        final step = idx + 1;
+        final isPassed = step <= currentStage;
+
+        return Expanded(
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      height: 2.0,
+                      color: idx == 0
+                          ? Colors.transparent
+                          : (isPassed ? Ux4gDefenseTheme.defenseGreen : Colors.grey.shade400),
+                    ),
+                  ),
+                  Container(
+                    width: 14.0,
+                    height: 14.0,
+                    decoration: BoxDecoration(
+                      color: isPassed ? Ux4gDefenseTheme.defenseGreen : Colors.transparent,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isPassed ? Ux4gDefenseTheme.defenseGreen : Colors.grey.shade400,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: isPassed
+                        ? const Icon(Icons.check, size: 9.0, color: Colors.white)
+                        : null,
+                  ),
+                  Expanded(
+                    child: Container(
+                      height: 2.0,
+                      color: idx == stages.length - 1
+                          ? Colors.transparent
+                          : (step < currentStage ? Ux4gDefenseTheme.defenseGreen : Colors.grey.shade400),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4.0),
+              Text(
+                stages[idx],
+                style: TextStyle(
+                  fontSize: 9.5,
+                  fontWeight: isPassed ? FontWeight.bold : FontWeight.normal,
+                  color: isPassed
+                      ? (isDark ? Colors.white : Colors.black87)
+                      : (isDark ? Colors.white38 : Colors.grey),
+                ),
+              ),
+            ],
+          ),
+        );
+      }),
     );
   }
 }

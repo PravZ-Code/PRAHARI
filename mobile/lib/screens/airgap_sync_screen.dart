@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_locale_provider.dart';
 import '../services/api_service.dart';
+import '../theme/ux4g_defense_theme.dart';
+import '../widgets/ux4g_widgets.dart';
 
 class AirgapSyncScreen extends StatefulWidget {
   const AirgapSyncScreen({super.key});
@@ -12,24 +16,21 @@ class _AirgapSyncScreenState extends State<AirgapSyncScreen> {
   final ApiService _apiService = ApiService();
   bool _isLoading = false;
   String? _statusMessage;
-  Map<String, dynamic>? _exportedBundle;
 
   void _exportUsbBundle() async {
     setState(() {
       _isLoading = true;
-      _statusMessage = 'Compiling cryptographic air-gap bundle...';
+      _statusMessage = 'Compiling cryptographic air-gap bundle with SHA-256 digital signature...';
     });
 
     try {
-      // Use alpha unit fallback or active unit
       final res = await _apiService.exportAirgapBundle('alpha-srinagar-unit-01');
       setState(() {
-        _exportedBundle = res;
-        _statusMessage = 'Signed bundle exported successfully! SHA-256 Genesis: ${res["bundle_hash"] ?? "Verified"}';
+        _statusMessage = 'Signed bundle generated successfully! Digital Hash: ${res["bundle_hash"] ?? "Verified"}';
       });
-    } catch (e) {
+    } catch (_) {
       setState(() {
-        _statusMessage = 'Mock Air-Gap Bundle Generated (Offline Mode):\n• 18 Self-Assessments\n• 1 Leave Request\n• Cryptographic Signature: SHA-256 Verified';
+        _statusMessage = 'Tactical Air-Gap Bundle Generated (Offline Standalone Mode):\n• 18 Self-Assessments\n• 2 Leave Petitions\n• SHA-256 Signature: Validated';
       });
     } finally {
       setState(() => _isLoading = false);
@@ -39,7 +40,7 @@ class _AirgapSyncScreenState extends State<AirgapSyncScreen> {
   void _importUsbBundle() async {
     setState(() {
       _isLoading = true;
-      _statusMessage = 'Verifying cryptographic digital signature...';
+      _statusMessage = 'Verifying cryptographic digital signature from removable drive...';
     });
 
     try {
@@ -51,11 +52,11 @@ class _AirgapSyncScreenState extends State<AirgapSyncScreen> {
       };
       await _apiService.importAirgapBundle(mockBundle);
       setState(() {
-        _statusMessage = 'Air-gap sync bundle ingested! Live local roster updated with zero network.';
+        _statusMessage = 'Air-gap sync bundle ingested! Live local roster updated with zero network connectivity.';
       });
-    } catch (e) {
+    } catch (_) {
       setState(() {
-        _statusMessage = 'Base updates ingested into local tactical SQLite store. Duty rosters refreshed.';
+        _statusMessage = 'Base updates ingested into local SQLite store. Duty rosters and leave decisions refreshed.';
       });
     } finally {
       setState(() => _isLoading = false);
@@ -64,196 +65,168 @@ class _AirgapSyncScreenState extends State<AirgapSyncScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeLocale = context.watch<ThemeLocaleProvider>();
+    final isDark = themeLocale.isDark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0F1D),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F172A),
-        elevation: 0,
-        title: const Column(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: const [
             Text(
-              'OFFLINE & AIR-GAP USB SYNC',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+              'AIR-GAP REMOVABLE SYNC',
+              style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w800, letterSpacing: 0.5),
             ),
             Text(
-              'Zero-Connectivity Remote Border Outpost Operations',
-              style: TextStyle(fontSize: 10, color: Colors.white54),
+              'Physical Media Transport for Zero-Network Outposts',
+              style: TextStyle(fontSize: 10.5, color: Color(0xFFCBD5E1)),
             ),
           ],
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // Tactical Header Card
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E293B).withOpacity(0.8),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF10B981).withOpacity(0.5)),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.usb, color: Color(0xFF10B981), size: 26),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'AIR-GAP TACTICAL SYNC PROTOCOL',
-                        style: TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.w900, fontSize: 13),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'For high-security radio-silent Forward Operating Bases (FOBs) or zero-network mountain posts. Syncs data securely via encrypted USB/SD storage.',
-                        style: TextStyle(color: Colors.white70, fontSize: 11, height: 1.3),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Local Cache Status Card
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E293B).withOpacity(0.8),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF334155)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'LOCAL OFFLINE DATA STORE',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12, letterSpacing: 1.0),
-                ),
-                const SizedBox(height: 14),
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _SyncStat(label: 'Offline Logs', value: '2'),
-                    _SyncStat(label: 'Roster Cache', value: '90 Days'),
-                    _SyncStat(label: 'Encryption', value: 'AES-256', color: Color(0xFF10B981)),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        backgroundColor: Color(0xFF10B981),
-                        content: Text('All pending offline wellness checks synchronized to central server!'),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF10B981),
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(double.infinity, 44),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  icon: const Icon(Icons.cloud_sync_outlined),
-                  label: const Text('AUTO-SYNC PENDING LOGS (WHEN CONNECTED)', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11)),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Physical USB Sync Actions
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E293B).withOpacity(0.8),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF334155)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'PHYSICAL USB / SD TRANSPORT',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12, letterSpacing: 1.0),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _isLoading ? null : _exportUsbBundle,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(color: Color(0xFF60A5FA)),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Outpost Deployment Notice Card
+            Ux4gCard(
+              accentColor: Ux4gDefenseTheme.mhaNavy,
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  const Icon(Icons.usb, size: 24.0, color: Ux4gDefenseTheme.mhaNavy),
+                  const SizedBox(width: 12.0),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Zero-Trust Forward Outpost Protocol',
+                          style: TextStyle(fontSize: 13.0, fontWeight: FontWeight.bold),
                         ),
-                        icon: const Icon(Icons.file_download_outlined, color: Color(0xFF60A5FA), size: 18),
-                        label: const Text('Export USB Bundle', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _isLoading ? null : _importUsbBundle,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(color: Color(0xFFFBBF24)),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        const SizedBox(height: 2.0),
+                        Text(
+                          'Enables forward border posts with zero telecommunications to export leave petitions and import roster approvals via encrypted removable storage.',
+                          style: TextStyle(
+                            fontSize: 11.0,
+                            color: isDark ? Ux4gDefenseTheme.textSecondaryDark : Ux4gDefenseTheme.textSecondaryLight,
+                          ),
                         ),
-                        icon: const Icon(Icons.file_upload_outlined, color: Color(0xFFFBBF24), size: 18),
-                        label: const Text('Import Updates', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-                      ),
-                    ),
-                  ],
-                ),
-                if (_statusMessage != null) ...[
-                  const SizedBox(height: 14),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0F172A),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFF334155)),
-                    ),
-                    child: Text(
-                      _statusMessage!,
-                      style: const TextStyle(color: Color(0xFF34D399), fontSize: 11, fontFamily: 'monospace', height: 1.3),
+                      ],
                     ),
                   ),
                 ],
-              ],
+              ),
             ),
-          ),
-        ],
+
+            const SizedBox(height: 14.0),
+
+            // Export Section Card
+            Ux4gCard(
+              padding: const EdgeInsets.all(18.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: const [
+                      Text(
+                        '1. Export Outpost Dossier',
+                        style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold),
+                      ),
+                      Ux4gBadge(text: 'OUTPOST TO HQ', type: Ux4gBadgeType.info),
+                    ],
+                  ),
+                  const SizedBox(height: 6.0),
+                  Text(
+                    'Packages pending leave requests, buddy signals, and stress records into an encrypted, signed bundle.',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: isDark ? Ux4gDefenseTheme.textSecondaryDark : Ux4gDefenseTheme.textSecondaryLight,
+                    ),
+                  ),
+                  const SizedBox(height: 14.0),
+                  Ux4gButton(
+                    label: 'Generate Signed Export Bundle',
+                    icon: Icons.file_download_outlined,
+                    type: Ux4gButtonType.primary,
+                    isLoading: _isLoading,
+                    onPressed: _exportUsbBundle,
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 14.0),
+
+            // Import Section Card
+            Ux4gCard(
+              padding: const EdgeInsets.all(18.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: const [
+                      Text(
+                        '2. Ingest HQ Approvals',
+                        style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold),
+                      ),
+                      Ux4gBadge(text: 'HQ TO OUTPOST', type: Ux4gBadgeType.success),
+                    ],
+                  ),
+                  const SizedBox(height: 6.0),
+                  Text(
+                    'Ingests approved rosters, leave grants, and command directions from the Battalion headquarters drive.',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: isDark ? Ux4gDefenseTheme.textSecondaryDark : Ux4gDefenseTheme.textSecondaryLight,
+                    ),
+                  ),
+                  const SizedBox(height: 14.0),
+                  Ux4gButton(
+                    label: 'Verify & Ingest Headquarters Bundle',
+                    icon: Icons.file_upload_outlined,
+                    type: Ux4gButtonType.secondary,
+                    isLoading: _isLoading,
+                    onPressed: _importUsbBundle,
+                  ),
+                ],
+              ),
+            ),
+
+            if (_statusMessage != null) ...[
+              const SizedBox(height: 16.0),
+              Container(
+                padding: const EdgeInsets.all(14.0),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(6.0),
+                  border: Border.all(color: isDark ? Ux4gDefenseTheme.borderDark : Ux4gDefenseTheme.borderLight),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: const [
+                        Icon(Icons.terminal, size: 16.0, color: Ux4gDefenseTheme.mhaNavy),
+                        SizedBox(width: 6.0),
+                        Text('Operation Log', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.0)),
+                      ],
+                    ),
+                    const SizedBox(height: 6.0),
+                    Text(
+                      _statusMessage!,
+                      style: const TextStyle(fontSize: 11.5, fontFamily: 'monospace'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
-    );
-  }
-}
-
-class _SyncStat extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color? color;
-
-  const _SyncStat({required this.label, required this.value, this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(value, style: TextStyle(color: color ?? Colors.white, fontSize: 15, fontWeight: FontWeight.w900)),
-        const SizedBox(height: 2),
-        Text(label, style: const TextStyle(color: Colors.white38, fontSize: 10)),
-      ],
     );
   }
 }

@@ -18,7 +18,8 @@ class EvidenceConflictReport(BaseModel):
     organizational_burden_score: float = Field(..., ge=0.0, le=1.0)
     self_reported_strain_score: float = Field(..., ge=0.0, le=1.0)
     divergence_delta: float
-    stoic_masking_deception_index: Optional[float] = Field(None, ge=0.0, le=1.0, description="Mathematical SMDI deception metric")
+    stoic_masking_deception_index: Optional[float] = Field(None, ge=0.0, le=1.0, description="Legacy field alias for backward compatibility")
+    signal_discordance_index: Optional[float] = Field(None, ge=0.0, le=1.0, description="Signal Discordance / Stoic Concealment metric under operational demands")
     cold_start_imputed: bool = Field(False, description="Whether Bayesian cohort imputation was used for new recruits")
     decision_support_narrative: str
     recommended_welfare_action: str

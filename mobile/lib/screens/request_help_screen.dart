@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/dashboard_provider.dart';
+import '../providers/theme_locale_provider.dart';
+import '../theme/ux4g_defense_theme.dart';
+import '../widgets/ux4g_widgets.dart';
 
 class RequestHelpScreen extends StatefulWidget {
   final VoidCallback? onRequestSubmitted;
@@ -13,7 +16,7 @@ class RequestHelpScreen extends StatefulWidget {
 }
 
 class _RequestHelpScreenState extends State<RequestHelpScreen> {
-  String _selectedRequestType = 'leave'; // 'leave', 'welfare', 'grievance', 'family_crisis'
+  String _selectedRequestType = 'leave';
   String _selectedCategory = 'family_emergency';
   final _descriptionController = TextEditingController();
   DateTime _startDate = DateTime.now().add(const Duration(days: 1));
@@ -22,16 +25,16 @@ class _RequestHelpScreenState extends State<RequestHelpScreen> {
 
   final Map<String, List<Map<String, String>>> _typeOptions = {
     'leave': [
-      {'id': 'family_emergency', 'name': 'Family Medical Emergency (Fast-Track 72h)', 'fast_lane': 'true'},
+      {'id': 'family_emergency', 'name': 'Family Medical Emergency (12h Fast-Track)', 'fast_lane': 'true'},
+      {'id': 'bereavement', 'name': 'Bereavement / Death in Family (12h Fast-Track)', 'fast_lane': 'true'},
       {'id': 'medical_emergency', 'name': 'Personal Acute Medical Care', 'fast_lane': 'true'},
-      {'id': 'bereavement', 'name': 'Bereavement / Death in Family', 'fast_lane': 'true'},
-      {'id': 'acute_domestic_crisis', 'name': 'Urgent Domestic Crisis / Court Matter', 'fast_lane': 'true'},
+      {'id': 'acute_domestic_crisis', 'name': 'Urgent Domestic Crisis / Land Dispute', 'fast_lane': 'true'},
       {'id': 'annual_leave', 'name': 'Routine Annual Leave Rotation', 'fast_lane': 'false'},
     ],
     'welfare': [
-      {'id': 'family_crisis', 'name': 'Family Support & Welfare Assistance', 'fast_lane': 'true'},
+      {'id': 'family_crisis', 'name': 'Family Support & Welfare Outreach', 'fast_lane': 'true'},
       {'id': 'mental_health_support', 'name': 'Confidential Stress & Counseling Assistance', 'fast_lane': 'true'},
-      {'id': 'children_education', 'name': 'Children Education / Dependent Support', 'fast_lane': 'false'},
+      {'id': 'children_education', 'name': 'Children Education / Dependent Relief', 'fast_lane': 'false'},
       {'id': 'financial_welfare', 'name': 'Unit Welfare Fund / Emergency Advance', 'fast_lane': 'false'},
     ],
     'grievance': [
@@ -59,8 +62,8 @@ class _RequestHelpScreenState extends State<RequestHelpScreen> {
     if (desc.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          backgroundColor: Color(0xFFEF4444),
-          content: Text('Please provide details describing the nature of your request.'),
+          backgroundColor: Ux4gDefenseTheme.crisisRed,
+          content: Text('Please provide specific details describing your welfare or leave request.'),
         ),
       );
       return;
@@ -85,20 +88,20 @@ class _RequestHelpScreenState extends State<RequestHelpScreen> {
         _descriptionController.clear();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            backgroundColor: const Color(0xFF10B981),
+            backgroundColor: Ux4gDefenseTheme.defenseGreen,
             content: Text(
               _isFastLane
-                  ? '72-Hour Fast-Track request submitted with active statutory SLA timer!'
-                  : 'Your request has been filed and routed for human administrative review.',
+                  ? 'Fast-Track Emergency Request submitted! Statutory 12h resolution timer activated.'
+                  : 'Official welfare request registered! Routed for human command review.',
             ),
           ),
         );
         widget.onRequestSubmitted?.call();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: const Color(0xFFEF4444),
-            content: Text(dash.errorMessage ?? 'Failed to submit request. Please try again.'),
+          const SnackBar(
+            backgroundColor: Ux4gDefenseTheme.crisisRed,
+            content: Text('Failed to submit request. Stored in offline queue for automatic retry.'),
           ),
         );
       }
@@ -107,376 +110,243 @@ class _RequestHelpScreenState extends State<RequestHelpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentCategoryList = _typeOptions[_selectedRequestType] ?? [];
+    final themeLocale = context.watch<ThemeLocaleProvider>();
+    final isDark = themeLocale.isDark;
+    final dateFormat = DateFormat('dd MMM yyyy');
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0A0F1D),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0F172A),
-        elevation: 0,
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'REQUEST HELP & SUPPORT',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1.2),
-            ),
-            Text(
-              'Self-Service Welfare, Leave & Grievance Resolution',
-              style: TextStyle(fontSize: 10, color: Colors.white54),
-            ),
-          ],
-        ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+    final currentOptions = _typeOptions[_selectedRequestType] ?? [];
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Human-first assistance guarantee banner
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  const Color(0xFF10B981).withValues(alpha: 0.15),
-                  const Color(0xFF1E293B),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4)),
-            ),
-            child: const Row(
+          // GIGW 3.0 Service Desk Header Card
+          Ux4gCard(
+            accentColor: _isFastLane ? Ux4gDefenseTheme.crisisRed : Ux4gDefenseTheme.mhaNavy,
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.volunteer_activism, color: Color(0xFF10B981), size: 22),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Direct Support - No AI Gatekeeping',
-                        style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'STRUCTURED WELFARE & LEAVE DESK',
+                      style: TextStyle(
+                        fontSize: 13.0,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.4,
+                        color: isDark ? Colors.white : Ux4gDefenseTheme.mhaNavy,
                       ),
-                      SizedBox(height: 4),
-                      Text(
-                        'You can request emergency leave, welfare assistance, or air grievances directly at any time. Family emergency requests are prioritized via guaranteed 72h SLA countdowns.',
-                        style: TextStyle(color: Colors.white70, fontSize: 11, height: 1.3),
-                      ),
-                    ],
+                    ),
+                    Ux4gBadge(
+                      text: _isFastLane ? '12h FAST-LANE' : '72h STANDARD',
+                      type: _isFastLane ? Ux4gBadgeType.danger : Ux4gBadgeType.info,
+                      icon: _isFastLane ? Icons.bolt : Icons.schedule,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6.0),
+                Text(
+                  _isFastLane
+                      ? 'Statutory emergency priority under Section 21 MHCA 2017: guaranteed hierarchical escalation within 12 hours.'
+                      : 'Formal service leave and administrative petition desk with tamper-evident audit logging.',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: isDark ? Ux4gDefenseTheme.textSecondaryDark : Ux4gDefenseTheme.textSecondaryLight,
                   ),
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 14.0),
 
-          // 1. Select Request Type Tabs
-          const Text(
-            'SELECT REQUEST PATHWAY',
-            style: TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.1),
-          ),
-          const SizedBox(height: 10),
+          // Request Form Card
+          Ux4gCard(
+            padding: const EdgeInsets.all(18.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Request Type Selector
+                const Text(
+                  '1. Select Request Domain:',
+                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8.0),
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: 'leave', label: Text('Leave Desk', style: TextStyle(fontSize: 11.5))),
+                    ButtonSegment(value: 'welfare', label: Text('Welfare Aid', style: TextStyle(fontSize: 11.5))),
+                    ButtonSegment(value: 'grievance', label: Text('Grievance', style: TextStyle(fontSize: 11.5))),
+                  ],
+                  selected: {_selectedRequestType},
+                  onSelectionChanged: (set) {
+                    setState(() {
+                      _selectedRequestType = set.first;
+                      _selectedCategory = _typeOptions[_selectedRequestType]!.first['id']!;
+                    });
+                  },
+                ),
 
-          Row(
-            children: [
-              _buildTypeCard(
-                type: 'leave',
-                title: 'Emergency Leave',
-                icon: Icons.flight_takeoff,
-                selected: _selectedRequestType == 'leave',
-              ),
-              const SizedBox(width: 8),
-              _buildTypeCard(
-                type: 'welfare',
-                title: 'Welfare Support',
-                icon: Icons.favorite_border,
-                selected: _selectedRequestType == 'welfare',
-              ),
-              const SizedBox(width: 8),
-              _buildTypeCard(
-                type: 'grievance',
-                title: 'Grievance / Pay',
-                icon: Icons.report_problem_outlined,
-                selected: _selectedRequestType == 'grievance',
-              ),
-            ],
-          ),
+                const SizedBox(height: 18.0),
 
-          const SizedBox(height: 20),
-
-          // 2. Select Specific Category
-          const Text(
-            'SPECIFIC CATEGORY',
-            style: TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.1),
-          ),
-          const SizedBox(height: 10),
-
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFF334155)),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: currentCategoryList.any((e) => e['id'] == _selectedCategory)
-                    ? _selectedCategory
-                    : currentCategoryList.first['id'],
-                isExpanded: true,
-                dropdownColor: const Color(0xFF1E293B),
-                style: const TextStyle(color: Colors.white, fontSize: 13),
-                icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF10B981)),
-                items: currentCategoryList.map((cat) {
-                  final isFast = cat['fast_lane'] == 'true';
-                  return DropdownMenuItem<String>(
-                    value: cat['id'],
-                    child: Row(
-                      children: [
-                        if (isFast)
-                          const Padding(
-                            padding: EdgeInsets.only(right: 6),
-                            child: Icon(Icons.bolt, color: Color(0xFFFBBF24), size: 16),
+                // Specific Category Dropdown
+                const Text(
+                  '2. Specific Category / Reason:',
+                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8.0),
+                DropdownButtonFormField<String>(
+                  value: _selectedCategory,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+                  ),
+                  items: currentOptions.map((opt) {
+                    final isEmergency = opt['fast_lane'] == 'true';
+                    return DropdownMenuItem<String>(
+                      value: opt['id'],
+                      child: Row(
+                        children: [
+                          if (isEmergency)
+                            const Icon(Icons.flash_on, color: Ux4gDefenseTheme.crisisRed, size: 16.0)
+                          else
+                            const Icon(Icons.article_outlined, color: Ux4gDefenseTheme.mhaNavy, size: 16.0),
+                          const SizedBox(width: 8.0),
+                          Expanded(
+                            child: Text(
+                              opt['name']!,
+                              style: const TextStyle(fontSize: 12.5),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        Expanded(child: Text(cat['name']!)),
-                      ],
-                    ),
-                  );
-                }).toList(),
-                onChanged: (val) {
-                  if (val != null) setState(() => _selectedCategory = val);
-                },
-              ),
-            ),
-          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) setState(() => _selectedCategory = val);
+                  },
+                ),
 
-          // Fast lane status indicator
-          if (_isFastLane) ...[
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFBBF24).withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFFBBF24).withValues(alpha: 0.4)),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.bolt, color: Color(0xFFFBBF24), size: 16),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Fast-Track Priority: Automatic 72-Hour SLA Countdown enabled with hierarchical welfare escalation.',
-                      style: TextStyle(color: Color(0xFFFBBF24), fontSize: 11, fontWeight: FontWeight.bold),
-                    ),
+                if (_selectedRequestType == 'leave') ...[
+                  const SizedBox(height: 18.0),
+                  const Text(
+                    '3. Leave Duration (From - To):',
+                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8.0),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6.0)),
+                          ),
+                          icon: const Icon(Icons.calendar_today, size: 15.0),
+                          label: Text(
+                            dateFormat.format(_startDate),
+                            style: const TextStyle(fontSize: 12.0, fontWeight: FontWeight.w600),
+                          ),
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: _startDate,
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime.now().add(const Duration(days: 365)),
+                            );
+                            if (picked != null) setState(() => _startDate = picked);
+                          },
+                        ),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8.0),
+                        child: Text('to', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6.0)),
+                          ),
+                          icon: const Icon(Icons.calendar_today, size: 15.0),
+                          label: Text(
+                            dateFormat.format(_endDate),
+                            style: const TextStyle(fontSize: 12.0, fontWeight: FontWeight.w600),
+                          ),
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: _endDate,
+                              firstDate: _startDate,
+                              lastDate: DateTime.now().add(const Duration(days: 365)),
+                            );
+                            if (picked != null) setState(() => _endDate = picked);
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ],
-              ),
-            ),
-          ],
 
-          // 3. Date Selection (if leave)
-          if (_selectedRequestType == 'leave') ...[
-            const SizedBox(height: 20),
-            const Text(
-              'LEAVE PERIOD (PROPOSED)',
-              style: TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.1),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildDateTile(
-                    label: 'From Date',
-                    date: _startDate,
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: _startDate,
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                      );
-                      if (picked != null) setState(() => _startDate = picked);
-                    },
+                const SizedBox(height: 18.0),
+
+                // Description Text Area
+                const Text(
+                  '4. Detailed Circumstances / Explanation:',
+                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8.0),
+                TextField(
+                  controller: _descriptionController,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    hintText: 'State specific factual details (e.g. Hospital admission, family emergency, court summons date)...',
+                    alignLabelWithHint: true,
                   ),
                 ),
-                const SizedBox(width: 10),
+
+                const SizedBox(height: 22.0),
+
+                // Submit Action
+                Ux4gButton(
+                  label: _isFastLane ? 'SUBMIT 12h FAST-TRACK REQUEST' : 'SUBMIT OFFICIAL PETITION',
+                  icon: _isFastLane ? Icons.bolt : Icons.send,
+                  type: _isFastLane ? Ux4gButtonType.crisis : Ux4gButtonType.primary,
+                  isLoading: _isSubmitting,
+                  onPressed: _handleSubmit,
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 14.0),
+
+          // Statutory Protection Note per Section 21 MHCA 2017
+          Container(
+            padding: const EdgeInsets.all(12.0),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(6.0),
+              border: Border.all(color: isDark ? Ux4gDefenseTheme.borderDark : Ux4gDefenseTheme.borderLight),
+            ),
+            child: Row(
+              children: const [
+                Icon(Icons.gavel, size: 18.0, color: Ux4gDefenseTheme.mhaNavy),
+                SizedBox(width: 8.0),
                 Expanded(
-                  child: _buildDateTile(
-                    label: 'To Date',
-                    date: _endDate,
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: _endDate,
-                        firstDate: _startDate,
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                      );
-                      if (picked != null) setState(() => _endDate = picked);
-                    },
+                  child: Text(
+                    'Statutory Confidentiality: Grievances and welfare requests are protected under Section 21 of the Mental Healthcare Act 2017 & Section 7 DPDP Act 2023. Submissions cannot be used in annual confidential reports (ACR) or disciplinary proceedings.',
+                    style: TextStyle(fontSize: 10.5, height: 1.3),
                   ),
                 ),
               ],
             ),
-          ],
-
-          const SizedBox(height: 20),
-
-          // 4. Description Field
-          const Text(
-            'SITUATION & JUSTIFICATION',
-            style: TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.1),
           ),
-          const SizedBox(height: 10),
-
-          TextField(
-            controller: _descriptionController,
-            maxLines: 4,
-            style: const TextStyle(color: Colors.white, fontSize: 13),
-            decoration: InputDecoration(
-              hintText: 'Describe the family situation, location, or urgent support needed...',
-              hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
-              filled: true,
-              fillColor: const Color(0xFF1E293B),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(0xFF334155)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(0xFF10B981)),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Human approval reminder
-          const Row(
-            children: [
-              Icon(Icons.verified_outlined, color: Colors.white38, size: 14),
-              SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  'Per MHA operational doctrine, consequential leave and duty decisions require human officer sign-off.',
-                  style: TextStyle(color: Colors.white38, fontSize: 10),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-
-          // Submit Button
-          ElevatedButton(
-            onPressed: _isSubmitting ? null : _handleSubmit,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF10B981),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            child: _isSubmitting
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
-                : const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.send, size: 18),
-                      SizedBox(width: 8),
-                      Text(
-                        'SUBMIT REQUEST TO BATTALION',
-                        style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.0),
-                      ),
-                    ],
-                  ),
-          ),
-
-          const SizedBox(height: 32),
         ],
-      ),
-    );
-  }
-
-  Widget _buildTypeCard({
-    required String type,
-    required String title,
-    required IconData icon,
-    required bool selected,
-  }) {
-    return Expanded(
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _selectedRequestType = type;
-            _selectedCategory = _typeOptions[type]!.first['id']!;
-          });
-        },
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-          decoration: BoxDecoration(
-            color: selected ? const Color(0xFF10B981).withValues(alpha: 0.2) : const Color(0xFF1E293B),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: selected ? const Color(0xFF10B981) : const Color(0xFF334155),
-              width: selected ? 1.5 : 1.0,
-            ),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, color: selected ? const Color(0xFF10B981) : Colors.white60, size: 22),
-              const SizedBox(height: 6),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: selected ? Colors.white : Colors.white70,
-                  fontSize: 11,
-                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDateTile({
-    required String label,
-    required DateTime date,
-    required VoidCallback onTap,
-  }) {
-    final fmt = DateFormat('dd MMM yyyy');
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFF334155)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: const TextStyle(color: Colors.white54, fontSize: 10)),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                const Icon(Icons.calendar_month, color: Color(0xFF10B981), size: 16),
-                const SizedBox(width: 6),
-                Text(fmt.format(date), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -25,11 +25,11 @@ def test_file_standard_leave_request(client: TestClient, personnel_headers, db):
 
     assert data["personnel_id"] == trooper.id
     assert data["is_fast_lane"] is False
-    assert data["sla_deadline_hours"] == 48
+    assert data["sla_deadline_hours"] == 72
     assert data["status"] in ["filed", "safe"]
     assert data["collision_status"] in ["safe", "warning", "blocked"]
     assert "hours_remaining" in data
-    assert data["hours_remaining"] > 40.0
+    assert data["hours_remaining"] > 60.0
 
 
 def test_file_fast_lane_family_emergency(client: TestClient, personnel_headers, db):

@@ -14,12 +14,14 @@ from services.gateway_service import (
     process_ussd,
     process_sms_incoming
 )
+from middleware.gateway_auth import verify_gateway_request
 
 router = APIRouter()
 
 @router.post("/ivr/dtmf", response_model=IVRDTMFResponse)
 def handle_ivr_dtmf(
     req: IVRDTMFRequest,
+    _: None = Depends(verify_gateway_request),
     db: Session = Depends(get_db)
 ):
     """
@@ -31,6 +33,7 @@ def handle_ivr_dtmf(
 @router.post("/ussd", response_model=USSDResponse)
 def handle_ussd_session(
     req: USSDRequest,
+    _: None = Depends(verify_gateway_request),
     db: Session = Depends(get_db)
 ):
     """
@@ -42,6 +45,7 @@ def handle_ussd_session(
 @router.post("/sms/incoming", response_model=SMSIncomingResponse)
 def handle_incoming_sms(
     req: SMSIncomingRequest,
+    _: None = Depends(verify_gateway_request),
     db: Session = Depends(get_db)
 ):
     """
@@ -53,6 +57,7 @@ def handle_incoming_sms(
 @router.post("/airgap/export/{unit_id}", summary="Export signed air-gap sync bundle for physical USB/SD transport")
 def export_airgap(
     unit_id: str,
+    _: None = Depends(verify_gateway_request),
     db: Session = Depends(get_db)
 ):
     from services.airgap_sync_service import export_airgap_bundle
@@ -65,6 +70,7 @@ def export_airgap(
 @router.post("/airgap/import", summary="Ingest signed air-gap sync bundle from physical USB/SD transport")
 def import_airgap(
     bundle: dict,
+    _: None = Depends(verify_gateway_request),
     db: Session = Depends(get_db)
 ):
     from services.airgap_sync_service import import_airgap_bundle
@@ -72,4 +78,3 @@ def import_airgap(
         return import_airgap_bundle(db=db, bundle=bundle)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-

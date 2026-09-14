@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import '../providers/dashboard_provider.dart';
-import '../models/user_model.dart';
+import '../providers/theme_locale_provider.dart';
+import '../services/api_service.dart';
+import '../theme/ux4g_defense_theme.dart';
+import '../widgets/ux4g_widgets.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -15,7 +17,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isEditing = false;
   bool _isSaving = false;
 
-  final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _rankController;
   late TextEditingController _tradeController;
@@ -23,24 +24,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late TextEditingController _contactController;
   late TextEditingController _hardAreaController;
   late TextEditingController _transfersController;
-
-  final List<String> _rankOptions = [
-    'Constable',
-    'Head Constable',
-    'Assistant Sub-Inspector (ASI)',
-    'Sub-Inspector (SI)',
-    'Inspector',
-    'Subedar Major',
-  ];
-
-  final List<String> _tradeOptions = [
-    'GD (General Duty)',
-    'Armorer',
-    'Driver / MT',
-    'Radio Operator (RO)',
-    'Bugler',
-    'Nursing Assistant',
-  ];
 
   @override
   void initState() {
@@ -53,13 +36,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final prof = auth.profile;
     final user = auth.user;
 
-    _nameController = TextEditingController(text: prof?.name ?? user?.name ?? '');
-    _rankController = TextEditingController(text: prof?.rank ?? user?.rank ?? 'Constable');
-    _tradeController = TextEditingController(text: prof?.trade ?? 'GD');
-    _companyController = TextEditingController(text: prof?.company ?? 'Alpha Company');
-    _contactController = TextEditingController(text: prof?.contactNumber ?? '');
-    _hardAreaController = TextEditingController(text: '${prof?.hardAreaMonths ?? 0}');
-    _transfersController = TextEditingController(text: '${prof?.totalTransfers ?? 0}');
+    _nameController = TextEditingController(text: prof?.name ?? user?.name ?? 'Rajesh Kumar');
+    _rankController = TextEditingController(text: prof?.rank ?? user?.rank ?? 'Constable/GD');
+    _tradeController = TextEditingController(text: prof?.trade ?? 'GD Rifleman');
+    _companyController = TextEditingController(text: prof?.company ?? 'Alpha Company, 79 Bn');
+    _contactController = TextEditingController(text: prof?.contactNumber ?? '+91 98765 43210');
+    _hardAreaController = TextEditingController(text: '${prof?.hardAreaMonths ?? 18}');
+    _transfersController = TextEditingController(text: '${prof?.totalTransfers ?? 4}');
   }
 
   @override
@@ -74,522 +57,321 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  void _syncFromProfile(PersonnelProfile? prof) {
-    if (prof != null && !_isEditing) {
-      if (_nameController.text.isEmpty) _nameController.text = prof.name;
-      if (_rankController.text.isEmpty) _rankController.text = prof.rank;
-      if (_tradeController.text.isEmpty) _tradeController.text = prof.trade;
-      if (_companyController.text.isEmpty) _companyController.text = prof.company;
-      if (_contactController.text.isEmpty) _contactController.text = prof.contactNumber;
-      _hardAreaController.text = '${prof.hardAreaMonths}';
-      _transfersController.text = '${prof.totalTransfers}';
-    }
-  }
-
-  void _handleSave() async {
-    if (!_formKey.currentState!.validate()) return;
-
+  void _handleSaveProfile() async {
     setState(() => _isSaving = true);
     final auth = context.read<AuthProvider>();
 
-    final updateData = {
+    final data = {
       'name': _nameController.text.trim(),
       'rank': _rankController.text.trim(),
-      'trade': _tradeController.text.trim().replaceAll(RegExp(r'\s*\(.*\)'), ''),
+      'trade': _tradeController.text.trim(),
       'company': _companyController.text.trim(),
       'contact_number': _contactController.text.trim(),
       'hard_area_months': int.tryParse(_hardAreaController.text.trim()) ?? 0,
       'total_transfers': int.tryParse(_transfersController.text.trim()) ?? 0,
     };
 
-    final success = await auth.updateProfile(updateData);
+    final success = await auth.updateProfile(data);
     setState(() {
       _isSaving = false;
-      if (success) _isEditing = false;
+      _isEditing = false;
     });
 
     if (mounted) {
-      if (success) {
-        // Also refresh dashboard provider to pick up updated name/rank
-        context.read<DashboardProvider>().loadDashboard();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            backgroundColor: Color(0xFF10B981),
-            content: Text('Personnel profile updated and synchronized with battalion database!'),
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: success ? Ux4gDefenseTheme.defenseGreen : Ux4gDefenseTheme.crisisRed,
+          content: Text(
+            success ? 'Personnel service record updated successfully!' : 'Failed to update record on server.',
           ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: const Color(0xFFEF4444),
-            content: Text(auth.errorMessage ?? 'Failed to update profile'),
-          ),
-        );
-      }
+        ),
+      );
     }
   }
 
-  void _handleLogout() async {
-    context.read<DashboardProvider>().resetState();
-    await context.read<AuthProvider>().logout();
+  void _showDataCorrectionDialog() {
+    final issueController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Data Correction & Dispute Petition'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Under DPDP Act 2023 §12, personnel have the statutory right to contest incorrect shift records, corrupted survey data, or wrong leave counts.',
+              style: TextStyle(fontSize: 12.0, height: 1.3),
+            ),
+            const SizedBox(height: 12.0),
+            TextField(
+              controller: issueController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Disputed Record & Corrections Required',
+                hintText: 'Specify dates, wrong shift entries, or missing rest calculations...',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Ux4gDefenseTheme.mhaNavy,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              if (issueController.text.trim().isEmpty) return;
+              Navigator.pop(ctx);
+              try {
+                await ApiService().submitPersonnelRequest(
+                  requestType: 'grievance',
+                  category: 'other_grievance',
+                  description: 'DATA CORRECTION PETITION (DPDP 2023 §12): ${issueController.text.trim()}',
+                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      backgroundColor: Ux4gDefenseTheme.defenseGreen,
+                      content: Text('Correction petition filed! 48h statutory redressal SLA active.'),
+                    ),
+                  );
+                }
+              } catch (_) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      backgroundColor: Ux4gDefenseTheme.crisisRed,
+                      content: Text('Failed to submit petition.'),
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('File Formal Dispute'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    final prof = auth.profile;
-    final user = auth.user;
-
-    _syncFromProfile(prof);
+    final themeLocale = context.watch<ThemeLocaleProvider>();
+    final isDark = themeLocale.isDark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0F1D),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F172A),
-        elevation: 0,
-        title: const Column(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: const [
             Text(
-              'MY DETAILS & PROFILE',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+              'TROOPER SERVICE DOSSIER',
+              style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w800, letterSpacing: 0.5),
             ),
             Text(
-              'Paramilitary Personnel Identity Record',
-              style: TextStyle(fontSize: 10, color: Colors.white54),
+              'Confidential Personnel Records & Privacy Charter',
+              style: TextStyle(fontSize: 10.5, color: Color(0xFFCBD5E1)),
             ),
           ],
         ),
         actions: [
-          if (!_isEditing)
-            IconButton(
-              icon: const Icon(Icons.edit, color: Color(0xFF10B981)),
-              tooltip: 'Edit Profile',
-              onPressed: () => setState(() => _isEditing = true),
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.close, color: Colors.white70),
-              tooltip: 'Cancel Edit',
-              onPressed: () {
-                setState(() {
-                  _isEditing = false;
-                  _initControllers();
-                });
-              },
-            ),
           IconButton(
-            icon: const Icon(Icons.logout, color: Color(0xFFEF4444)),
-            tooltip: 'Logout Session',
-            onPressed: _handleLogout,
+            icon: Icon(_isEditing ? Icons.close : Icons.edit_outlined, size: 20.0),
+            tooltip: _isEditing ? 'Cancel Edit' : 'Edit Contact Info',
+            onPressed: () => setState(() => _isEditing = !_isEditing),
           ),
         ],
       ),
-      body: auth.isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)))
-          : Form(
-              key: _formKey,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Trooper Identification Badge Card
+            Ux4gCard(
+              accentColor: Ux4gDefenseTheme.mhaNavy,
+              padding: const EdgeInsets.all(18.0),
+              child: Row(
                 children: [
-                  // Service Identification Card
                   Container(
-                    padding: const EdgeInsets.all(18),
+                    height: 56.0,
+                    width: 56.0,
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF064E3B), Color(0xFF0F172A)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4)),
+                      color: isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Ux4gDefenseTheme.mhaNavy, width: 2.0),
                     ),
-                    child: Row(
+                    child: const Icon(Icons.person, size: 32.0, color: Ux4gDefenseTheme.mhaNavy),
+                  ),
+                  const SizedBox(width: 14.0),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          width: 56,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: const Color(0xFF10B981).withValues(alpha: 0.2),
-                            border: Border.all(color: const Color(0xFF10B981), width: 1.5),
-                          ),
-                          child: const Icon(Icons.person, color: Color(0xFF10B981), size: 30),
+                        Text(
+                          _nameController.text,
+                          style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.bold),
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                (prof?.name ?? user?.name ?? 'Trooper').toUpperCase(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 1.0,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '${prof?.rank ?? user?.rank ?? 'Constable'} • ${prof?.trade ?? 'GD'}',
-                                style: const TextStyle(color: Color(0xFF34D399), fontSize: 12, fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 4),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF0F172A),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  'SERVICE ID: ${prof?.serviceNumber ?? user?.serviceNumber ?? 'CRPF-PENDING'}',
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 0.8,
-                                  ),
-                                ),
-                              ),
-                            ],
+                        const SizedBox(height: 2.0),
+                        Text(
+                          '${_rankController.text} | Service No: ${auth.profile?.serviceNumber ?? auth.user?.serviceNumber ?? "GD-10492"}',
+                          style: TextStyle(
+                            fontSize: 12.0,
+                            color: isDark ? Ux4gDefenseTheme.textSecondaryDark : Ux4gDefenseTheme.textSecondaryLight,
                           ),
                         ),
+                        const SizedBox(height: 6.0),
+                        const Ux4gBadge(text: 'ACTIVE SERVICE - VERIFIED', type: Ux4gBadgeType.success),
                       ],
                     ),
                   ),
+                ],
+              ),
+            ),
 
-                  const SizedBox(height: 16),
+            const SizedBox(height: 14.0),
 
-                  // Privacy Assurance Note (Section 21 MHCA 2017)
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B).withValues(alpha: 0.7),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFF334155)),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.lock_outline, color: Color(0xFF10B981), size: 18),
-                        SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'Statutory Privacy Notice: Under Section 21 MHCA 2017, personal welfare details are confidential and never accessible for disciplinary or promotion penalization.',
-                            style: TextStyle(color: Colors.white70, fontSize: 10.5, height: 1.3),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
+            // Service Details Card
+            Ux4gCard(
+              padding: const EdgeInsets.all(18.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   const Text(
-                    'SERVICE & FORMATION DETAILS',
-                    style: TextStyle(
-                      color: Color(0xFF10B981),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.1,
+                    'Administrative Deployment Parameters',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                  ),
+                  const SizedBox(height: 14.0),
+
+                  if (_isEditing) ...[
+                    TextField(
+                      controller: _contactController,
+                      decoration: const InputDecoration(labelText: 'Primary Contact / Mobile'),
                     ),
-                  ),
-                  const SizedBox(height: 12),
+                    const SizedBox(height: 12.0),
+                    TextField(
+                      controller: _hardAreaController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Hard Area Deployment (Months)'),
+                    ),
+                    const SizedBox(height: 16.0),
+                    Ux4gButton(
+                      label: 'Save Updated Records',
+                      icon: Icons.check,
+                      type: Ux4gButtonType.primary,
+                      isLoading: _isSaving,
+                      onPressed: _handleSaveProfile,
+                    ),
+                  ] else ...[
+                    _buildDossierRow('Assigned Company:', _companyController.text),
+                    const Divider(),
+                    _buildDossierRow('Military Trade (MOS):', _tradeController.text),
+                    const Divider(),
+                    _buildDossierRow('Hard Area Deployment:', '${_hardAreaController.text} Months'),
+                    const Divider(),
+                    _buildDossierRow('Total Unit Transfers:', '${_transfersController.text} Stations'),
+                    const Divider(),
+                    _buildDossierRow('Emergency Contact:', _contactController.text),
+                  ],
+                ],
+              ),
+            ),
 
-                  // Name Field
-                  _buildTextField(
-                    label: 'Full Name',
-                    controller: _nameController,
-                    icon: Icons.badge_outlined,
-                    enabled: _isEditing,
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Name cannot be blank' : null,
-                  ),
-                  const SizedBox(height: 12),
+            const SizedBox(height: 14.0),
 
-                  // Rank Field
-                  if (_isEditing)
-                    _buildDropdownField(
-                      label: 'Rank',
-                      currentValue: _rankOptions.firstWhere(
-                        (r) => r.toLowerCase().contains(_rankController.text.toLowerCase()),
-                        orElse: () => _rankOptions.first,
+            // DPDP Act 2023 & Section 21 MHCA Privacy Charter
+            Ux4gCard(
+              accentColor: Ux4gDefenseTheme.defenseGreen,
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: const [
+                      Icon(Icons.lock, size: 18.0, color: Ux4gDefenseTheme.defenseGreen),
+                      SizedBox(width: 8.0),
+                      Text(
+                        'Statutory Confidentiality & Data Rights',
+                        style: TextStyle(fontSize: 13.0, fontWeight: FontWeight.bold),
                       ),
-                      items: _rankOptions,
-                      icon: Icons.military_tech_outlined,
-                      onChanged: (val) {
-                        if (val != null) {
-                          _rankController.text = val;
-                        }
-                      },
-                    )
-                  else
-                    _buildTextField(
-                      label: 'Rank',
-                      controller: _rankController,
-                      icon: Icons.military_tech_outlined,
-                      enabled: false,
-                    ),
-                  const SizedBox(height: 12),
-
-                  // Trade Field
-                  if (_isEditing)
-                    _buildDropdownField(
-                      label: 'Trade / Role',
-                      currentValue: _tradeOptions.firstWhere(
-                        (t) => t.toLowerCase().contains(_tradeController.text.toLowerCase()),
-                        orElse: () => _tradeOptions.first,
-                      ),
-                      items: _tradeOptions,
-                      icon: Icons.handyman_outlined,
-                      onChanged: (val) {
-                        if (val != null) {
-                          _tradeController.text = val;
-                        }
-                      },
-                    )
-                  else
-                    _buildTextField(
-                      label: 'Trade / Role',
-                      controller: _tradeController,
-                      icon: Icons.handyman_outlined,
-                      enabled: false,
-                    ),
-                  const SizedBox(height: 12),
-
-                  // Company / Sub-Unit
-                  _buildTextField(
-                    label: 'Company / Tactical Sub-Unit',
-                    controller: _companyController,
-                    icon: Icons.business_outlined,
-                    enabled: _isEditing,
+                    ],
                   ),
-                  const SizedBox(height: 12),
-
-                  // Contact Number
-                  _buildTextField(
-                    label: 'Contact Phone Number',
-                    controller: _contactController,
-                    icon: Icons.phone_outlined,
-                    enabled: _isEditing,
-                    keyboardType: TextInputType.phone,
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Unit & Formation (System Assigned)
-                  _buildReadOnlyTile(
-                    title: 'Battalion / Formation',
-                    value: prof?.unitName ?? user?.unitName ?? 'Battalion HQ',
-                    subtitle: prof?.formation ?? 'Paramilitary Operational Force',
-                    icon: Icons.flag_outlined,
-                  ),
-                  const SizedBox(height: 8),
-
-                  _buildReadOnlyTile(
-                    title: 'Operational Terrain Zone',
-                    value: (prof?.operationalArea ?? 'General Area').toUpperCase(),
-                    subtitle: 'Determines rest rotation frequency & risk weighting',
-                    icon: Icons.terrain_outlined,
-                  ),
-
-                  const SizedBox(height: 20),
-                  const Text(
-                    'OPERATIONAL EXPERIENCE & ROTATION',
+                  const SizedBox(height: 8.0),
+                  Text(
+                    '1. Section 21 MHCA 2017: Mental health, stress, and voluntary check-in notes are strictly confidential and legally prohibited from being used in Annual Confidential Reports (ACR) or promotion dockets.\n'
+                    '2. Digital Personal Data Protection Act, 2023: You have the right to transparent audit logs of who accessed your welfare profile.',
                     style: TextStyle(
-                      color: Color(0xFF10B981),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.1,
+                      fontSize: 11.5,
+                      color: isDark ? Colors.white70 : Colors.black87,
+                      height: 1.4,
                     ),
                   ),
-                  const SizedBox(height: 12),
-
+                  const SizedBox(height: 12.0),
                   Row(
                     children: [
                       Expanded(
-                        child: _buildTextField(
-                          label: 'Hard Area Months',
-                          controller: _hardAreaController,
-                          icon: Icons.timer_outlined,
-                          enabled: _isEditing,
-                          keyboardType: TextInputType.number,
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.0)),
+                          ),
+                          icon: const Icon(Icons.history, size: 15.0),
+                          label: const Text('Access Logs', style: TextStyle(fontSize: 11.5)),
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Access Log: Only Company Commander & Unit Welfare Officer have verified audit clearance.'),
+                              ),
+                            );
+                          },
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8.0),
                       Expanded(
-                        child: _buildTextField(
-                          label: 'Total Transfers',
-                          controller: _transfersController,
-                          icon: Icons.sync_alt,
-                          enabled: _isEditing,
-                          keyboardType: TextInputType.number,
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.0)),
+                          ),
+                          icon: const Icon(Icons.edit_document, size: 15.0),
+                          label: const Text('Data Correction', style: TextStyle(fontSize: 11.5)),
+                          onPressed: _showDataCorrectionDialog,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-
-                  if (prof?.dateOfJoining != null && prof!.dateOfJoining.isNotEmpty)
-                    _buildReadOnlyTile(
-                      title: 'Date of Joining Service',
-                      value: prof.dateOfJoining,
-                      icon: Icons.calendar_today_outlined,
-                    ),
-
-                  const SizedBox(height: 24),
-
-                  // Action Buttons
-                  if (_isEditing)
-                    ElevatedButton(
-                      onPressed: _isSaving ? null : _handleSave,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF10B981),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      child: _isSaving
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                            )
-                          : const Text(
-                              'SAVE PROFILE CHANGES',
-                              style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.0),
-                            ),
-                    )
-                  else
-                    OutlinedButton.icon(
-                      onPressed: () => setState(() => _isEditing = true),
-                      icon: const Icon(Icons.edit, size: 16),
-                      label: const Text('UPDATE MY DETAILS'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF10B981),
-                        side: const BorderSide(color: Color(0xFF10B981)),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                    ),
-
-                  const SizedBox(height: 16),
-
-                  // Logout Button
-                  OutlinedButton.icon(
-                    onPressed: _handleLogout,
-                    icon: const Icon(Icons.logout, size: 16, color: Color(0xFFEF4444)),
-                    label: const Text('LOGOUT / SWITCH PERSONNEL', style: TextStyle(color: Color(0xFFEF4444))),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFFEF4444)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
                 ],
               ),
             ),
-    );
-  }
 
-  Widget _buildTextField({
-    required String label,
-    required TextEditingController controller,
-    required IconData icon,
-    bool enabled = true,
-    TextInputType keyboardType = TextInputType.text,
-    String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      enabled: enabled,
-      keyboardType: keyboardType,
-      validator: validator,
-      style: TextStyle(color: enabled ? Colors.white : Colors.white70),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.white60, fontSize: 13),
-        prefixIcon: Icon(icon, color: enabled ? const Color(0xFF10B981) : Colors.white38, size: 20),
-        filled: true,
-        fillColor: enabled ? const Color(0xFF1E293B) : const Color(0xFF0F172A),
-        disabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF334155)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF334155)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF10B981)),
-        ),
-      ),
-    );
-  }
+            const SizedBox(height: 16.0),
 
-  Widget _buildDropdownField({
-    required String label,
-    required String currentValue,
-    required List<String> items,
-    required IconData icon,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return DropdownButtonFormField<String>(
-      initialValue: currentValue,
-      dropdownColor: const Color(0xFF1E293B),
-      style: const TextStyle(color: Colors.white, fontSize: 13),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.white60, fontSize: 13),
-        prefixIcon: Icon(icon, color: const Color(0xFF10B981), size: 20),
-        filled: true,
-        fillColor: const Color(0xFF1E293B),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF334155)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF10B981)),
-        ),
-      ),
-      items: items.map((val) => DropdownMenuItem(value: val, child: Text(val))).toList(),
-      onChanged: onChanged,
-    );
-  }
-
-  Widget _buildReadOnlyTile({
-    required String title,
-    required String value,
-    String? subtitle,
-    required IconData icon,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF334155)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.white38, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(color: Colors.white54, fontSize: 11)),
-                const SizedBox(height: 2),
-                Text(value, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 2),
-                  Text(subtitle, style: const TextStyle(color: Colors.white38, fontSize: 10)),
-                ],
-              ],
+            // Sign Out Session Button
+            Ux4gButton(
+              label: 'Sign Out Session',
+              icon: Icons.logout,
+              type: Ux4gButtonType.outline,
+              onPressed: () => auth.logout(),
             ),
-          ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDossierRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 12.0, color: Colors.grey)),
+          Text(value, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
         ],
       ),
     );

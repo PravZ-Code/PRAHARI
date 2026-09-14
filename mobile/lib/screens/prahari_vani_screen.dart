@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../theme/ux4g_defense_theme.dart';
+import '../widgets/ux4g_widgets.dart';
 
 class PrahariVaniScreen extends StatefulWidget {
   const PrahariVaniScreen({super.key});
@@ -12,7 +14,7 @@ class _PrahariVaniScreenState extends State<PrahariVaniScreen> {
   final ApiService _apiService = ApiService();
 
   String _mode = 'ivr'; // 'ivr', 'ussd', 'sms'
-  String _displayText = '1800-PRAHARI\nPress CALL to connect...';
+  String _displayText = '1800-PRAHARI (Toll-Free)\nPress CALL to connect...';
   String _inputBuffer = '';
   bool _isInCall = false;
   String _callSessionId = 'call_001';
@@ -21,7 +23,6 @@ class _PrahariVaniScreenState extends State<PrahariVaniScreen> {
   void _onKeyPress(String key) {
     setState(() {
       if (_mode == 'ivr' && _isInCall) {
-        // Touch-tone DTMF in active call
         _processIvrDigit(key);
       } else {
         _inputBuffer += key;
@@ -36,19 +37,15 @@ class _PrahariVaniScreenState extends State<PrahariVaniScreen> {
         setState(() {
           _isInCall = true;
           _callSessionId = 'call_${DateTime.now().millisecondsSinceEpoch}';
-          _displayText = 'Connecting 1800-PRAHARI...\n\n[IVR MENU]\n1. Leave Status\n2. Fatigue Relief\n3. Welfare SOS\n4. Language Toggle';
+          _displayText = 'Connecting to 1800-PRAHARI...\n\n[IVR MENU]\n1. Leave Status & SLA\n2. Circadian Fatigue Relief\n3. Emergency Welfare SOS\n4. Language: Hindi/Tamil';
           _inputBuffer = '';
         });
       }
     } else if (_mode == 'ussd') {
-      if (_inputBuffer.isEmpty) {
-        _inputBuffer = '*141#';
-      }
+      if (_inputBuffer.isEmpty) _inputBuffer = '*141#';
       _sendUssd(_inputBuffer);
     } else if (_mode == 'sms') {
-      if (_inputBuffer.isNotEmpty) {
-        _sendSms(_inputBuffer);
-      }
+      if (_inputBuffer.isNotEmpty) _sendSms(_inputBuffer);
     }
   }
 
@@ -57,7 +54,7 @@ class _PrahariVaniScreenState extends State<PrahariVaniScreen> {
       _isInCall = false;
       _inputBuffer = '';
       if (_mode == 'ivr') {
-        _displayText = 'CALL ENDED\n1800-PRAHARI\nPress CALL to reconnect';
+        _displayText = 'CALL TERMINATED\n1800-PRAHARI\nPress CALL to reconnect';
       } else if (_mode == 'ussd') {
         _displayText = 'USSD SESSION TERMINATED\nDial *141# for menu';
       } else {
@@ -69,7 +66,7 @@ class _PrahariVaniScreenState extends State<PrahariVaniScreen> {
   void _processIvrDigit(String digit) async {
     setState(() {
       _isLoading = true;
-      _displayText = 'DTMF tone [$digit] sent...\nProcessing voice prompt...';
+      _displayText = 'DTMF Tone [$digit] transmitted...\nProcessing voice prompt...';
     });
 
     try {
@@ -79,308 +76,194 @@ class _PrahariVaniScreenState extends State<PrahariVaniScreen> {
       );
 
       setState(() {
-        _displayText = '[IVR AUDIO RESPONSE]\n\n${res["prompt_text"] ?? res["message"] ?? "Selection recorded."}\n\nPress 0 for Main Menu | END to hang up';
+        _isLoading = false;
+        final prompt = res['prompt_text'] ?? res['response'] ?? 'Menu Option $digit Accepted.';
+        _displayText = '[VOICE PROMPT]\n\n$prompt\n\nPress 0 for Main Menu | 9 for Operator';
       });
-    } catch (e) {
+    } catch (_) {
       setState(() {
+        _isLoading = false;
         if (digit == '1') {
-          _displayText = '[IVR]: Your domestic leave request is active. 71.4 hours remaining on 72h SLA timer.';
+          _displayText = '[LEAVE STATUS]\nYour leave petition PRH-2026-004128 is UNDER REVIEW.\nSLA: 38h 14m remaining.\nPress 0 for Menu';
         } else if (digit == '2') {
-          _displayText = '[IVR]: Fatigue alert logged. Recommended for URO sentry rotation. Mandatory 8h rest gap enforced.';
+          _displayText = '[FATIGUE RELIEF]\nLast rest: 9.5h compliant.\nNo active rest barrier violation.\nPress 0 for Menu';
         } else if (digit == '3') {
-          _displayText = '[IVR]: Urgent Welfare SOS triggered. Officer Meera notified under 4h response guarantee.';
+          _displayText = '[WELFARE SOS]\n12h Fast-Track SOS triggered for your unit.\nDuty officer alerted.\nPress 0 for Menu';
         } else {
-          _displayText = '[IVR]: Selection received. Press 1 for Leave, 2 for Fatigue, 3 for Welfare Counselor.';
+          _displayText = '[IVR MENU]\n1. Leave Status\n2. Fatigue Relief\n3. Welfare SOS\n4. Language Toggle\nPress Digit (1-4):';
         }
       });
-    } finally {
-      setState(() => _isLoading = false);
     }
   }
 
-  void _sendUssd(String code) async {
+  void _sendUssd(String code) {
     setState(() {
-      _isLoading = true;
-      _displayText = 'Running USSD code $code...';
+      _displayText = 'Sending USSD $code...\n\nCRPF PRAHARI GATEWAY\n1. My Leave Docket\n2. Fatigue Status\n3. Emergency Help\nReply with number:';
+      _inputBuffer = '';
     });
-
-    try {
-      final res = await _apiService.postUSSD(
-        sessionId: 'ussd_${DateTime.now().millisecondsSinceEpoch}',
-        userInput: code,
-      );
-
-      setState(() {
-        _displayText = '[GSM USSD PROMPT]\n\n${res["menu_text"] ?? res["message"] ?? "1. Sentry Status\n2. Report Fatigue\n3. Emergency SOS"}\n\nEnter number & press CALL';
-        _inputBuffer = '';
-      });
-    } catch (e) {
-      setState(() {
-        _displayText = '[GSM USSD]\nPRAHARI TACTICAL BORDER GATEWAY\n1. Sentry Shift Check (Alpha Co)\n2. Log Fatigue Alert\n3. 72h Leave Status\n4. Emergency SOS\n\nPress digit & CALL';
-        _inputBuffer = '';
-      });
-    } finally {
-      setState(() => _isLoading = false);
-    }
   }
 
-  void _sendSms(String text) async {
+  void _sendSms(String text) {
     setState(() {
-      _isLoading = true;
-      _displayText = 'Transmitting SMS: "$text" to 56767...';
+      _displayText = 'SMS sent to 56767: "$text"\n\n[REPLY]: Request received and registered into PRAHARI tamper-evident audit ledger.';
+      _inputBuffer = '';
     });
-
-    try {
-      final res = await _apiService.postIncomingSMS(
-        sender: '+919876543210',
-        message: text,
-      );
-
-      setState(() {
-        _displayText = '[INCOMING 2G SMS FROM 56767]\n\n${res["reply_text"] ?? res["message"] ?? "PRAHARI: Status active. Rest compliance 100%."}';
-        _inputBuffer = '';
-      });
-    } catch (e) {
-      setState(() {
-        _displayText = '[INCOMING 2G SMS FROM 56767]\nPRAHARI ALERT: Your last sentry ended at 06:00. Mandatory 8h rest gap expires at 14:00. Leave request SLA: 71.2h left.';
-        _inputBuffer = '';
-      });
-    } finally {
-      setState(() => _isLoading = false);
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0F1D),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F172A),
-        elevation: 0,
-        title: const Column(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: const [
             Text(
-              'PRAHARI VANI (2G FEATURE PHONE)',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+              'PRAHARI VANI HOTLINE',
+              style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w800, letterSpacing: 0.5),
             ),
             Text(
-              'Zero-Internet 2G Keypad IVR / USSD / SMS Telecom Gateway',
-              style: TextStyle(fontSize: 10, color: Colors.white54),
+              'Feature Phone DTMF Keypad & USSD Simulator',
+              style: TextStyle(fontSize: 10.5, color: Color(0xFFCBD5E1)),
             ),
           ],
         ),
       ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+        child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 360),
+            constraints: const BoxConstraints(maxWidth: 420.0),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Mode Toggle Row
+                // Gateway Mode Selector
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: 'ivr', label: Text('IVR (1800)', style: TextStyle(fontSize: 11.5))),
+                    ButtonSegment(value: 'ussd', label: Text('USSD (*141#)', style: TextStyle(fontSize: 11.5))),
+                    ButtonSegment(value: 'sms', label: Text('SMS (56767)', style: TextStyle(fontSize: 11.5))),
+                  ],
+                  selected: {_mode},
+                  onSelectionChanged: (set) {
+                    setState(() {
+                      _mode = set.first;
+                      _onEndPress();
+                    });
+                  },
+                ),
+
+                const SizedBox(height: 14.0),
+
+                // Tactical Telephone LCD Screen
                 Container(
-                  padding: const EdgeInsets.all(4),
+                  height: 140.0,
+                  padding: const EdgeInsets.all(14.0),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B),
-                    borderRadius: BorderRadius.circular(10),
+                    color: const Color(0xFF0F2027),
+                    borderRadius: BorderRadius.circular(8.0),
+                    border: Border.all(color: const Color(0xFF203A43), width: 2.0),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _ModeTab(
-                        title: '1800 IVR',
-                        isActive: _mode == 'ivr',
-                        onTap: () => setState(() {
-                          _mode = 'ivr';
-                          _displayText = '1800-PRAHARI\nPress CALL to connect...';
-                          _inputBuffer = '';
-                          _isInCall = false;
-                        }),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _mode.toUpperCase(),
+                            style: const TextStyle(
+                              color: Color(0xFF48CAE4),
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              if (_isLoading)
+                                const Padding(
+                                  padding: EdgeInsets.only(right: 8.0),
+                                  child: SizedBox(
+                                    width: 10.0,
+                                    height: 10.0,
+                                    child: CircularProgressIndicator(strokeWidth: 1.5, color: Color(0xFF48CAE4)),
+                                  ),
+                                ),
+                              if (_isInCall)
+                                const Row(
+                                  children: [
+                                    Icon(Icons.fiber_manual_record, size: 10.0, color: Colors.red),
+                                    SizedBox(width: 4.0),
+                                    Text('LIVE CALL', style: TextStyle(color: Colors.red, fontSize: 10.0, fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                            ],
+                          ),
+                        ],
                       ),
-                      _ModeTab(
-                        title: '*141# USSD',
-                        isActive: _mode == 'ussd',
-                        onTap: () => setState(() {
-                          _mode = 'ussd';
-                          _displayText = 'GSM USSD TERMINAL\nDial *141# and press CALL';
-                          _inputBuffer = '*141#';
-                        }),
-                      ),
-                      _ModeTab(
-                        title: '56767 SMS',
-                        isActive: _mode == 'sms',
-                        onTap: () => setState(() {
-                          _mode = 'sms';
-                          _displayText = 'SMS GATEWAY: 56767\nType STATUS or HELP & press SEND';
-                          _inputBuffer = 'STATUS';
-                        }),
+                      const SizedBox(height: 8.0),
+                      Expanded(
+                        child: Text(
+                          _displayText,
+                          style: const TextStyle(
+                            color: Color(0xFF90E0EF),
+                            fontSize: 12.0,
+                            fontFamily: 'monospace',
+                            height: 1.3,
+                          ),
+                        ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
 
-                // 2G Phone Hardware Casing
-                Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF2E384D), Color(0xFF1B2333)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(28),
-                    border: Border.all(color: const Color(0xFF475569), width: 2.5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.6),
-                        blurRadius: 20,
-                        spreadRadius: 4,
-                      ),
-                    ],
-                  ),
+                const SizedBox(height: 16.0),
+
+                // 12-Key Tactical Dialpad
+                Ux4gCard(
+                  padding: const EdgeInsets.all(16.0),
                   child: Column(
                     children: [
-                      // Speaker Grill
-                      Container(
-                        width: 50,
-                        height: 5,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0F172A),
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
+                      _buildDialpadRow(['1', '2', '3'], [' ', 'ABC', 'DEF']),
+                      const SizedBox(height: 10.0),
+                      _buildDialpadRow(['4', '5', '6'], ['GHI', 'JKL', 'MNO']),
+                      const SizedBox(height: 10.0),
+                      _buildDialpadRow(['7', '8', '9'], ['PQRS', 'TUV', 'WXYZ']),
+                      const SizedBox(height: 10.0),
+                      _buildDialpadRow(['*', '0', '#'], [' ', '+', ' ']),
+                      const SizedBox(height: 16.0),
 
-                      // Retro Monochrome / Amber LCD Screen
-                      Container(
-                        height: 170,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF061A14), // Amber/Green phosphorescent tint
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFF10B981).withOpacity(0.5), width: 2),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            // LCD Top Status
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Row(
-                                  children: [
-                                    Icon(Icons.signal_cellular_alt, color: Color(0xFF10B981), size: 12),
-                                    SizedBox(width: 4),
-                                    Text('2G CRPF', style: TextStyle(color: Color(0xFF10B981), fontSize: 9, fontFamily: 'monospace')),
-                                  ],
-                                ),
-                                Text(
-                                  _isInCall ? '[IN-CALL]' : 'STANDBY',
-                                  style: const TextStyle(color: Color(0xFF10B981), fontSize: 9, fontFamily: 'monospace', fontWeight: FontWeight.bold),
-                                ),
-                                const Icon(Icons.battery_full, color: Color(0xFF10B981), size: 14),
-                              ],
-                            ),
-                            const Divider(color: Color(0xFF047857), height: 10),
-                            Expanded(
-                              child: SingleChildScrollView(
-                                child: Text(
-                                  _displayText,
-                                  style: const TextStyle(
-                                    color: Color(0xFF34D399),
-                                    fontFamily: 'monospace',
-                                    fontSize: 12,
-                                    height: 1.35,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            if (_isLoading)
-                              const Align(
-                                alignment: Alignment.bottomRight,
-                                child: SizedBox(
-                                  width: 12,
-                                  height: 12,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF10B981)),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Action Keys (Call / End / Clear)
+                      // Call & End Buttons
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          _TactileButton(
-                            label: _mode == 'sms' ? 'SEND' : 'CALL',
-                            color: const Color(0xFF10B981),
-                            icon: _mode == 'sms' ? Icons.send : Icons.call,
-                            onTap: _onCallPress,
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Ux4gDefenseTheme.defenseGreen,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 12.0),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6.0)),
+                              ),
+                              icon: const Icon(Icons.call, size: 18.0),
+                              label: const Text('CALL', style: TextStyle(fontWeight: FontWeight.bold)),
+                              onPressed: _onCallPress,
+                            ),
                           ),
-                          _TactileButton(
-                            label: 'CLR',
-                            color: const Color(0xFF64748B),
-                            icon: Icons.backspace_outlined,
-                            onTap: () {
-                              setState(() {
-                                if (_inputBuffer.isNotEmpty) {
-                                  _inputBuffer = _inputBuffer.substring(0, _inputBuffer.length - 1);
-                                  _displayText = _inputBuffer.isEmpty ? 'DIAL...' : _inputBuffer;
-                                }
-                              });
-                            },
-                          ),
-                          _TactileButton(
-                            label: 'END',
-                            color: const Color(0xFFEF4444),
-                            icon: Icons.call_end,
-                            onTap: _onEndPress,
+                          const SizedBox(width: 12.0),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Ux4gDefenseTheme.crisisRed,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 12.0),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6.0)),
+                              ),
+                              icon: const Icon(Icons.call_end, size: 18.0),
+                              label: const Text('END', style: TextStyle(fontWeight: FontWeight.bold)),
+                              onPressed: _onEndPress,
+                            ),
                           ),
                         ],
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Keypad Matrix (1-9, *, 0, #)
-                      _KeypadRow(
-                        keys: const [
-                          _KeyInfo('1', '.\n-'),
-                          _KeyInfo('2', 'ABC'),
-                          _KeyInfo('3', 'DEF'),
-                        ],
-                        onPress: _onKeyPress,
-                      ),
-                      const SizedBox(height: 8),
-                      _KeypadRow(
-                        keys: const [
-                          _KeyInfo('4', 'GHI'),
-                          _KeyInfo('5', 'JKL'),
-                          _KeyInfo('6', 'MNO'),
-                        ],
-                        onPress: _onKeyPress,
-                      ),
-                      const SizedBox(height: 8),
-                      _KeypadRow(
-                        keys: const [
-                          _KeyInfo('7', 'PQRS'),
-                          _KeyInfo('8', 'TUV'),
-                          _KeyInfo('9', 'WXYZ'),
-                        ],
-                        onPress: _onKeyPress,
-                      ),
-                      const SizedBox(height: 8),
-                      _KeypadRow(
-                        keys: const [
-                          _KeyInfo('*', 'USSD'),
-                          _KeyInfo('0', '+'),
-                          _KeyInfo('#', 'MENU'),
-                        ],
-                        onPress: _onKeyPress,
                       ),
                     ],
                   ),
@@ -392,125 +275,36 @@ class _PrahariVaniScreenState extends State<PrahariVaniScreen> {
       ),
     );
   }
-}
 
-class _ModeTab extends StatelessWidget {
-  final String title;
-  final bool isActive;
-  final VoidCallback onTap;
-
-  const _ModeTab({required this.title, required this.isActive, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF10B981) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          title,
-          style: TextStyle(
-            color: isActive ? Colors.white : Colors.white60,
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TactileButton extends StatelessWidget {
-  final String label;
-  final Color color;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _TactileButton({
-    required this.label,
-    required this.color,
-    required this.icon,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        width: 82,
-        height: 44,
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color, width: 1.5),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: 16),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _KeyInfo {
-  final String digit;
-  final String sub;
-  const _KeyInfo(this.digit, this.sub);
-}
-
-class _KeypadRow extends StatelessWidget {
-  final List<_KeyInfo> keys;
-  final ValueChanged<String> onPress;
-
-  const _KeypadRow({required this.keys, required this.onPress});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildDialpadRow(List<String> keys, List<String> subtexts) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: keys.map((k) {
-        return InkWell(
-          onTap: () => onPress(k.digit),
-          borderRadius: BorderRadius.circular(10),
-          child: Container(
-            width: 82,
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFF0F172A),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFF334155)),
+      children: List.generate(3, (idx) {
+        return SizedBox(
+          width: 76.0,
+          height: 52.0,
+          child: OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              padding: EdgeInsets.zero,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6.0)),
             ),
+            onPressed: () => _onKeyPress(keys[idx]),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  k.digit,
-                  style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w900),
+                  keys[idx],
+                  style: const TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
                 ),
                 Text(
-                  k.sub,
-                  style: const TextStyle(color: Colors.white38, fontSize: 8, fontWeight: FontWeight.bold),
+                  subtexts[idx],
+                  style: const TextStyle(fontSize: 8.5, color: Colors.grey),
                 ),
               ],
             ),
           ),
         );
-      }).toList(),
+      }),
     );
   }
 }

@@ -14,6 +14,8 @@ from services.welfare_resilience_service import (
     track_personnel_recovery,
     find_whole_team_safe_solution
 )
+from models.user import User
+from models.resilience_intervention import ResilienceIntervention
 
 
 @pytest.fixture
@@ -142,3 +144,47 @@ def test_whole_team_safety(db):
     if res["success"]:
         assert "selected_safe_peer" in res
         assert "is_safe_for_whole_team" in res
+
+
+def test_commit_plan_requires_dual_distinct_approval(client, db, commander_alpha_headers, welfare_headers):
+    target = db.query(Personnel).filter(Personnel.unit_id == db.query(User).filter(
+        User.username == "cmd_vikram"
+    ).first().unit_id).first()
+    assert target is not None
+    replacement = db.query(Personnel).filter(
+        Personnel.unit_id == target.unit_id,
+        Personnel.trade == target.trade,
+        Personnel.id != target.id,
+    ).first()
+    assert replacement is not None
+    target_date_str = str(date.today() + timedelta(days=365))
+    db.query(ResilienceIntervention).filter(
+        ResilienceIntervention.plan_id == "plan-a",
+        ResilienceIntervention.personnel_id == target.id,
+        ResilienceIntervention.target_date == target_date_str,
+    ).delete()
+    db.commit()
+
+    payload = {
+        "plan_id": "plan-a",
+        "personnel_id": target.id,
+        "replacement_personnel_id": replacement.id,
+        "target_date": target_date_str,
+        "proposed_shift": "day",
+        "duty_type": "guard",
+    }
+    try:
+        first = client.post("/api/resilience/commit-plan", headers=commander_alpha_headers, json=payload)
+        assert first.status_code == 200
+        assert first.json()["status"] == "AWAITING_DUAL_APPROVAL"
+        second = client.post("/api/resilience/commit-plan", headers=welfare_headers, json=payload)
+        assert second.status_code == 200
+        assert second.json()["status"] == "COMMITTED"
+        assert second.json()["dual_approved"] is True
+    finally:
+        db.query(ResilienceIntervention).filter(
+            ResilienceIntervention.plan_id == "plan-a",
+            ResilienceIntervention.personnel_id == target.id,
+            ResilienceIntervention.target_date == target_date_str,
+        ).delete()
+        db.commit()

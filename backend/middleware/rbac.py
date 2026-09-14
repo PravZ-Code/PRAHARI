@@ -1,7 +1,7 @@
 import bcrypt
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
@@ -9,7 +9,7 @@ from config import settings
 from database import get_db
 from models.user import User
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     try:
@@ -34,6 +34,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return encoded_jwt
 
 async def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ) -> User:
@@ -42,9 +43,12 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    token = credentials.credentials if credentials else request.cookies.get("prahari_session")
+    if not token:
+        raise credentials_exception
     try:
         payload = jwt.decode(
-            credentials.credentials,
+            token,
             settings.JWT_SECRET_KEY,
             algorithms=[settings.JWT_ALGORITHM]
         )
@@ -59,13 +63,22 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User inactive or not found")
     return user
 
+ROLE_ALIASES = {
+    "welfare_officer": "welfare",
+    "soldier": "personnel",
+    "jawan": "personnel",
+}
+
 def require_role(*allowed_roles: str):
     """
     Dependency that ensures the authenticated user possesses one of the allowed roles.
     Example: Depends(require_role('welfare', 'admin'))
     """
     async def role_checker(user: User = Depends(get_current_user)) -> User:
-        if user.role not in allowed_roles:
+        user_role = (user.role or "").lower()
+        canonical_role = ROLE_ALIASES.get(user_role, user_role)
+        allowed_lower = [r.lower() for r in allowed_roles]
+        if user_role not in allowed_lower and canonical_role not in allowed_lower:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Access forbidden: Role '{user.role}' is not authorized. Required: {list(allowed_roles)}"

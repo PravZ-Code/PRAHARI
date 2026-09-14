@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" width="200" height="60">
+  <rect width="200" height="60" fill="transparent"/>
+  <text x="10" y="32" font-family="'Noto Sans', 'Roboto', sans-serif" font-weight="900" font-size="24" fill="#ff9933">india</text>
+  <text x="72" y="32" font-family="'Noto Sans', 'Roboto', sans-serif" font-weight="900" font-size="24" fill="#0c3866">.gov</text>
+  <text x="122" y="32" font-family="'Noto Sans', 'Roboto', sans-serif" font-weight="900" font-size="24" fill="#138808">.in</text>
+  <text x="10" y="48" font-family="sans-serif" font-weight="600" font-size="9" fill="#475569" letter-spacing="0.5">national portal of india</text>
+</svg>

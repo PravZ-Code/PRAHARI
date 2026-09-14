@@ -33,10 +33,24 @@ class Settings(BaseSettings):
     OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "qwen3:0.6b")
 
     RATE_LIMIT_ENABLED: bool = os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "true"
+    # Integration and ledger keys must be explicitly provisioned in production.
+    GATEWAY_SHARED_SECRET: str = os.getenv("GATEWAY_SHARED_SECRET", "")
+    AIRGAP_SHARED_SECRET: str = os.getenv("AIRGAP_SHARED_SECRET", "")
+    ALLOW_INSECURE_LOCAL_GATEWAY: bool = os.getenv("ALLOW_INSECURE_LOCAL_GATEWAY", "false").lower() == "true"
+    LEDGER_SIGNING_KEY: str = os.getenv("LEDGER_SIGNING_KEY", "")
 
     model_config = SettingsConfigDict(env_file=".env", extra="allow")
 
 settings = Settings()
+
+# Resolve relative SQLite URLs from the backend directory rather than the
+# process working directory. This keeps the launcher, Uvicorn, and tests on
+# the same database file.
+if settings.DATABASE_URL.startswith("sqlite:///./"):
+    settings.DATABASE_URL = "sqlite:///" + os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        settings.DATABASE_URL.removeprefix("sqlite:///./"),
+    )
 
 if settings.APP_ENV == "production":
     if not settings.JWT_SECRET_KEY or settings.JWT_SECRET_KEY == "prahari-dev-secret-key-mha-defense-grid-2026-secure":
@@ -49,6 +63,13 @@ if settings.APP_ENV == "production":
             "FATAL SECURITY ERROR: JWT_SECRET_KEY is too short (must be at least 32 characters). "
             "Generate a strong key using: openssl rand -hex 32"
         )
+    for name, value in (
+        ("GATEWAY_SHARED_SECRET", settings.GATEWAY_SHARED_SECRET),
+        ("AIRGAP_SHARED_SECRET", settings.AIRGAP_SHARED_SECRET),
+        ("LEDGER_SIGNING_KEY", settings.LEDGER_SIGNING_KEY),
+    ):
+        if not value or len(value) < 32:
+            raise ValueError(f"FATAL SECURITY ERROR: {name} must be a strong 32+ character secret in production.")
 
 
 def configured_origins() -> list[str]:

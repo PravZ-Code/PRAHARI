@@ -1,11 +1,31 @@
 import pytest
 import numpy as np
+import hashlib
+import hmac
+import time
 from fastapi.testclient import TestClient
 from models.personnel import Unit, Personnel
 from services.conflict_service import analyze_evidence_conflict
 from services.welfare_resilience_service import check_battalion_exhaustion_escalation
 from services.gateway_service import process_sms_incoming
 from schemas.gateway import SMSIncomingRequest
+from config import settings
+
+
+def _gateway_headers(body: bytes = b"") -> dict:
+    if not settings.GATEWAY_SHARED_SECRET:
+        settings.GATEWAY_SHARED_SECRET = "focused-test-gateway-secret"
+    timestamp = str(int(time.time()))
+    nonce = f"test-{time.time_ns()}"
+    secret = settings.GATEWAY_SHARED_SECRET or settings.AIRGAP_SHARED_SECRET
+    signature = hmac.new(
+        secret.encode(), f"{timestamp}.{nonce}.".encode() + body, hashlib.sha256
+    ).hexdigest()
+    return {
+        "X-Prahari-Timestamp": timestamp,
+        "X-Prahari-Nonce": nonce,
+        "X-Prahari-Signature": signature,
+    }
 
 
 def test_telecom_gateway_offline_sms_triage(db):
@@ -13,6 +33,7 @@ def test_telecom_gateway_offline_sms_triage(db):
     req = SMSIncomingRequest(
         message_sid="SMS_TEST_12345",
         sender_phone="+919876543210",
+        service_number=db.query(Personnel.service_number).first()[0],
         message_body="SOS Need urgent welfare officer support"
     )
     res = process_sms_incoming(db, req)
@@ -66,26 +87,32 @@ def test_airgap_export_and_import(client: TestClient, db):
     assert unit is not None
 
     # 1. Export signed bundle
-    exp_resp = client.post(f"/api/gateway/airgap/export/{unit.id}")
+    exp_resp = client.post(f"/api/gateway/airgap/export/{unit.id}", headers=_gateway_headers())
     assert exp_resp.status_code == 200
     bundle = exp_resp.json()
 
     assert bundle["filename"].endswith(".prahari.enc")
     assert "archive_hash_sha256" in bundle
-    assert "payload" in bundle
+    assert "payload" not in bundle
 
     # 2. Clean Import at Battalion HQ
-    imp_resp = client.post("/api/gateway/airgap/import", json=bundle)
+    import_body = __import__("json").dumps(bundle, separators=(",", ":")).encode()
+    imp_resp = client.post("/api/gateway/airgap/import", content=import_body,
+                           headers={**_gateway_headers(import_body), "Content-Type": "application/json"})
     assert imp_resp.status_code == 200
     imp_data = imp_resp.json()
     assert imp_data["status"] == "INGESTION_VERIFIED"
     assert imp_data["signature_verified"] is True
 
-    # 3. Tamper detection test (modify payload in transit)
+    # 3. Tamper detection test (modify the encrypted envelope in transit)
     tampered_bundle = dict(bundle)
-    tampered_bundle["payload"] = dict(bundle["payload"])
-    tampered_bundle["payload"]["unit_name"] = "TAMPERED_PIRATED_UNIT"
+    tampered_bundle["envelope"] = dict(bundle["envelope"])
+    tampered_bundle["envelope"]["ciphertext"] = (
+        tampered_bundle["envelope"]["ciphertext"][:-2] + "AA"
+    )
 
-    bad_imp = client.post("/api/gateway/airgap/import", json=tampered_bundle)
+    tampered_body = __import__("json").dumps(tampered_bundle, separators=(",", ":")).encode()
+    bad_imp = client.post("/api/gateway/airgap/import", content=tampered_body,
+                          headers={**_gateway_headers(tampered_body), "Content-Type": "application/json"})
     assert bad_imp.status_code == 400
-    assert "Cryptographic tamper detected" in bad_imp.json()["detail"]
+    assert "decryption failed" in bad_imp.json()["detail"].lower()

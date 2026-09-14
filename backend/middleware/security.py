@@ -82,4 +82,9 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
             response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
             response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+            # Sensitive defense data anti-caching protection (prevents CDN, proxy, and shared browser cache leakage)
+            if request.url.path.startswith("/api/"):
+                response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, private"
+                response.headers["Pragma"] = "no-cache"
+                response.headers["Expires"] = "0"
         return response

@@ -622,6 +622,7 @@ class ApiService {
         final data = jsonDecode(response.body);
         if (data is List) return data;
         if (data is Map && data['items'] != null) return data['items'];
+        if (data is Map && data['logs'] != null) return data['logs'];
       }
     } catch (_) {}
 

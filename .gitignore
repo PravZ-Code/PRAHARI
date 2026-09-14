@@ -1,100 +1,49 @@
-# =============================================================================
-# PRAHARI Defense Platform - Git Ignore Rules
-# =============================================================================
-
-# --- Environment & Secrets ---
+# Environment & Secrets
 .env
-.env.local
-.env.*.local
-!.env.example
+.env.*
 *.pem
 *.key
-*.cert
-*.crt
 
-# --- Node.js & Frontend ---
-node_modules/
-**/node_modules/
-.next/
-**/.next/
-out/
-build/
-dist/
-.npm
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-.turbo
-
-# --- Python & Backend ---
+# Python Bytecode & Cache
 __pycache__/
-**/__pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-.venv/
-ENV/
-*.egg-info/
-.eggs/
+*.class
 .pytest_cache/
-**/.pytest_cache/
 .coverage
 htmlcov/
 
-# --- Mobile (Flutter / Dart) ---
-.dart_tool/
-**/.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-.packages
-.pub-cache/
-.pub/
-.gradle/
-**/.gradle/
-**/mobile/build/
-**/mobile/.idea/
-**/android_native_build/
-
-# --- Databases & Large Runtime Binaries ---
+# Databases & Runtime Data
 *.db*
 *.sqlite*
-*.zip
-*.sqlite3
-*.db-journal
-*.db-wal
-*.db-shm
+prahari.db*
 
-# --- Temporary & Generated Files ---
-*.tmp
-*.log
-COI_Dossier_*.pdf
-graphify-out/cache/
+# Node / Next.js
+node_modules/
+.next/
+out/
+build/
+dist/
+launcher_build/
+launcher_dist/
 
-# --- OS & Editor Files ---
+# OS / IDE
 .DS_Store
 Thumbs.db
-Desktop.ini
-.idea/
 .vscode/
-*.swp
-*.swo
+.idea/
+*.log
+*.tmp
+*.bak
 
-# --- Windows Junctions ---
-PS26186
+# Documentation (per user instruction)
+docs/
 
-# --- Local Hackathon Workspace & Research Files ---
-.github/
-prahari/
-graphify-out/
+# Portable Runtimes & Packaging Binaries
+runtime/
+logs/
 .agents/
-.knowledge/
-*.docx
-/*.txt
-!backend/requirements.txt
-!requirements.txt
-FEATURES.md
-PRAHARI_*.md
+*.exe
+*.zip
+*.ps1
+build_production_zip.py
+

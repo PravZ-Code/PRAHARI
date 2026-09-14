@@ -7,7 +7,8 @@ from schemas.commander import (
     UnitReadinessResponse,
     UnitRiskDistributionResponse,
     UnitWorkloadResponse,
-    UnitFatigueResponse
+    UnitFatigueResponse,
+    UnitDashboardKPIsResponse
 )
 from services.commander_service import (
     get_commander_units,
@@ -15,7 +16,8 @@ from services.commander_service import (
     get_unit_risk_distribution,
     get_unit_workload_trends,
     get_unit_fatigue_heatmap,
-    get_commander_command_briefing
+    get_commander_command_briefing,
+    get_unit_dashboard_kpis
 )
 from middleware.rbac import require_role
 
@@ -26,7 +28,7 @@ def _verify_commander_unit_access(current_user: User, unit_id: str):
     Prevents BOLA/IDOR by ensuring commanders can only query metrics for their assigned unit.
     Admins retain oversight across all units.
     """
-    if current_user.role == "commander" and current_user.unit_id and current_user.unit_id != unit_id:
+    if current_user.role == "commander" and (not current_user.unit_id or current_user.unit_id != unit_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Access forbidden: Commander is not authorized to access unit '{unit_id}' outside assigned command"
@@ -40,6 +42,7 @@ def list_units(
     cards = get_commander_units(db=db, commander_user=current_user)
     return {"units": cards}
 
+@router.get("/unit/{unit_id}", response_model=UnitReadinessResponse)
 @router.get("/unit/{unit_id}/readiness", response_model=UnitReadinessResponse)
 def get_readiness(
     unit_id: str,
@@ -124,6 +127,44 @@ def get_command_attribution_endpoint(
         return compute_structural_stress_attribution(db=db, unit_id=unit_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+@router.get("/unit/{unit_id}/dashboard-kpis", response_model=UnitDashboardKPIsResponse)
+def get_unit_dashboard_kpis_endpoint(
+    unit_id: str,
+    current_user: User = Depends(require_role("commander", "admin", "welfare")),
+    db: Session = Depends(get_db)
+):
+    """
+    Company Commander Dashboard Decision KPIs:
+    Live counts for pending requests, urgent family needs, shift burden,
+    readiness %, rest compliance, and scheduling balance.
+    """
+    _verify_commander_unit_access(current_user, unit_id)
+    try:
+        return get_unit_dashboard_kpis(db=db, unit_id=unit_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/unit/{unit_id}/welfare-debt", summary="Section 31: Unit Welfare Debt Composite Metric")
+def get_unit_welfare_debt_endpoint(
+    unit_id: str,
+    current_user: User = Depends(require_role("commander", "admin", "welfare")),
+    db: Session = Depends(get_db)
+):
+    """
+    Section 31: Welfare Debt.
+    Aggregates accumulated unresolved welfare pressure (unresolved requests + rest deficit + reserve depletion).
+    Explainable, non-punitive, leadership resource balancing index.
+    """
+    _verify_commander_unit_access(current_user, unit_id)
+    from services.command_attribution_service import compute_unit_welfare_debt
+    try:
+        return compute_unit_welfare_debt(db=db, unit_id=unit_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error computing welfare debt: {str(e)}")
 
 
 

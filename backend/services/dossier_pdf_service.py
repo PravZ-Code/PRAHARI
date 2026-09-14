@@ -90,7 +90,7 @@ class NumberedCanvas(canvas.Canvas):
 
         self.setFont("Helvetica-Bold", 7)
         self.setFillColor(TEXT_MUTED)
-        self.drawString(36, 22, "PRODUCED UNDER SECTION 65B INDIAN EVIDENCE ACT // BHARATIYA SAKSHYA ADHINIYAM, 2023")
+        self.drawString(36, 22, "PRODUCED UNDER SECTION 63(4) BHARATIYA SAKSHYA ADHINIYAM, 2023 // MANDATORY ELECTRONIC EVIDENCE")
         self.drawRightString(559, 22, f"Page {self._pageNumber} of {page_count}")
         
         self.restoreState()
@@ -212,7 +212,7 @@ def get_custom_styles():
 def generate_dossier_pdf(db: Session, case_id: str, output_path: Optional[str] = None) -> bytes:
     """
     Generates a formal 3-page Court of Inquiry Evidence Dossier (PDF) compliant
-    with Section 65B of the Indian Evidence Act, 1872 & Bharatiya Sakshya Adhiniyam, 2023.
+    with Section 63(4) of the Bharatiya Sakshya Adhiniyam, 2023 (formerly Section 65B of the Indian Evidence Act, 1872).
     """
     case = db.query(WelfareCase).filter(WelfareCase.id == case_id).first()
     if not case:
@@ -269,6 +269,7 @@ def generate_dossier_pdf(db: Session, case_id: str, output_path: Optional[str] =
         "service_number": personnel.service_number,
         "case_hash": case_hash[:32],
         "genesis_hash": genesis_hash[:16],
+        "sec_63_compliant": True,
         "sec_65b_compliant": True,
         "timestamp": datetime.now(timezone.utc).isoformat()
     })
@@ -657,6 +658,25 @@ def generate_dossier_pdf(db: Session, case_id: str, output_path: Optional[str] =
     ]
     
     raw_shaps = (latest_pred.shap_values if latest_pred else []) or []
+    if isinstance(raw_shaps, str):
+        try:
+            raw_shaps = json.loads(raw_shaps)
+        except Exception:
+            raw_shaps = []
+    if isinstance(raw_shaps, dict):
+        raw_shaps = [
+            {"feature": k, "display_name": k.replace("_", " ").title(), "impact": float(v) if v is not None else 0.0, "value": v}
+            for k, v in raw_shaps.items()
+        ]
+    elif isinstance(raw_shaps, list):
+        norm = []
+        for it in raw_shaps:
+            if isinstance(it, dict):
+                norm.append(it)
+            elif isinstance(it, str):
+                norm.append({"feature": it, "display_name": it.replace("_", " ").title(), "impact": 0.0, "value": None})
+        raw_shaps = norm
+
     if raw_shaps:
         for idx, item in enumerate(raw_shaps[:5]):
             feat = item.get("display_name") or item.get("feature", "Stress Factor")
@@ -766,18 +786,17 @@ def generate_dossier_pdf(db: Session, case_id: str, output_path: Optional[str] =
     story.append(sla_table)
     story.append(Spacer(1, 8))
 
-    # SECTION 5: Cryptographic Section 65B Certificate
-    story.append(Paragraph("5. CERTIFICATE UNDER SECTION 65B OF THE INDIAN EVIDENCE ACT, 1872", styles["SecHeader"]))
-    story.append(Paragraph("Mandatory electronic evidence certification (read with Bharatiya Sakshya Adhiniyam, 2023).", styles["SecSub"]))
+    # SECTION 5: Cryptographic Section 63(4) Certificate
+    story.append(Paragraph("5. CERTIFICATE UNDER SECTION 63(4) OF THE BHARATIYA SAKSHYA ADHINIYAM, 2023", styles["SecHeader"]))
+    story.append(Paragraph("Mandatory electronic evidence certification pursuant to Section 63(4) of the Bharatiya Sakshya Adhiniyam, 2023 (formerly Section 65B of Indian Evidence Act, 1872).", styles["SecSub"]))
 
     cert_text = (
         "I, the undersigned System Administrator & Digital Forensics Custodian, PRAHARI Platform, MHA, "
-        "hereby certify pursuant to <b>Section 65B(4) of the Indian Evidence Act, 1872</b> and <b>Section 63 of "
-        "the Bharatiya Sakshya Adhiniyam, 2023</b> that: (a) This Court of Inquiry Dossier is a computer output "
-        "produced by the PRAHARI Defense Welfare Platform; (b) The electronic devices and database nodes were operating "
-        "lawfully and properly throughout the relevant period; (c) The data contained herein was fed into the computer "
-        "in the ordinary course of regular duty; and (d) The SHA-256 cryptographic chain linking all underlying records "
-        "to the genesis ledger is intact with zero tamper or post-hoc modification detected."
+        "hereby certify pursuant to <b>Section 63(4) of the Bharatiya Sakshya Adhiniyam, 2023</b> (read with the Schedule thereto) "
+        "that: (a) This Court of Inquiry Dossier is an authentic computer output produced by the PRAHARI Defense Welfare Platform; "
+        "(b) The electronic devices and database nodes were operating lawfully and properly throughout the relevant period; "
+        "(c) The data contained herein was fed into the computer in the ordinary course of regular duty; and "
+        "(d) The cryptographic ledger linking all underlying records to the genesis block is signed and intact with zero tamper detected."
     )
     story.append(Paragraph(cert_text, styles["LegalBody"]))
     story.append(Spacer(1, 6))

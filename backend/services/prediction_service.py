@@ -47,7 +47,15 @@ def run_batch_predictions(db: Session, unit_id: Optional[str] = None, model_vers
             data_quality_score=pred["data_quality_score"],
             baseline_type=b_type,
             model_version=model_version,
-            shap_values=pred["shap_values"]
+            shap_values=pred["shap_values"],
+            trajectory=pred.get("trajectory", "STABLE"),
+            prob_7d=pred.get("prob_7d", pred["risk_score"]),
+            prob_14d=pred.get("prob_14d", pred["risk_score"]),
+            prob_30d=pred.get("prob_30d", pred["risk_score"]),
+            abstention_flag=1 if pred.get("abstention_flag") else 0,
+            abstention_reason=pred.get("abstention_reason"),
+            signal_reliability=pred.get("signal_reliability", "high"),
+            what_changed=pred.get("what_changed", {})
         )
         db.add(db_pred)
 

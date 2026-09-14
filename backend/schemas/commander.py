@@ -68,3 +68,21 @@ class TrooperFatigueProfileSchema(BaseModel):
 class UnitFatigueResponse(BaseModel):
     unit_id: str
     troopers: List[TrooperFatigueProfileSchema]
+
+class UnitDashboardKPIsResponse(BaseModel):
+    unit_id: str
+    unit_name: str
+    open_requests: int
+    urgent_needs: int
+    needs_review: int
+    heavy_shift_load: int
+    unit_readiness: float
+    rest_compliance: float
+    active_on_duty: int
+    on_leave: int
+    night_duty_share: float
+    available_rested: int
+    leave_denial_frequency: float
+    night_duty_distribution: str
+    short_rest_incidents: int
+    guidance_text: str

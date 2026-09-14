@@ -17,7 +17,9 @@ from schemas.welfare import (
     CaseResolveRequest,
     WhatIfRequest,
     WhatIfResponse,
-    CaseReassessResponse
+    CaseReassessResponse,
+    SafetyPattern,
+    CaseRecoveryItem
 )
 from schemas.evidence import EvidenceConflictReport
 from schemas.trend import TrendAnalysisReport
@@ -87,7 +89,7 @@ def export_case_dossier(
         request,
         resource_type="welfare_case_dossier",
         resource_id=case_id,
-        details={"export_format": "PDF", "legal_mandate": "Section 65B Indian Evidence Act"}
+        details={"export_format": "PDF", "legal_mandate": "Section 63(4) Bharatiya Sakshya Adhiniyam 2023"}
     )
 
     return FileResponse(
@@ -332,4 +334,123 @@ async def welfare_copilot_chat_alias(
     req = CopilotChatRequest(**body)
     return await copilot_chat(req=req, request=request, current_user=current_user, db=db)
 
+@router.get("/safety-patterns", response_model=List[SafetyPattern])
+def get_safety_patterns_endpoint(
+    current_user: User = Depends(require_role("commander", "welfare", "admin")),
+    db: Session = Depends(get_db)
+):
+    """
+    Returns proactive early-warning patterns across the force before acute crises occur.
+    """
+    query = db.query(WelfareCase).join(Personnel)
+    if current_user.role == "commander":
+        if not current_user.unit_id:
+            raise HTTPException(status_code=403, detail="Commander has no assigned unit.")
+        query = query.filter(Personnel.unit_id == current_user.unit_id)
+    elif current_user.role == "personnel":
+        if not current_user.personnel_id:
+            return []
+        query = query.filter(WelfareCase.personnel_id == current_user.personnel_id)
+    cases = query.order_by(WelfareCase.created_at.desc()).limit(10).all()
+    patterns = []
+
+    for c in cases:
+        p = c.personnel
+        if not p:
+            continue
+        risk_tag = (c.risk_level_at_creation or "moderate").capitalize()
+        noticed = c.created_at.strftime("%d %b %Y") if c.created_at else "10 Sep 2026"
+        patterns.append(SafetyPattern(
+            id=f"PAT-{p.id[:6].upper()}",
+            trooperName=p.name,
+            serviceNo=p.service_number,
+            rank=p.rank,
+            unit=p.unit.name if p.unit else "Alpha Company (Srinagar)",
+            concernTitle=f"Cumulative operational fatigue and duty load ({risk_tag} Flag)",
+            noticedDate=noticed,
+            reasons=[
+                {
+                    "factor": "Night Duties",
+                    "whatHappened": "High night shift rotation in current deployment cycle",
+                    "whyItMatters": "May cause circadian disruption and sleep deprivation"
+                },
+                {
+                    "factor": "Operational Deployment",
+                    "whatHappened": f"{p.hard_area_months} months in hard/counter-insurgency zone",
+                    "whyItMatters": "Prolonged hard area posting increases psychological strain"
+                },
+                {
+                    "factor": "Leave Availability",
+                    "whatHappened": "Pending leave requests or restricted sanctioned downtime",
+                    "whyItMatters": "Separation from family increases acute domestic stress"
+                },
+                {
+                    "factor": "Rest Compliance",
+                    "whatHappened": "Multiple duty cycles requiring short-rest turnaround",
+                    "whyItMatters": "Adequate physiological recovery window required"
+                }
+            ],
+            suggestedSupport=[
+                {
+                    "title": "Welfare Conversation",
+                    "description": "Battalion welfare officer coordinates confidential check-in.",
+                    "officer": "Welfare Officer"
+                },
+                {
+                    "title": "Day Watch Swap",
+                    "description": "Authorize daytime static duty in place of high-strain night patrols.",
+                    "officer": "Company Commander"
+                },
+                {
+                    "title": "Clear Delayed Leave",
+                    "description": "Sanction pending compensatory leave as replacement covers are locked.",
+                    "officer": "Company Commander"
+                }
+            ]
+        ))
+
+    return patterns
+
+@router.get("/recovery-cases", response_model=List[CaseRecoveryItem])
+def get_recovery_cases_endpoint(
+    current_user: User = Depends(require_role("commander", "welfare", "admin", "personnel")),
+    db: Session = Depends(get_db)
+):
+    """
+    Returns longitudinal follow-up cases tracking soldier recovery post-intervention.
+    """
+    query = db.query(WelfareCase).join(Personnel)
+    if current_user.role == "commander":
+        if not current_user.unit_id:
+            raise HTTPException(status_code=403, detail="Commander has no assigned unit.")
+        query = query.filter(Personnel.unit_id == current_user.unit_id)
+    elif current_user.role == "personnel":
+        if not current_user.personnel_id:
+            return []
+        query = query.filter(WelfareCase.personnel_id == current_user.personnel_id)
+    cases = query.order_by(WelfareCase.created_at.desc()).limit(15).all()
+    items = []
+
+    for c in cases:
+        p = c.personnel
+        if not p:
+            continue
+        is_resolved = c.status == "resolved"
+        created_str = c.created_at.strftime("%d %b %Y") if c.created_at else "08 Sep 2026"
+        resolved_str = c.resolved_at.strftime("%d %b %Y") if c.resolved_at else "15 Sep 2026"
+
+        items.append(CaseRecoveryItem(
+            ref=f"PRH-2026-{c.id[:6].upper()}",
+            trooperName=p.name,
+            serviceNo=p.service_number,
+            unit=p.unit.name if p.unit else "Alpha Company (Srinagar)",
+            requestType=c.intervention_type or "Operational Fatigue Relief",
+            supportProvided=c.intervention_notes or c.outcome_notes or "Duty reassignment and recovery rest granted.",
+            approvedDate=created_str,
+            followUpDate=f"{resolved_str} (Follow-up)",
+            currentFeedback=c.outcome_notes if is_resolved else "Under ongoing monitoring by battalion welfare committee.",
+            status="Completed" if is_resolved else "Under Follow-up"
+        ))
+
+    return items
 

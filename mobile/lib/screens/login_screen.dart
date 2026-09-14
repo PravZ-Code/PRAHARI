@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/theme_locale_provider.dart';
 import '../services/api_service.dart';
+import '../theme/ux4g_defense_theme.dart';
+import '../widgets/government_header_bar.dart';
+import '../widgets/ux4g_widgets.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,12 +18,32 @@ class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController(text: 'rajesh_kumar');
   final _passwordController = TextEditingController(text: 'demo123');
   bool _obscurePassword = true;
+  bool _backendOnline = false;
+  bool _checkingHealth = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBackendStatus();
+  }
 
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  void _checkBackendStatus() async {
+    if (!mounted) return;
+    setState(() => _checkingHealth = true);
+    final healthy = await ApiService().checkHealth();
+    if (mounted) {
+      setState(() {
+        _backendOnline = healthy;
+        _checkingHealth = false;
+      });
+    }
   }
 
   void _handleLogin() async {
@@ -29,7 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (username.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter both username and password')),
+        const SnackBar(content: Text('Please enter both service username and password')),
       );
       return;
     }
@@ -38,8 +62,8 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: const Color(0xFFEF4444),
-          content: Text(auth.errorMessage ?? 'Authentication failed'),
+          backgroundColor: Ux4gDefenseTheme.crisisRed,
+          content: Text(auth.errorMessage ?? 'Authentication failed. Please verify credentials.'),
         ),
       );
     }
@@ -58,8 +82,8 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: const Color(0xFFEF4444),
-          content: Text(auth.errorMessage ?? 'Demo login failed'),
+          backgroundColor: Ux4gDefenseTheme.crisisRed,
+          content: Text(auth.errorMessage ?? 'Demo authentication failed'),
         ),
       );
     }
@@ -72,24 +96,21 @@ class _LoginScreenState extends State<LoginScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
-        title: const Text('Backend API Address', style: TextStyle(color: Colors.white)),
+        title: const Text('Configure Backend API Endpoint'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Set the PRAHARI API URL:\n• Web/Desktop: http://localhost:8000/api\n• Android Emulator: http://10.0.2.2:8000/api\n• Physical Phone: http://192.168.x.x:8000/api',
-              style: TextStyle(color: Colors.white70, fontSize: 12),
+              'Enter the FastAPI server URL (e.g. http://10.0.2.2:8000/api for Android emulator, or LAN IP for physical device):',
+              style: TextStyle(fontSize: 12.5),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 12.0),
             TextField(
               controller: controller,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: const Color(0xFF0F172A),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              decoration: const InputDecoration(
+                labelText: 'Base URL',
+                hintText: 'http://localhost:8000/api',
               ),
             ),
           ],
@@ -97,20 +118,17 @@ class _LoginScreenState extends State<LoginScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white60)),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
             onPressed: () async {
               await apiService.setCustomBaseUrl(controller.text);
               if (mounted) {
-                context.read<AuthProvider>().checkConnection();
-                if (ctx.mounted) {
-                  Navigator.pop(ctx);
-                }
+                Navigator.pop(ctx);
+                _checkBackendStatus();
               }
             },
-            child: const Text('Save & Test', style: TextStyle(color: Colors.white)),
+            child: const Text('Save & Test'),
           ),
         ],
       ),
@@ -120,267 +138,269 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final themeLocale = context.watch<ThemeLocaleProvider>();
+    final isDark = themeLocale.isDark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0F1D), // Dark tactical military slate
+      appBar: const GovernmentHeaderBar(showControls: true),
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
+          child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
+              constraints: const BoxConstraints(maxWidth: 480.0),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Top Status / Backend Indicator
-                  Align(
-                    alignment: Alignment.topRight,
-                    child: InkWell(
-                      onTap: _showServerConfigDialog,
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E293B),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: auth.isBackendConnected
-                                ? const Color(0xFF10B981)
-                                : const Color(0xFFEF4444),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: auth.isBackendConnected
-                                    ? const Color(0xFF10B981)
-                                    : const Color(0xFFEF4444),
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              auth.isBackendConnected ? 'Backend Live' : 'Offline / Config',
-                              style: const TextStyle(fontSize: 11, color: Colors.white70),
-                            ),
-                            const SizedBox(width: 4),
-                            const Icon(Icons.settings, size: 12, color: Colors.white60),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Emblem & Title
-                  Center(
-                    child: Container(
-                      width: 76,
-                      height: 76,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF047857), Color(0xFF0F766E)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF10B981).withValues(alpha: 0.3),
-                            blurRadius: 20,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.shield,
-                        color: Colors.white,
-                        size: 44,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'PRAHARI (प्रहरी)',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Smart Personnel Welfare & Fatigue Management\nMinistry of Home Affairs | SIH 2026',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white60,
-                      fontSize: 12,
-                      height: 1.3,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-
-                  // Credentials Form Card
+                  // Government Security Notice
                   Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(10.0),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B).withValues(alpha: 0.8),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFF334155)),
+                      color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(6.0),
+                      border: Border.all(
+                        color: isDark ? Ux4gDefenseTheme.borderDark : Ux4gDefenseTheme.borderLight,
+                      ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                    child: Row(
                       children: [
-                        const Text(
-                          'SECURITY CREDENTIALS',
-                          style: TextStyle(
-                            color: Color(0xFF10B981),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: _usernameController,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.badge_outlined, color: Colors.white60),
-                            labelText: 'Service Username',
-                            labelStyle: const TextStyle(color: Colors.white60),
-                            filled: true,
-                            fillColor: const Color(0xFF0F172A),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide.none,
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(color: Color(0xFF10B981)),
+                        Icon(Icons.security, size: 18.0, color: isDark ? Colors.white70 : Ux4gDefenseTheme.mhaNavy),
+                        const SizedBox(width: 8.0),
+                        Expanded(
+                          child: Text(
+                            themeLocale.tr('restricted_notice'),
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? const Color(0xFFCBD5E1) : Ux4gDefenseTheme.textSecondaryLight,
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 14),
-                        TextField(
-                          controller: _passwordController,
-                          obscureText: _obscurePassword,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.lock_outline, color: Colors.white60),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                                color: Colors.white60,
-                              ),
-                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                            ),
-                            labelText: 'Access Password',
-                            labelStyle: const TextStyle(color: Colors.white60),
-                            filled: true,
-                            fillColor: const Color(0xFF0F172A),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide.none,
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(color: Color(0xFF10B981)),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        ElevatedButton(
-                          onPressed: auth.isLoading ? null : _handleLogin,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF10B981),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          child: auth.isLoading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                )
-                              : const Text(
-                                  'AUTHENTICATE & ENTER',
-                                  style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.0),
-                                ),
                         ),
                       ],
                     ),
                   ),
 
-                  const SizedBox(height: 24),
-                  const Row(
-                    children: [
-                      Expanded(child: Divider(color: Color(0xFF334155))),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(
-                          'PERSONNEL MULTI-USER TEST ACCOUNTS',
-                          style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      Expanded(child: Divider(color: Color(0xFF334155))),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 20.0),
 
-                  // Quick Demo Personnel
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => _handleQuickLogin('A'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Color(0xFF10B981)),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  // Official Login Card
+                  Ux4gCard(
+                    accentColor: Ux4gDefenseTheme.mhaNavy,
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(6.0),
+                              child: Image.asset(
+                                'assets/images/prahari_logo.png',
+                                height: 44.0,
+                                width: 44.0,
+                                errorBuilder: (ctx, err, stack) => const Icon(Icons.shield, size: 40.0, color: Ux4gDefenseTheme.mhaNavy),
+                              ),
+                            ),
+                            const SizedBox(width: 14.0),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'PRAHARI Bandhu',
+                                    style: TextStyle(
+                                      fontSize: 18.0,
+                                      fontWeight: FontWeight.w800,
+                                      color: isDark ? Colors.white : Ux4gDefenseTheme.mhaNavy,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2.0),
+                                  Text(
+                                    'Tactical Welfare & Leave Management',
+                                    style: TextStyle(
+                                      fontSize: 12.0,
+                                      color: isDark ? Ux4gDefenseTheme.textSecondaryDark : Ux4gDefenseTheme.textSecondaryLight,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 20.0),
+                        const Divider(),
+                        const SizedBox(height: 18.0),
+
+                        // Username Field
+                        TextField(
+                          controller: _usernameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Trooper Username / Service ID',
+                            prefixIcon: Icon(Icons.badge_outlined, size: 20.0),
                           ),
-                          child: const Column(
+                        ),
+
+                        const SizedBox(height: 14.0),
+
+                        // Password Field
+                        TextField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          decoration: InputDecoration(
+                            labelText: 'Security PIN / Password',
+                            prefixIcon: const Icon(Icons.lock_outline, size: 20.0),
+                            suffixIcon: IconButton(
+                              icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 20.0),
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 20.0),
+
+                        // Sign In Action Button
+                        Ux4gButton(
+                          label: themeLocale.tr('login'),
+                          icon: Icons.login,
+                          isLoading: auth.isLoading,
+                          onPressed: _handleLogin,
+                        ),
+
+                        const SizedBox(height: 16.0),
+
+                        // Quick Test Credentials
+                        Text(
+                          'Select Authorized Test Account:',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? Ux4gDefenseTheme.textSecondaryDark : Ux4gDefenseTheme.textSecondaryLight,
+                          ),
+                        ),
+                        const SizedBox(height: 8.0),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.0)),
+                                ),
+                                icon: const Icon(Icons.person, size: 16.0),
+                                label: const Text('Rajesh Kumar (GD-10492)', style: TextStyle(fontSize: 11.0)),
+                                onPressed: auth.isLoading ? null : () => _handleQuickLogin('A'),
+                              ),
+                            ),
+                            const SizedBox(width: 8.0),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.0)),
+                                ),
+                                icon: const Icon(Icons.person_outline, size: 16.0),
+                                label: const Text('Ankit Sharma (GD-10518)', style: TextStyle(fontSize: 11.0)),
+                                onPressed: auth.isLoading ? null : () => _handleQuickLogin('B'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16.0),
+
+                  // Backend Connectivity & Configuration Bar
+                  InkWell(
+                    onTap: _showServerConfigDialog,
+                    borderRadius: BorderRadius.circular(6.0),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
+                      decoration: BoxDecoration(
+                        color: isDark ? Ux4gDefenseTheme.surfaceDark : Colors.white,
+                        borderRadius: BorderRadius.circular(6.0),
+                        border: Border.all(
+                          color: isDark ? Ux4gDefenseTheme.borderDark : Ux4gDefenseTheme.borderLight,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.dns_outlined,
+                            size: 16.0,
+                            color: isDark ? Colors.white70 : Ux4gDefenseTheme.mhaNavy,
+                          ),
+                          const SizedBox(width: 8.0),
+                          Expanded(
+                            child: Text(
+                              'Server: ${ApiService().baseUrl}',
+                              style: TextStyle(
+                                fontSize: 11.0,
+                                color: isDark ? Ux4gDefenseTheme.textSecondaryDark : Ux4gDefenseTheme.textSecondaryLight,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8.0),
+                          if (_checkingHealth)
+                            const SizedBox(
+                              width: 14.0,
+                              height: 14.0,
+                              child: CircularProgressIndicator(strokeWidth: 2.0),
+                            )
+                          else
+                            Ux4gBadge(
+                              text: _backendOnline ? 'CONNECTED' : 'DISCONNECTED',
+                              type: _backendOnline ? Ux4gBadgeType.success : Ux4gBadgeType.danger,
+                              icon: _backendOnline ? Icons.check_circle : Icons.error_outline,
+                            ),
+                          const SizedBox(width: 6.0),
+                          const Icon(Icons.settings, size: 14.0),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24.0),
+
+                  // Tele-MANAS Statutory Helpline Footer
+                  Container(
+                    padding: const EdgeInsets.all(12.0),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(6.0),
+                      border: Border.all(color: const Color(0xFFBFDBFE)),
+                    ),
+                    child: Row(
+                      children: const [
+                        Icon(Icons.support_agent, color: Color(0xFF1D4ED8), size: 24.0),
+                        SizedBox(width: 10.0),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(Icons.person, color: Color(0xFF10B981), size: 20),
-                              SizedBox(height: 4),
-                              Text('Personnel A', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-                              Text('rajesh_kumar', style: TextStyle(fontSize: 9, color: Colors.white54)),
+                              Text(
+                                'National Tele-MANAS 24x7 Helpline',
+                                style: TextStyle(
+                                  color: Color(0xFF1E3A8A),
+                                  fontSize: 12.0,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 2.0),
+                              Text(
+                                'Dial 14416 or 1800-891-4416 (Statutory Confidential Care)',
+                                style: TextStyle(
+                                  color: Color(0xFF1D4ED8),
+                                  fontSize: 11.0,
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => _handleQuickLogin('B'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Color(0xFF60A5FA)),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                          child: const Column(
-                            children: [
-                              Icon(Icons.person_outline, color: Color(0xFF60A5FA), size: 20),
-                              SizedBox(height: 4),
-                              Text('Personnel B', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-                              Text('ankit_sharma', style: TextStyle(fontSize: 9, color: Colors.white54)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),

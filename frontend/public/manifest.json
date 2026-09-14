@@ -1,0 +1,16 @@
+{
+  "name": "PRAHARI - Personnel Welfare & Grievance Resolution",
+  "short_name": "PRAHARI",
+  "description": "AI-Assisted Personnel Welfare & Grievance Resolution Platform for Central Armed Police Forces (MHA / CRPF)",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0c3866",
+  "theme_color": "#0c3866",
+  "icons": [
+    {
+      "src": "/images/prahari_logo_trans.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png"
+    }
+  ]
+}

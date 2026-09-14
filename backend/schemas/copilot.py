@@ -30,9 +30,17 @@ class CopilotChatRequest(BaseModel):
 
 class CopilotChatResponse(BaseModel):
     response: str
+    reply: Optional[str] = None
     case_id: Optional[str] = None
     personnel_id: Optional[str] = None
     cited_sources: List[str] = []
     is_fallback: bool = False
     model_used: str = "qwen3:8b"
     generated_at: str
+
+    def __init__(self, **data):
+        if "reply" not in data and "response" in data:
+            data["reply"] = data["response"]
+        elif "response" not in data and "reply" in data:
+            data["response"] = data["reply"]
+        super().__init__(**data)

@@ -1,4 +1,5 @@
 import math
+import json
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
@@ -89,6 +90,19 @@ def get_welfare_case_detail(db: Session, case_id: str) -> Optional[Dict[str, Any
     pred_summary = None
     if pred:
         raw_factors = pred.shap_values or []
+        if isinstance(raw_factors, str):
+            try:
+                raw_factors = json.loads(raw_factors)
+            except (TypeError, ValueError):
+                raw_factors = []
+        if isinstance(raw_factors, dict):
+            raw_factors = [
+                {"feature": feature, "impact": impact}
+                for feature, impact in raw_factors.items()
+            ]
+        if not isinstance(raw_factors, list):
+            raw_factors = []
+        raw_factors = [factor for factor in raw_factors if isinstance(factor, dict)]
         total_abs = sum(abs(f.get("impact", 0.0)) for f in raw_factors)
         if total_abs == 0:
             total_abs = 1.0
@@ -110,6 +124,14 @@ def get_welfare_case_detail(db: Session, case_id: str) -> Optional[Dict[str, Any
             "risk_level": pred.risk_level,
             "confidence": float(pred.confidence_score),
             "data_quality": float(pred.data_quality_score),
+            "trajectory": getattr(pred, "trajectory", "STABLE") or "STABLE",
+            "prob_7d": float(pred.prob_7d) if getattr(pred, "prob_7d", None) is not None else float(pred.risk_score),
+            "prob_14d": float(pred.prob_14d) if getattr(pred, "prob_14d", None) is not None else float(pred.risk_score),
+            "prob_30d": float(pred.prob_30d) if getattr(pred, "prob_30d", None) is not None else float(pred.risk_score),
+            "abstention_flag": bool(getattr(pred, "abstention_flag", 0)),
+            "abstention_reason": getattr(pred, "abstention_reason", None),
+            "signal_reliability": getattr(pred, "signal_reliability", "high") or "high",
+            "what_changed": getattr(pred, "what_changed", {}) or {},
             "shap_top_factors": shap_factors
         }
 

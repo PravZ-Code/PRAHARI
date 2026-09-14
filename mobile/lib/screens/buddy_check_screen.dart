@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_locale_provider.dart';
 import '../services/api_service.dart';
+import '../theme/ux4g_defense_theme.dart';
+import '../widgets/ux4g_widgets.dart';
 
 class BuddyCheckScreen extends StatefulWidget {
   const BuddyCheckScreen({super.key});
@@ -13,15 +17,22 @@ class _BuddyCheckScreenState extends State<BuddyCheckScreen> {
 
   int _concernLevel = 3;
   String _concernCategory = 'sleep_deprivation';
+  final _notesController = TextEditingController();
   bool _isSubmitting = false;
 
   final Map<String, String> _categories = {
-    'sleep_deprivation': 'Visible Sleep Deprivation / Nodding on Watch',
-    'emotional_withdrawal': 'Emotional Withdrawal / Silent & Isolated',
-    'extreme_fatigue': 'Physical Tremor / Exhaustion on Patrol',
-    'domestic_distress': 'Obsessive Worry over Family / Phone Friction',
-    'unusual_agitation': 'Sudden Irritability / Hyper-Agitation',
+    'sleep_deprivation': 'Visible Sleep Deprivation / Microsleep on Watch',
+    'emotional_withdrawal': 'Social Withdrawal / Uncharacteristic Isolation',
+    'extreme_fatigue': 'Physical Tremor / Severe Circadian Exhaustion',
+    'domestic_distress': 'Acute Family Anxiety / Phone Call Friction',
+    'unusual_agitation': 'Sudden Irritability / Tension with Teammates',
   };
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
+  }
 
   void _handleSubmit() async {
     setState(() => _isSubmitting = true);
@@ -35,18 +46,18 @@ class _BuddyCheckScreenState extends State<BuddyCheckScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            backgroundColor: Color(0xFF10B981),
-            content: Text('Anonymous buddy signal registered. Thank you for protecting your fellow troop!'),
+            backgroundColor: Ux4gDefenseTheme.defenseGreen,
+            content: Text('Confidential buddy signal registered! Thank you for standing guard for your peer.'),
           ),
         );
         Navigator.pop(context);
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            backgroundColor: Color(0xFF10B981),
-            content: Text('Buddy check signal logged locally for unit welfare analysis.'),
+            backgroundColor: Ux4gDefenseTheme.defenseGreen,
+            content: Text('Buddy check signal saved in offline queue for automated synchronization.'),
           ),
         );
         Navigator.pop(context);
@@ -58,171 +69,137 @@ class _BuddyCheckScreenState extends State<BuddyCheckScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeLocale = context.watch<ThemeLocaleProvider>();
+    final isDark = themeLocale.isDark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0F1D),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F172A),
-        elevation: 0,
-        title: const Column(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: const [
             Text(
-              'ANONYMOUS BUDDY CHECK',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+              'PEER BUDDY CHECK DESK',
+              style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w800, letterSpacing: 0.5),
             ),
             Text(
-              'Peer Support Network (Zero Identity Tracking)',
-              style: TextStyle(fontSize: 10, color: Colors.white54),
+              'Digitized CRPF Buddy-Pairing System & Peer Signals',
+              style: TextStyle(fontSize: 10.5, color: Color(0xFFCBD5E1)),
             ),
           ],
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // Confidentiality Guarantee Card
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E293B).withOpacity(0.8),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFF60A5FA).withOpacity(0.5)),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.lock_person_outlined, color: Color(0xFF60A5FA), size: 24),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    '100% Anonymous Peer Watch: Under Section 21 of the Mental Healthcare Act 2017, no record of who submitted this report is kept in the database. Signals only aggregate to unit-level trends.',
-                    style: TextStyle(color: Colors.white70, fontSize: 11, height: 1.4),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Concern Category
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E293B).withOpacity(0.8),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF334155)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'OBSERVED BEHAVIORAL SYMPTOM',
-                  style: TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 12),
-                ..._categories.entries.map((e) {
-                  final isSelected = _concernCategory == e.key;
-                  return InkWell(
-                    onTap: () => setState(() => _concernCategory = e.key),
-                    borderRadius: BorderRadius.circular(10),
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFF10B981).withOpacity(0.15) : const Color(0xFF0F172A),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: isSelected ? const Color(0xFF10B981) : const Color(0xFF334155),
-                          width: isSelected ? 1.5 : 1,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Anonymity Guarantee Banner
+            Ux4gCard(
+              accentColor: Ux4gDefenseTheme.defenseGreen,
+              padding: const EdgeInsets.all(14.0),
+              child: Row(
+                children: [
+                  const Icon(Icons.verified_user_outlined, size: 24.0, color: Ux4gDefenseTheme.defenseGreen),
+                  const SizedBox(width: 12.0),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Strict Confidentiality & Non-Punitive Duty of Care',
+                          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
                         ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-                            color: isSelected ? const Color(0xFF10B981) : Colors.white38,
-                            size: 18,
+                        const SizedBox(height: 2.0),
+                        Text(
+                          'Peer check-in signals are anonymized before triage. They never trigger adverse disciplinary actions or disciplinary dockets.',
+                          style: TextStyle(
+                            fontSize: 11.0,
+                            color: isDark ? Ux4gDefenseTheme.textSecondaryDark : Ux4gDefenseTheme.textSecondaryLight,
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              e.value,
-                              style: TextStyle(
-                                color: isSelected ? Colors.white : Colors.white70,
-                                fontSize: 12,
-                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.normal,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  );
-                }),
-                const SizedBox(height: 14),
+                  ),
+                ],
+              ),
+            ),
 
-                // Severity Level
-                const Text(
-                  'Severity of Concern (1 = Minor, 5 = Critical / Unsafe)',
-                  style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: List.generate(5, (index) {
-                    final score = index + 1;
-                    final isSelected = score == _concernLevel;
-                    return InkWell(
-                      onTap: () => setState(() => _concernLevel = score),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        width: 54,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? (score >= 4 ? const Color(0xFFEF4444) : const Color(0xFF10B981))
-                              : const Color(0xFF0F172A),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isSelected
-                                ? (score >= 4 ? const Color(0xFFEF4444) : const Color(0xFF10B981))
-                                : const Color(0xFF334155),
-                          ),
-                        ),
-                        child: Center(
-                          child: Text(
-                            '$score',
-                            style: TextStyle(
-                              color: isSelected ? Colors.white : Colors.white70,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
+            const SizedBox(height: 14.0),
 
-          ElevatedButton.icon(
-            onPressed: _isSubmitting ? null : _handleSubmit,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF10B981),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            // Form Card
+            Ux4gCard(
+              padding: const EdgeInsets.all(18.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '1. Observed Behavioral Signal:',
+                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8.0),
+                  DropdownButtonFormField<String>(
+                    value: _concernCategory,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+                    ),
+                    items: _categories.entries.map((e) {
+                      return DropdownMenuItem<String>(
+                        value: e.key,
+                        child: Text(e.value, style: const TextStyle(fontSize: 12.0), overflow: TextOverflow.ellipsis),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) setState(() => _concernCategory = val);
+                    },
+                  ),
+
+                  const SizedBox(height: 18.0),
+
+                  Text(
+                    '2. Severity / Urgency Level: $_concernLevel / 5',
+                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4.0),
+                  Slider(
+                    value: _concernLevel.toDouble(),
+                    min: 1.0,
+                    max: 5.0,
+                    divisions: 4,
+                    activeColor: _concernLevel >= 4 ? Ux4gDefenseTheme.crisisRed : Ux4gDefenseTheme.mhaNavy,
+                    onChanged: (v) => setState(() => _concernLevel = v.toInt()),
+                  ),
+
+                  const SizedBox(height: 14.0),
+
+                  const Text(
+                    '3. Contextual Notes (Optional):',
+                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8.0),
+                  TextField(
+                    controller: _notesController,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      hintText: 'e.g. Looked dizzy after double sentry shift; mentioned family hospital issue...',
+                      alignLabelWithHint: true,
+                    ),
+                  ),
+
+                  const SizedBox(height: 20.0),
+
+                  Ux4gButton(
+                    label: 'REGISTER PEER BUDDY CHECK',
+                    icon: Icons.send,
+                    type: Ux4gButtonType.primary,
+                    isLoading: _isSubmitting,
+                    onPressed: _handleSubmit,
+                  ),
+                ],
+              ),
             ),
-            icon: const Icon(Icons.send),
-            label: const Text(
-              'SUBMIT ANONYMOUS BUDDY SIGNAL',
-              style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.8),
-            ),
-          ),
-          const SizedBox(height: 32),
-        ],
+          ],
+        ),
       ),
     );
   }

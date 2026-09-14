@@ -19,6 +19,8 @@ FAST_LANE_CATEGORIES = {
     "medical_emergency",
     "family_crisis"
 }
+EMERGENCY_SLA_HOURS = 12
+STANDARD_SLA_HOURS = 72
 
 ESCALATION_TIERS = {
     0: "Company Commander / Platoon Havildar",
@@ -56,10 +58,10 @@ def file_grievance_or_leave(
     )
 
     if is_fast_lane:
-        sla_hours = 12  # Fast-lane 12-hour statutory resolution window
+        sla_hours = EMERGENCY_SLA_HOURS
         initial_status = "fast_tracked"
     else:
-        sla_hours = 48  # Standard 48-hour resolution window
+        sla_hours = STANDARD_SLA_HOURS
         initial_status = "filed"
 
     deadline = now + timedelta(hours=sla_hours)
@@ -288,30 +290,23 @@ def dual_approve_grievance(
     signing_role = role_to_sign or user_role
 
     if single_sign:
-        req.commander_approved = True
-        req.commander_approved_at = now
-        req.commander_user_id = user_id
-        req.welfare_approved = True
-        req.welfare_approved_at = now
-        req.welfare_user_id = user_id
+        raise ValueError("Single-user dual signing is prohibited; two distinct approvers are required.")
+    if signing_role == "commander":
+            if req.welfare_user_id == user_id:
+                raise ValueError("The two approval signatures must be from distinct users.")
+            req.commander_approved = True
+            req.commander_approved_at = now
+            req.commander_user_id = user_id
+    elif signing_role == "welfare":
+            if req.commander_user_id == user_id:
+                raise ValueError("The two approval signatures must be from distinct users.")
+            req.welfare_approved = True
+            req.welfare_approved_at = now
+            req.welfare_user_id = user_id
+    elif user_role == "admin":
+            raise ValueError("Admins must explicitly sign one approval role; two distinct approvers are required.")
     else:
-        if signing_role == "commander":
-            req.commander_approved = True
-            req.commander_approved_at = now
-            req.commander_user_id = user_id
-        elif signing_role == "welfare":
-            req.welfare_approved = True
-            req.welfare_approved_at = now
-            req.welfare_user_id = user_id
-        elif user_role == "admin":
-            req.commander_approved = True
-            req.commander_approved_at = now
-            req.commander_user_id = user_id
-            req.welfare_approved = True
-            req.welfare_approved_at = now
-            req.welfare_user_id = user_id
-        else:
-            raise ValueError(f"Role '{user_role}' is not authorized to sign off grievances.")
+        raise ValueError(f"Role '{user_role}' is not authorized to sign off grievances.")
 
     both_approved = bool(req.commander_approved and req.welfare_approved)
 
@@ -442,3 +437,114 @@ def reject_grievance(
         "cost_of_inaction_active": True,
         "resolved_at": req.resolved_at.isoformat() if req.resolved_at else None
     }
+
+
+def compute_resolution_bottlenecks(db: Session, unit_id: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Section 12: Resolution Bottleneck Detection.
+    Aggregates welfare resolution performance across companies and approval tiers:
+    - Calculates per-company '% within SLA' (e.g., Company Alpha: 92%, Bravo: 64%, Charlie: 41%)
+    - Identifies repeated bottleneck approval tiers (Company vs Battalion Welfare vs Commandant)
+    - Groups frequent request categories with breach rates
+    - Identifies systemic administrative friction without singling out individuals.
+    """
+    units = db.query(Unit).all()
+    if unit_id:
+        units = [u for u in units if u.id == unit_id]
+
+    unit_league = []
+    overall_total = 0
+    overall_resolved = 0
+    overall_breached = 0
+
+    category_counts: Dict[str, Dict[str, int]] = {}
+    tier_delays = {0: 0, 1: 0, 2: 0}
+
+    for u in units:
+        p_ids = [p.id for p in db.query(Personnel.id).filter(Personnel.unit_id == u.id).all()]
+        if not p_ids:
+            continue
+
+        grievances = db.query(GrievanceRequest).filter(GrievanceRequest.personnel_id.in_(p_ids)).all()
+        tot = len(grievances)
+        if tot == 0:
+            continue
+
+        resolved = sum(1 for g in grievances if g.status in ("resolved", "approved"))
+        breached = sum(1 for g in grievances if g.sla_breached)
+        within_sla = tot - breached
+        sla_pct = round((within_sla / tot) * 100, 1) if tot > 0 else 100.0
+
+        durations = [g.time_to_resolution_hours for g in grievances if g.time_to_resolution_hours is not None]
+        avg_hrs = round(sum(durations) / len(durations), 1) if durations else 24.0
+
+        for g in grievances:
+            cat = g.category or "general"
+            if cat not in category_counts:
+                category_counts[cat] = {"total": 0, "breached": 0}
+            category_counts[cat]["total"] += 1
+            if g.sla_breached:
+                category_counts[cat]["breached"] += 1
+
+            if g.sla_breached or g.status in ("escalated", "pending", "filed"):
+                tier = g.escalation_level if g.escalation_level in tier_delays else 0
+                tier_delays[tier] += 1
+
+        overall_total += tot
+        overall_resolved += resolved
+        overall_breached += breached
+
+        status_tag = "OPTIMAL" if sla_pct >= 85.0 else ("FRICTION_MONITORED" if sla_pct >= 60.0 else "BOTTLENECK_ALERT")
+        unit_league.append({
+            "unit_id": u.id,
+            "unit_name": u.name,
+            "operational_area": u.operational_area,
+            "total_requests": tot,
+            "resolved_requests": resolved,
+            "pending_requests": tot - resolved,
+            "sla_breached_count": breached,
+            "within_sla_percentage": sla_pct,
+            "avg_resolution_hours": avg_hrs,
+            "bottleneck_status": status_tag
+        })
+
+    unit_league.sort(key=lambda x: x["within_sla_percentage"], reverse=True)
+
+    tier_labels = {
+        0: "Company Commander / Platoon Havildar (Local Level)",
+        1: "Battalion Welfare Officer / 2IC (Triage Level)",
+        2: "Commandant / HQ Approval (Command Tier)"
+    }
+    highest_delay_tier = max(tier_delays, key=tier_delays.get) if tier_delays else 0
+    repeated_bottleneck_tier = tier_labels.get(highest_delay_tier, "Company-Level Triage")
+
+    frequent_categories = []
+    for cat, data in sorted(category_counts.items(), key=lambda x: x[1]["total"], reverse=True)[:5]:
+        cat_pct = round(((data["total"] - data["breached"]) / data["total"]) * 100, 1) if data["total"] > 0 else 100.0
+        frequent_categories.append({
+            "category": cat.replace("_", " ").title(),
+            "total_count": data["total"],
+            "breached_count": data["breached"],
+            "compliance_rate": cat_pct
+        })
+
+    force_sla_pct = round(((overall_total - overall_breached) / overall_total) * 100, 1) if overall_total > 0 else 100.0
+
+    return {
+        "force_within_sla_percentage": force_sla_pct,
+        "total_requests_audited": overall_total,
+        "total_resolved": overall_resolved,
+        "total_breached": overall_breached,
+        "company_league_table": unit_league,
+        "repeated_bottleneck_tier": repeated_bottleneck_tier,
+        "tier_delay_distribution": {
+            tier_labels[k]: v for k, v in tier_delays.items()
+        },
+        "frequent_request_types": frequent_categories,
+        "systemic_friction_insight": (
+            f"Overall force resolution rate is {force_sla_pct}% within SLA. "
+            f"Primary administrative bottleneck occurs at '{repeated_bottleneck_tier}'. "
+            f"Units with lowest compliance require streamlined delegation protocols."
+        )
+    }
+

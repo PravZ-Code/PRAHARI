@@ -1,0 +1,78 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: prahari_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-prahari}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-prahari_dev_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-prahari_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-prahari} -d ${POSTGRES_DB:-prahari_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - prahari-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: prahari_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - prahari-network
+
+  backend:
+    build: ./backend
+    container_name: prahari_backend
+    ports:
+      - "8000:8000"
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-prahari}:${POSTGRES_PASSWORD:-prahari_dev_2026}@postgres:5432/${POSTGRES_DB:-prahari_db}
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: >
+      sh -c "python scripts/seed_db.py &&
+             uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+    networks:
+      - prahari-network
+
+  frontend:
+    build: ./frontend
+    container_name: prahari_frontend
+    ports:
+      - "3000:3000"
+    env_file: .env
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    command: npm run dev
+    networks:
+      - prahari-network
+
+networks:
+  prahari-network:
+    driver: bridge
+
+volumes:
+  pgdata:

@@ -42,6 +42,10 @@ class AuditBlock {
       isVerified: json['is_verified'] ?? true,
     );
   }
+  int get id => sequenceNumber;
+  String get hash => currentHash;
+  String get actorRank => role;
+  String get userId => user;
 }
 
 class AuditChainVerification {
@@ -62,6 +66,7 @@ class AuditChainVerification {
   });
 
   bool get isIntact => chainStatus.toUpperCase() == 'INTACT';
+  bool get isValid => isIntact;
 
   factory AuditChainVerification.fromJson(Map<String, dynamic> json) {
     return AuditChainVerification(

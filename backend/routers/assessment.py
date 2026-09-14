@@ -203,6 +203,8 @@ def request_help(
 
     now = datetime.now(timezone.utc)
     p = db.query(Personnel).filter(Personnel.id == current_user.personnel_id).first()
+    if not p:
+        raise HTTPException(status_code=404, detail="Associated personnel record not found")
 
     # Immediate Red escalation, 4h acknowledge SLA, 24h action plan SLA
     case = WelfareCase(

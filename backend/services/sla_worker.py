@@ -29,10 +29,19 @@ async def start_sla_worker():
             for case in pending_cases:
                 dl = to_naive(case.sla_acknowledge_deadline)
                 if dl and dl < now:
-                    case.sla_breached = True
-                    case.status = "escalated"
-                    case.escalation_level += 1
-                    case.escalated_at = now
+                    changed = db.query(WelfareCase).filter(
+                        WelfareCase.id == case.id,
+                        WelfareCase.status == "pending",
+                        WelfareCase.sla_breached.is_(False)
+                    ).update({
+                        WelfareCase.sla_breached: True,
+                        WelfareCase.status: "escalated",
+                        WelfareCase.escalation_level: WelfareCase.escalation_level + 1,
+                        WelfareCase.escalated_at: now,
+                    }, synchronize_session=False)
+                    if not changed:
+                        continue
+                    case = db.query(WelfareCase).filter(WelfareCase.id == case.id).first()
 
                     escalation = SLAEscalation(
                         case_id=case.id,
@@ -54,9 +63,18 @@ async def start_sla_worker():
             for case in acked_cases:
                 dl = to_naive(case.sla_plan_deadline)
                 if dl and dl < now:
-                    case.sla_breached = True
-                    case.escalation_level += 1
-                    case.escalated_at = now
+                    changed = db.query(WelfareCase).filter(
+                        WelfareCase.id == case.id,
+                        WelfareCase.status == "acknowledged",
+                        WelfareCase.sla_breached.is_(False)
+                    ).update({
+                        WelfareCase.sla_breached: True,
+                        WelfareCase.escalation_level: WelfareCase.escalation_level + 1,
+                        WelfareCase.escalated_at: now,
+                    }, synchronize_session=False)
+                    if not changed:
+                        continue
+                    case = db.query(WelfareCase).filter(WelfareCase.id == case.id).first()
 
                     escalation = SLAEscalation(
                         case_id=case.id,

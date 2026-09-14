@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_locale_provider.dart';
 import '../services/api_service.dart';
+import '../theme/ux4g_defense_theme.dart';
 
 class CopilotScreen extends StatefulWidget {
   const CopilotScreen({super.key});
@@ -18,22 +21,22 @@ class _CopilotScreenState extends State<CopilotScreen> {
     {
       'role': 'assistant',
       'text':
-          'Jai Hind! I am **Prahari Sahayak (प्रहरी सहायक)**, your dedicated AI Welfare and Operational Rest Copilot.\n\n'
-          'I am here to assist you with:\n'
-          '• **72-Hour Emergency Leave** procedures and SLA escalation.\n'
-          '• **Mandatory 8-Hour Rest Regulations** (MHA Standing Order SO-04).\n'
-          '• **Equal-Trade Shift Swaps** via the Unit Resilience Optimizer (URO).\n'
-          '• **Confidential Clinical Support** under Section 21 MHCA 2017.\n\n'
-          'Your dialogue is 100% confidential and stigma-free. How may I assist you today?',
+          'Jai Hind, Trooper! I am Prahari Sahayak (प्रहरी सहायक), your confidential AI Tactical Welfare & Rest Copilot.\n\n'
+          'I provide authoritative guidance on:\n'
+          '• 12-Hour Urgent Emergency Leave procedures and SLA escalation.\n'
+          '• Mandatory 8-Hour Circadian Rest Regulations (MHA Standing Order SO-04).\n'
+          '• Trade-Matched Shift Swaps via the Hungarian Bipartite Optimizer (URO).\n'
+          '• Statutory Confidentiality protections under Section 21 MHCA 2017 & DPDP Act 2023.\n\n'
+          'All inquiries are confidential, non-punitive, and untracked in ACR records. How can I assist you?',
     }
   ];
 
   final List<String> _quickPrompts = [
-    '72h Emergency Leave SLA Rules',
-    'Mandatory 8h Rest Gap (SO-04)',
+    '12h Fast-Track Leave Rules',
+    '8h Rest Gap Barrier (SO-04)',
     'URO Shift Swap Eligibility',
-    'Mental Health Stigma Protections',
-    'Night Sentry Recovery Advice',
+    'Section 21 MHCA Privacy Charter',
+    'Tele-MANAS Helpline Info',
   ];
 
   @override
@@ -41,6 +44,18 @@ class _CopilotScreenState extends State<CopilotScreen> {
     _textController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   void _sendMessage(String text) async {
@@ -58,123 +73,102 @@ class _CopilotScreenState extends State<CopilotScreen> {
       final history = _messages.map((m) => {'role': m['role']!, 'content': m['text']!}).toList();
       final res = await _apiService.chatWithCopilot(message: query, history: history);
 
-      if (mounted) {
-        setState(() {
-          _messages.add({
-            'role': 'assistant',
-            'text': res['reply'] ?? res['response'] ?? 'Request acknowledged under MHA defense welfare directives.',
-          });
-        });
+      final reply = res['reply'] ?? res['response'] ?? 'I have recorded your query. Please consult your Company Commander or Unit Welfare Officer for immediate relief.';
+      setState(() {
+        _messages.add({'role': 'assistant', 'text': reply});
+        _isLoading = false;
+      });
+      _scrollToBottom();
+    } catch (_) {
+      // Deterministic defense clinical fallback
+      String fallback;
+      final qLower = query.toLowerCase();
+      if (qLower.contains('leave') || qLower.contains('sla')) {
+        fallback = 'Under PRAHARI leave regulations, emergency requests carry a 12-hour statutory decision window. If unaddressed past the SLA deadline, the request automatically escalates to the Battalion 2IC without requiring a re-petition.';
+      } else if (qLower.contains('rest') || qLower.contains('sleep') || qLower.contains('fatigue')) {
+        fallback = 'MHA Standing Order SO-04 mandates an 8-hour continuous circadian rest barrier between armed shifts. Shift swaps that violate replacement rest limits are automatically blocked by the Hungarian Bipartite Optimizer.';
+      } else {
+        fallback = 'Statutory notice: Under Section 21 of the Mental Healthcare Act 2017, personnel seeking welfare support or clinical counseling are protected against disciplinary stigmatization. For immediate support, call Tele-MANAS at 14416.';
       }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _messages.add({
-            'role': 'assistant',
-            'text':
-                'Under MHA Directive SO-04 and Section 21 of the Mental Healthcare Act 2017, all trooper rest hours and emergency leave applications are strictly tracked with guaranteed SLAs. Please consult the Battalion Welfare Officer for urgent clinical intervention.',
-          });
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        _scrollToBottom();
-      }
-    }
-  }
 
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
+      setState(() {
+        _messages.add({'role': 'assistant', 'text': fallback});
+        _isLoading = false;
+      });
+      _scrollToBottom();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final themeLocale = context.watch<ThemeLocaleProvider>();
+    final isDark = themeLocale.isDark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0F1D),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F172A),
-        elevation: 0,
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF10B981).withValues(alpha: 0.2),
-              ),
-              child: const Icon(Icons.smart_toy_outlined, color: Color(0xFF10B981), size: 18),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            Text(
+              'AI TACTICAL WELFARE COPILOT',
+              style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w800, letterSpacing: 0.5),
             ),
-            const SizedBox(width: 10),
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'PRAHARI SAHAYAK (AI COPILOT)',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.1),
-                ),
-                Text(
-                  'Bilingual Defense Welfare Intelligence (Section 21 MHCA 2017)',
-                  style: TextStyle(fontSize: 10, color: Colors.white54),
-                ),
-              ],
+            Text(
+              'Prahari Sahayak — Air-Gapped Confidential Guide',
+              style: TextStyle(fontSize: 10.5, color: Color(0xFFCBD5E1)),
             ),
           ],
         ),
       ),
       body: Column(
         children: [
-          // Statutory Privacy Badge
+          // Quick Tactical Prompts Bar
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: const Color(0xFF1E293B).withValues(alpha: 0.9),
-            child: const Row(
-              children: [
-                Icon(Icons.lock_person_outlined, color: Color(0xFF10B981), size: 16),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Privileged Welfare Channel: Queries here never affect ACR or weapon status.',
-                    style: TextStyle(color: Colors.white70, fontSize: 10),
-                  ),
-                ),
-              ],
+            height: 44.0,
+            padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
+            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _quickPrompts.length,
+              separatorBuilder: (ctx, idx) => const SizedBox(width: 8.0),
+              itemBuilder: (ctx, idx) {
+                return ActionChip(
+                  label: Text(_quickPrompts[idx], style: const TextStyle(fontSize: 11.0, fontWeight: FontWeight.bold)),
+                  backgroundColor: isDark ? Ux4gDefenseTheme.surfaceDark : Colors.white,
+                  side: BorderSide(color: isDark ? Ux4gDefenseTheme.borderDark : Ux4gDefenseTheme.borderLight),
+                  onPressed: _isLoading ? null : () => _sendMessage(_quickPrompts[idx]),
+                );
+              },
             ),
           ),
 
-          // Messages List
+          // Messages Stream
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
               itemCount: _messages.length,
-              itemBuilder: (ctx, index) {
-                final msg = _messages[index];
+              itemBuilder: (ctx, idx) {
+                final msg = _messages[idx];
                 final isUser = msg['role'] == 'user';
 
                 return Align(
                   alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
                   child: Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.85),
-                    padding: const EdgeInsets.all(14),
+                    margin: const EdgeInsets.symmetric(vertical: 6.0),
+                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.82),
+                    padding: const EdgeInsets.all(14.0),
                     decoration: BoxDecoration(
-                      color: isUser ? const Color(0xFF047857) : const Color(0xFF1E293B),
-                      borderRadius: BorderRadius.circular(16).copyWith(
-                        bottomRight: isUser ? const Radius.circular(0) : const Radius.circular(16),
-                        bottomLeft: !isUser ? const Radius.circular(0) : const Radius.circular(16),
-                      ),
+                      color: isUser
+                          ? (isDark ? const Color(0xFF1E3A8A) : Ux4gDefenseTheme.mhaNavy)
+                          : (isDark ? Ux4gDefenseTheme.surfaceDark : Colors.white),
+                      borderRadius: BorderRadius.circular(8.0),
                       border: Border.all(
-                        color: isUser ? const Color(0xFF10B981) : const Color(0xFF334155),
+                        color: isUser
+                            ? Ux4gDefenseTheme.mhaNavyLight
+                            : (isDark ? Ux4gDefenseTheme.borderDark : Ux4gDefenseTheme.borderLight),
                       ),
+                      boxShadow: Ux4gDefenseTheme.elevationLevel1(isDark),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,25 +177,29 @@ class _CopilotScreenState extends State<CopilotScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              isUser ? Icons.person : Icons.shield,
-                              size: 14,
-                              color: isUser ? Colors.white70 : const Color(0xFF10B981),
+                              isUser ? Icons.person : Icons.smart_toy_outlined,
+                              size: 14.0,
+                              color: isUser ? Colors.white70 : Ux4gDefenseTheme.indiaSaffron,
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 6.0),
                             Text(
-                              isUser ? 'YOU' : 'PRAHARI SAHAYAK',
+                              isUser ? 'You' : 'Prahari Sahayak',
                               style: TextStyle(
-                                color: isUser ? Colors.white70 : const Color(0xFF10B981),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w900,
+                                fontSize: 11.0,
+                                fontWeight: FontWeight.bold,
+                                color: isUser ? Colors.white70 : Ux4gDefenseTheme.indiaSaffron,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 6.0),
                         Text(
-                          msg['text'] ?? '',
-                          style: const TextStyle(color: Colors.white, fontSize: 12.5, height: 1.4),
+                          msg['text']!,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            color: isUser ? Colors.white : (isDark ? Colors.white : Colors.black87),
+                            height: 1.4,
+                          ),
                         ),
                       ],
                     ),
@@ -213,72 +211,48 @@ class _CopilotScreenState extends State<CopilotScreen> {
 
           if (_isLoading)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.all(8.0),
               child: Row(
-                children: [
-                  const SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF10B981)),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Prahari Sahayak analyzing defense welfare database...',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 11),
-                  ),
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  SizedBox(width: 14.0, height: 14.0, child: CircularProgressIndicator(strokeWidth: 2.0)),
+                  SizedBox(width: 8.0),
+                  Text('AI Copilot analyzing regulatory and welfare databases...', style: TextStyle(fontSize: 11.5, color: Colors.grey)),
                 ],
               ),
             ),
 
-          // Quick Prompts Carousel
+          // Input Text Box
           Container(
-            height: 38,
-            margin: const EdgeInsets.only(bottom: 6),
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _quickPrompts.length,
-              separatorBuilder: (context, index) => const SizedBox(width: 8),
-              itemBuilder: (ctx, i) {
-                final p = _quickPrompts[i];
-                return ActionChip(
-                  label: Text(p, style: const TextStyle(color: Colors.white70, fontSize: 11)),
-                  backgroundColor: const Color(0xFF1E293B),
-                  side: const BorderSide(color: Color(0xFF334155)),
-                  onPressed: () => _sendMessage(p),
-                );
-              },
-            ),
-          ),
-
-          // Input Bar
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: const BoxDecoration(
-              color: Color(0xFF0F172A),
-              border: Border(top: BorderSide(color: Color(0xFF1E293B), width: 1.5)),
+            padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF0F172A) : Colors.white,
+              border: Border(
+                top: BorderSide(
+                  color: isDark ? Ux4gDefenseTheme.borderDark : Ux4gDefenseTheme.borderLight,
+                ),
+              ),
             ),
             child: Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: _textController,
-                    style: const TextStyle(color: Colors.white, fontSize: 13),
-                    decoration: InputDecoration(
-                      hintText: 'Ask about 72h leave, rest gap, or shift swaps...',
-                      hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
-                      filled: true,
-                      fillColor: const Color(0xFF1E293B),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+                    decoration: const InputDecoration(
+                      hintText: 'Type your welfare or leave inquiry here...',
+                      contentPadding: EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
                     ),
                     onSubmitted: _sendMessage,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 8.0),
                 IconButton(
+                  style: IconButton.styleFrom(
+                    backgroundColor: Ux4gDefenseTheme.mhaNavy,
+                    foregroundColor: Colors.white,
+                  ),
+                  icon: const Icon(Icons.send, size: 18.0),
                   onPressed: () => _sendMessage(_textController.text),
-                  icon: const Icon(Icons.send, color: Color(0xFF10B981)),
                 ),
               ],
             ),

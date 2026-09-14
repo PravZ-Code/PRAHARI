@@ -66,11 +66,12 @@ def analyze_personnel_trend(db: Session, personnel_id: str) -> TrendAnalysisRepo
         else:
             break
 
+    cutoff_180d = now.date() - timedelta(days=180)
     leave_records = db.query(LeaveRecord).filter(
         LeaveRecord.personnel_id == personnel_id,
-        LeaveRecord.start_date >= (now.date() - timedelta(days=180))
+        (LeaveRecord.applied_date >= cutoff_180d) | (LeaveRecord.start_date >= cutoff_180d)
     ).all()
-    denied = sum(1 for l in leave_records if l.status == "rejected")
+    denied = sum(1 for l in leave_records if (l.status or "").lower() in ("denied", "rejected"))
     denial_rate = float(denied / len(leave_records)) if leave_records else 0.0
 
     assessments = db.query(SelfAssessment).filter(

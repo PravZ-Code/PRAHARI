@@ -119,7 +119,7 @@ def test_cost_of_inaction_trajectory_tracking(client: TestClient, commander_alph
 
     pred_subsequent = RiskPrediction(
         personnel_id=trooper.id,
-        predicted_at=t_minus_2,
+        predicted_at=now + timedelta(days=1),
         risk_score=0.68,
         risk_level="red",
         confidence_score=0.88,

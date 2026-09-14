@@ -92,3 +92,36 @@ class CaseReassessResponse(BaseModel):
     reassessed_at: datetime
     clinical_decision_support: str
 
+class SafetyPatternReason(BaseModel):
+    factor: str
+    whatHappened: str
+    whyItMatters: str
+
+class SafetyPatternSupport(BaseModel):
+    title: str
+    description: str
+    officer: str
+
+class SafetyPattern(BaseModel):
+    id: str
+    trooperName: str
+    serviceNo: str
+    rank: str
+    unit: str
+    concernTitle: str
+    noticedDate: str
+    reasons: List[SafetyPatternReason]
+    suggestedSupport: List[SafetyPatternSupport]
+
+class CaseRecoveryItem(BaseModel):
+    ref: str
+    trooperName: str
+    serviceNo: str
+    unit: str
+    requestType: str
+    supportProvided: str
+    approvedDate: str
+    followUpDate: str
+    currentFeedback: Optional[str] = None
+    status: str
+

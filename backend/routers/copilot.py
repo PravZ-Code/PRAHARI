@@ -16,7 +16,8 @@ from schemas.copilot import (
 from services.copilot_service import (
     generate_copilot_brief,
     chat_with_copilot,
-    gather_trooper_dossier
+    gather_trooper_dossier,
+    LocalModelUnavailable
 )
 from middleware.rbac import require_role
 from middleware.audit import log_audit
@@ -47,7 +48,7 @@ async def get_copilot_status(
         ollama_online = False
 
     return {
-        "status": "operational",
+        "status": "operational" if ollama_online and settings.OLLAMA_MODEL in models_available else "unavailable",
         "primary_provider": settings.LLM_PROVIDER,
         "primary_model": settings.OLLAMA_MODEL,
         "ollama_base_url": settings.OLLAMA_BASE_URL,
@@ -55,7 +56,7 @@ async def get_copilot_status(
         "ollama_connected": ollama_online,
         "available_models": models_available,
         "clinical_lexicon_guardrail": "ACTIVE (Mental Healthcare Act 2017 compliant)",
-        "fallback_engine": "ACTIVE (Grounded Deterministic Defense Intelligence)"
+        "fallback_engine": "DISABLED (local-model-only policy)"
     }
 
 @router.post("/brief/{case_id}", response_model=CopilotBriefResponse)
@@ -89,6 +90,8 @@ async def create_case_brief(
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except LocalModelUnavailable as e:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -124,13 +127,18 @@ async def get_case_brief_alias(
 async def copilot_chat(
     req: CopilotChatRequest,
     request: Request,
-    current_user: User = Depends(require_role("welfare", "admin")),
+    current_user: User = Depends(require_role("welfare", "admin", "personnel", "soldier", "jawan")),
     db: Session = Depends(get_db)
 ):
     """
     Contextual Q&A with Local AI Copilot regarding soldier stress catalysts,
     URO roster shift swaps, leave friction resolution, and welfare regulations.
+    Powers Prahari Sahayak on the mobile app.
     """
+    if current_user.role in ("personnel", "soldier", "jawan"):
+        req.case_id = None
+        req.personnel_id = current_user.personnel_id
+
     if req.case_id:
         case = db.query(WelfareCase).filter(WelfareCase.id == req.case_id).first()
         if not case:
@@ -147,6 +155,8 @@ async def copilot_chat(
             personnel_id=req.personnel_id,
             conversation_history=req.conversation_history
         )
+    except LocalModelUnavailable as e:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

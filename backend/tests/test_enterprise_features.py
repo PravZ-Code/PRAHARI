@@ -1,5 +1,23 @@
 import pytest
+import json
+import hashlib
+import hmac
+import time
+from config import settings
 from fastapi.testclient import TestClient
+
+
+def _gateway_headers(body: bytes = b"") -> dict:
+    if not settings.GATEWAY_SHARED_SECRET:
+        settings.GATEWAY_SHARED_SECRET = "focused-test-gateway-secret"
+    timestamp = str(int(time.time()))
+    nonce = f"test-{time.time_ns()}"
+    secret = settings.GATEWAY_SHARED_SECRET or settings.AIRGAP_SHARED_SECRET
+    signature = hmac.new(
+        secret.encode(), f"{timestamp}.{nonce}.".encode() + body, hashlib.sha256
+    ).hexdigest()
+    return {"X-Prahari-Timestamp": timestamp, "X-Prahari-Nonce": nonce,
+            "X-Prahari-Signature": signature}
 
 def test_prometheus_metrics_endpoint(client: TestClient):
     res = client.get('/metrics')
@@ -21,11 +39,14 @@ def test_ml_enterprise_diagnostics_endpoint(client: TestClient):
     assert len(data['top_global_shap_factors']) >= 5
 
 def test_gateway_ivr_submission(client: TestClient):
-    res = client.post('/api/gateway/ivr/dtmf', json={
+    payload = {
         'call_sid': 'CALL_TEST_123',
         'caller_phone': '+919876543210',
         'digits_pressed': '3'
-    })
+    }
+    body = json.dumps(payload, separators=(",", ":")).encode()
+    res = client.post('/api/gateway/ivr/dtmf', content=body,
+                      headers={**_gateway_headers(body), "Content-Type": "application/json"})
     assert res.status_code == 200
     data = res.json()
     assert data['status'] == 'DISPATCHED'

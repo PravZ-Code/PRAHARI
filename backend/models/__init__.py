@@ -12,6 +12,7 @@ from models.uro import URORun
 from models.model_health import ModelHealthSnapshot
 from models.audit import AuditLog
 from models.grievance import GrievanceRequest
+from models.resilience_intervention import ResilienceIntervention
 
 __all__ = [
     "Base",
@@ -31,5 +32,6 @@ __all__ = [
     "URORun",
     "ModelHealthSnapshot",
     "AuditLog",
-    "GrievanceRequest"
+    "GrievanceRequest",
+    "ResilienceIntervention"
 ]

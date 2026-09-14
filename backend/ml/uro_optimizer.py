@@ -196,8 +196,6 @@ def optimize_roster(
             heavy_shifts = [s for s in high_shifts if s.get("shift_type") in ("night", "split")]
             if not heavy_shifts:
                 continue
-            target_shift = heavy_shifts[0]
-            shift_date = target_shift.get("date")
 
             for j, low_pid in enumerate(low_candidates):
                 if high_pid == low_pid:
@@ -211,31 +209,48 @@ def optimize_roster(
                 if (risk_high - risk_low) < 0.15:
                     continue
 
-                low_shifts_on_date = [s for s in p_shifts.get(low_pid, []) if s.get("date") == shift_date]
-                if not low_shifts_on_date:
-                    continue
-                candidate_shift = low_shifts_on_date[0]
-                if candidate_shift.get("shift_type") not in ("off", "day"):
-                    continue
+                best_pair_benefit = -1e9
+                best_pair_match = None
 
-                # Build hypothetical schedules to test hard constraints
-                high_shifts_curr = p_shifts.get(high_pid, [])
-                low_shifts_curr = p_shifts.get(low_pid, [])
+                for target_shift in heavy_shifts:
+                    shift_date = target_shift.get("date")
+                    low_shifts_on_date = [s for s in p_shifts.get(low_pid, []) if s.get("date") == shift_date]
+                    if low_shifts_on_date:
+                        candidate_shift = low_shifts_on_date[0]
+                        if candidate_shift.get("shift_type") not in ("off", "day"):
+                            continue
+                    else:
+                        candidate_shift = {
+                            "date": shift_date,
+                            "shift_type": "off",
+                            "duty_type": "rest",
+                            "hours": 0.0,
+                            "id": f"virtual_off_{low_pid}_{shift_date}"
+                        }
 
-                hypo_high = [dict(s, shift_type=candidate_shift.get("shift_type", "day"), duty_type=candidate_shift.get("duty_type", "standby")) if s.get("date") == shift_date else dict(s) for s in high_shifts_curr]
-                hypo_low = [dict(s, shift_type=target_shift.get("shift_type", "night"), duty_type=target_shift.get("duty_type", "patrol")) if s.get("date") == shift_date else dict(s) for s in low_shifts_curr]
+                    # Build hypothetical schedules to test hard constraints
+                    high_shifts_curr = p_shifts.get(high_pid, [])
+                    low_shifts_curr = p_shifts.get(low_pid, [])
 
-                if not validate_rest_barrier(hypo_high, min_rest_hours=8.0):
-                    continue
-                if not validate_rest_barrier(hypo_low, min_rest_hours=8.0):
-                    continue
-                if not validate_fairness_cap(hypo_low, max_heavy_in_7d=2):
-                    continue
+                    hypo_high = [dict(s, shift_type=candidate_shift.get("shift_type", "day"), duty_type=candidate_shift.get("duty_type", "standby")) if s.get("date") == shift_date else dict(s) for s in high_shifts_curr]
+                    hypo_low = [dict(s, shift_type=target_shift.get("shift_type", "night"), duty_type=target_shift.get("duty_type", "patrol")) if s.get("date") == shift_date else dict(s) for s in low_shifts_curr]
 
-                # Mathematical Objective: Maximize relief benefit while penalizing excess load on low trooper
-                benefit = (risk_high - risk_low) * 100.0 - (0.05 * burden_scores[low_pid])
-                cost_matrix[i, j] = -benefit
-                match_shifts[(i, j)] = (high_pid, low_pid, target_shift, candidate_shift)
+                    if not validate_rest_barrier(hypo_high, min_rest_hours=8.0):
+                        continue
+                    if not validate_rest_barrier(hypo_low, min_rest_hours=8.0):
+                        continue
+                    if not validate_fairness_cap(hypo_low, max_heavy_in_7d=2):
+                        continue
+
+                    # Mathematical Objective: Maximize relief benefit while penalizing excess load on low trooper
+                    benefit = (risk_high - risk_low) * 100.0 - (0.05 * burden_scores[low_pid])
+                    if benefit > best_pair_benefit:
+                        best_pair_benefit = benefit
+                        best_pair_match = (high_pid, low_pid, target_shift, candidate_shift)
+
+                if best_pair_match is not None:
+                    cost_matrix[i, j] = -best_pair_benefit
+                    match_shifts[(i, j)] = best_pair_match
 
         # Solve globally optimal minimum-cost maximum-benefit bipartite matching
         row_ind, col_ind = linear_sum_assignment(cost_matrix)

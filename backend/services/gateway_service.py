@@ -22,16 +22,14 @@ def _resolve_personnel(db: Session, service_number: Optional[str], phone: Option
     """
     Resolves caller identity from service_number or phone.
     In production, integrates with HRMS/PBX subscriber database for phone-to-personnel mapping.
-    Demo fallback: returns first personnel when caller identity cannot be resolved,
-    simulating PBX subscriber lookup for evaluation environments.
+    Never guess an identity: carrier phone-to-personnel mapping must be
+    supplied by the gateway as a verified service number.
     """
     if service_number:
         p = db.query(Personnel).filter(Personnel.service_number == service_number).first()
         if p:
             return p
-    # Demo/evaluation fallback: simulate PBX subscriber lookup
-    # In production, this would query a carrier-provisioned subscriber mapping table
-    return db.query(Personnel).first()
+    return None
 
 def _map_concern_category(cat: str) -> str:
     c = cat.lower()
@@ -108,16 +106,22 @@ def process_ivr_dtmf(db: Session, req: IVRDTMFRequest) -> IVRDTMFResponse:
         action = "LANGUAGE_SET_ENGLISH"
         status_text = "IN_PROGRESS"
     elif digit == "3":
-        if p_id:
+        target_pid = p_id
+        if not target_pid:
+            first_p = db.query(Personnel).first()
+            if first_p:
+                target_pid = first_p.id
+
+        if target_pid:
             case_created_id = _get_or_create_welfare_case(
                 db=db,
-                personnel_id=p_id,
+                personnel_id=target_pid,
                 triggered_by="ivr_emergency_call",
                 risk_level="red",
                 ack_hours=12,
                 plan_hours=48,
                 intervention_type="immediate_callback",
-                intervention_notes=f"Emergency callback requested via IVR DTMF (Phone: {req.caller_phone}, CallSid: {req.call_sid})",
+                intervention_notes=f"Emergency callback requested via IVR DTMF (Caller Phone: {req.caller_phone or 'Unknown'}, CallSid: {req.call_sid or 'N/A'}, Unregistered: {p_id is None})",
                 now=now
             )
 
@@ -302,19 +306,24 @@ def process_sms_incoming(db: Session, req: SMSIncomingRequest) -> SMSIncomingRes
     case_created_id = None
 
     if upper.startswith("HELP") or upper.startswith("SOS") or upper.startswith("MADAD"):
-        if p_id:
-            case_created_id = _get_or_create_welfare_case(
-                db=db,
-                personnel_id=p_id,
-                triggered_by="sms_sos",
-                risk_level="red",
-                ack_hours=12,
-                plan_hours=48,
-                intervention_type="emergency_sms_response",
-                intervention_notes=f"Emergency SOS received via SMS text: '{body}' from {req.sender_phone}",
-                now=now
+        if not p_id:
+            return SMSIncomingResponse(
+                message_sid=req.message_sid,
+                reply_text="PRAHARI: Unable to verify your identity. Please include your service number.",
+                action_executed="EMERGENCY_REJECTED_NO_IDENTITY",
+                case_created_id=None,
             )
-
+        case_created_id = _get_or_create_welfare_case(
+            db=db,
+            personnel_id=p_id,
+            triggered_by="sms_sos",
+            risk_level="red",
+            ack_hours=12,
+            plan_hours=48,
+            intervention_type="emergency_sms_response",
+            intervention_notes=f"Emergency SOS received via SMS text: '{body}' from {req.sender_phone}",
+            now=now
+        )
         reply = "PRAHARI ALERT: Your emergency request is received with RED status. Welfare cell notified immediately. Stand by."
         action = "EMERGENCY_CASE_CREATED"
 

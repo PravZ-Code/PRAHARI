@@ -100,7 +100,7 @@ All endpoints are documented interactively at: **[http://localhost:8000/docs](ht
 
 | Category | Method | Endpoint | Description |
 | :--- | :--- | :--- | :--- |
-| **Auth** | `POST` | `/api/auth/token` | Login with username/password (returns JWT `access_token`) |
+| **Auth** | `POST` | `/api/auth/login` | Login with username/password (returns JWT `access_token` and an HttpOnly session cookie) |
 | **Auth** | `GET` | `/api/auth/me` | Returns profile of currently authenticated user |
 | **Commander** | `GET` | `/api/commander/dashboard` | Returns operational readiness, circadian strain, and duty rosters |
 | **Welfare** | `GET` | `/api/welfare/cases` | Lists all active confidential welfare cases |
@@ -108,15 +108,15 @@ All endpoints are documented interactively at: **[http://localhost:8000/docs](ht
 | **Welfare** | `GET` | `/api/welfare/case/{id}/export-dossier` | Generates official Court of Inquiry PDF |
 | **URO** | `POST` | `/api/uro/run` | Runs the Hungarian shift swap optimizer with 8h rest barriers |
 | **URO** | `PUT` | `/api/uro/result/{id}/approve` | Co-signs and commits optimized swaps to the live database |
-| **Grievance** | `POST` | `/api/grievance/submit` | Submits emergency domestic leave with 72h SLA timer |
-| **Grievance** | `GET` | `/api/grievance/my-status` | Trooper checks status of their leave request |
+| **Grievance** | `POST` | `/api/grievance/file` | Submits a leave or grievance request with SLA tracking |
+| **Grievance** | `GET` | `/api/grievance/my-requests` | Trooper checks their own requests |
 | **Audit** | `GET` | `/api/admin/audit/verify-chain` | One-click cryptographic verification of the SHA-256 block ledger |
 
 ---
 
 ## 🧪 Optional: Running Verification Tests
 
-To verify all 85 backend test cases:
+To verify the backend test suite:
 ```bash
 pytest tests/ -v
 ```
