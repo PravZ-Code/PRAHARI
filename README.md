@@ -160,26 +160,43 @@ A non-punitive, explainable 0–100 scalar backlog metric (`/api/commander/unit/
 
 ---
 
-## 📸 Application Screenshots & Demos
+---
 
-*(Placeholder slots reserved for Frontend and Mobile client teams to attach interface walkthroughs)*
+## 🖥️ Platform User Interfaces
 
-| Web Command Console (Next.js) | Soldier Field App (Prahari Bandhu Mobile) |
-| :---: | :---: |
-| **Company Commander Rest & Fatigue Roster**<br><br>*(Screenshot to be uploaded by Frontend Team)*<br><br> | **Trooper Home & Emergency Leave Portal**<br><br>*(Screenshot to be uploaded by Mobile App Team)*<br><br> |
-| **Welfare Officer Confidential Casework & 72h SLA**<br><br>*(Screenshot to be uploaded by Frontend Team)*<br><br> | **Offline Mode & Tactical Base Sync**<br><br>*(Screenshot to be uploaded by Mobile App Team)*<br><br> |
-| **Unit Resilience Optimizer (Smart Duty Swaps)**<br><br>*(Screenshot to be uploaded by Frontend Team)*<br><br> | **Prahari Vani (2G Keypad Phone Interface)**<br><br>*(Screenshot to be uploaded by Mobile App Team)*<br><br> |
+| Client | Technology | Target User | Key Capabilities |
+| :--- | :--- | :--- | :--- |
+| **Trooper Self-Service Portal** | Next.js 16 / React 19 / UX4G | Frontline Troopers | 12-Hour Emergency SOS, 72h Leave filing, live SLA countdown ticker, DPDP Act 2023 access logs, Daily Pulse check-in. |
+| **Command Center & Roster Desk** | Next.js 16 / UX4G | Company Commanders | Unit readiness indices, platoon fatigue heatmaps, Hungarian URO shift swap approval, non-punitive welfare debt diagnostics. |
+| **Confidential Welfare Console** | Next.js 16 / UX4G | Medical & Welfare Officers | Section 21 MHCA 2017 confidential casework, longitudinal strain trajectories ($dv/dt$), TreeSHAP root-cause attributions. |
+| **PRAHARI Bandhu Mobile App** | Flutter 3.x / Dart | Field Jawans (Android / PWA) | Offline-first local queue, 8h circadian rest inspection, anonymous buddy check signals, air-gapped USB sync. |
+| **Prahari Vani Telephone Helpline** | DTMF Audio Engine / USSD | Non-Smartphone Jawans | 2G keypad interactive voice response (IVR) phone simulator, menu navigation, emergency callback queuing. |
+
+---
+
+## 🔑 Quick Demo Credentials (Role-Based Access)
+
+Use these pre-configured test profiles to explore different roles on the platform:
+
+| Role | Username | Password | Description & Permissions |
+| :--- | :--- | :--- | :--- |
+| **Frontline Trooper** | `rajesh_kumar` | `prahari123` | **Constable GD (Armorer), Srinagar**. Submits 12h crisis SOS, 72h leave, daily check-ins; views personal DPDP audit log. |
+| **Company Commander** | `cmd_vikram` | `prahari123` | **Alpha Company Commander**. Reviews unit readiness, inspects platoon rest barriers, approves Hungarian URO trade swaps. |
+| **Welfare Officer** | `wo_meera` | `prahari123` | **Battalion Medical & Welfare Officer**. Confidential casework under MHCA 2017 §21, recovery tracking, counseling logs. |
+| **System Administrator** | `admin_sys` | `prahari123` | **Security Officer**. Cryptographic SHA-256 audit ledger inspection, BSA 2023 Section 63 chain validation. |
 
 ---
 
 ## 🛠️ Technology Stack
 
-* **Backend API**: Python 3.10+ with FastAPI (fast, lightweight, and modern)
-* **Database**: SQLite (local, instant setup) / PostgreSQL (production scalable)
-* **Intelligent Optimization**: SciPy & Scikit-Learn (smart, fair shift swapping)
-* **Security & Verification**: SHA-256 cryptographic hash chaining, JWT token authentication
-* **Reports**: Automated PDF generation with verification QR codes
-* **Clients**: Next.js Web Console, Offline Progressive Web App (PWA), 2G Keypad IVR
+* **Backend API**: Python 3.10+ with FastAPI (13 routers, 114/114 passing tests)
+* **Database**: SQLite (WAL mode, instant zero-setup) / PostgreSQL 16 (production enterprise)
+* **Intelligent Optimization**: SciPy (`scipy.optimize.linear_sum_assignment`) Hungarian Bipartite trade matching
+* **Predictive AI**: XGBoost prospective strain model (Platt scaling calibration, ECE 0.0378) with TreeSHAP explainability
+* **Security & Verification**: SHA-256 cryptographic hash-chained audit blocks, JWT tokens, BOLA/IDOR protection
+* **Web Portal**: Next.js 16 (React 19, Turbopack), UX4G Design System, GIGW 3.0 (trilingual EN/HI/TA, A-/A/A+ resizers)
+* **Mobile Client**: Flutter cross-platform (Android, iOS, Web SPA) with offline-first local state
+* **Master Launcher**: Win32 native standalone orchestrator (`PRAHARI_Launcher.exe`) with real-time telemetry
 
 ---
 
@@ -187,26 +204,40 @@ A non-punitive, explainable 0–100 scalar backlog metric (`/api/commander/unit/
 
 ```
 PRAHARI/
-├── backend/
-│   ├── middleware/        # User roles, security checks, and audit logging
-│   ├── ml/                # Duty swap optimizer and fatigue models
-│   ├── models/            # Database tables (Personnel, Roster, Grievances, Logs)
-│   ├── routers/           # Web API endpoints (Commander, Welfare, Grievance, Admin)
-│   ├── schemas/           # Data structures and input validation
-│   ├── scripts/           # Seeding scripts (seed_db.py for 202 demo, seed_battalion_1000.py for 1k)
-│   ├── services/          # Business logic (72h timer, duty optimizer, offline sync)
-│   ├── config.py          # Easy configuration settings
-│   ├── database.py        # Database connection setup
-│   ├── Dockerfile         # Container setup for production
-│   ├── main.py            # Main server entry point
-│   ├── requirements.txt   # Python packages list
-│   └── .env.example       # Example settings file
+├── backend/                  # FastAPI Defense Backend & ML Engines
+│   ├── middleware/           # RBAC, security headers, rate limiting, BSA 2023 audit ledger
+│   ├── ml/                   # Calibrated XGBoost strain model, TreeSHAP, Hungarian URO solver
+│   ├── models/               # SQLAlchemy schemas (Personnel, ShiftEntry, Grievance, Audit)
+│   ├── routers/              # 13 REST API routers (Auth, Commander, Welfare, URO, etc.)
+│   ├── schemas/              # Pydantic input/output validation models
+│   ├── scripts/              # Seed scripts (seed_db.py creates 1,000-troop battalion in ~15s)
+│   ├── services/             # Business logic, 72h SLA engine, conflict engine, copilot
+│   ├── tests/                # 114 automated unit, integration, and security test suites
+│   ├── requirements.txt      # Python dependencies
+│   └── main.py               # FastAPI server entry point
 │
-├── frontend/              # Web Command Console (Collaborator Module)
-├── mobile/                # Mobile App for Troops (Collaborator Module)
-├── .gitignore             # Git ignore rules
-├── LICENSE                # MIT Open Source License
-└── README.md              # Project documentation
+├── frontend/                 # Flagship Next.js 16 Government Web Portal
+│   ├── public/               # National Emblem, CRPF crest, Digital India SVGs
+│   ├── src/app/              # 19 live routes (/portal, /commander, /welfare, /approvals, etc.)
+│   ├── src/components/       # GovernmentHeader, TricolorBar, charts, modals, drawers
+│   ├── src/lib/              # Dynamic API resolution, auth token storage, trilingual i18n
+│   ├── package.json          # Node.js dependencies
+│   └── tailwind.config.js    # UX4G MHA Defense Theme tokens
+│
+├── mobile/                   # PRAHARI Bandhu Flutter Mobile Client
+│   ├── lib/screens/          # 14 UX4G screens (Dashboard, 12h SOS, DTMF IVR, Roster)
+│   ├── lib/theme/            # UX4G Defense Theme & GIGW 3.0 tokens
+│   ├── lib/widgets/          # GovernmentHeaderBar, Tricolor strip, Ux4gCard, Ux4gBadge
+│   ├── lib/models/           # Dart data models (ShiftEntry, UROSwapProposal, AuditBlock)
+│   └── pubspec.yaml          # Flutter dependencies (ux4g_flutter_components, provider)
+│
+├── PRAHARI_Launcher.exe      # 1-Click Win32 Master Orchestrator (Zero-popup executable)
+├── launcher.py               # Python source for master orchestrator & telemetry hub
+├── mobile_server.py          # Flutter Web static distribution server (port 8080)
+├── docker-compose.yml        # Multi-container production deployment specification
+├── .gitignore                # Production Git exclusions
+├── LICENSE                   # MIT License
+└── README.md                 # Project documentation
 ```
 
 ---
@@ -223,42 +254,38 @@ Simply double-click **`PRAHARI_Launcher.exe`** in the root directory!
 
 ### Manual / Developer Setup Guide
 
-You can also run services independently from source:
+You can also run all services independently from source:
 
-#### Step 1: Clone the Repository
-```bash
-git clone https://github.com/PravZ-Code/PRAHARI.git
-cd PRAHARI
-```
-
-#### Step 2: Backend Setup
+#### 1. Backend Setup (FastAPI)
 ```bash
 cd backend
 pip install -r requirements.txt
-```
-
-### Step 3: Set Up Configuration
-```bash
 cp .env.example .env
-```
-*(The default configuration is ready to use immediately without any extra setup).*
-
-### Step 4: Populate 100% Realistic Battalion Data
-Run the database seed script to populate the complete realistic paramilitary dataset:
-```bash
 python scripts/seed_db.py
-```
-*Initializes a **100% realistic battalion of 1,000 personnel across 5 tactical formations** (Alpha Company in Srinagar, Bravo Company in Sukma, Charlie Company in Hyderabad, Delta Company in Leh, and Battalion HQ in New Delhi), 90 days of duty rosters (90,000 shift entries), 2,140+ leave records with operational denial reasons, fast-lane emergency grievances with SLA countdowns, URO shift swap proposals, and a cryptographically chained SHA-256 audit ledger in ~20 seconds.*
-
-### Step 5: Start the PRAHARI Server
-```bash
 python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
+* Interactive API Documentation (Swagger UI): [http://localhost:8000/docs](http://localhost:8000/docs)
+* Health Check Probe: [http://localhost:8000/api/health](http://localhost:8000/api/health)
 
-### Step 6: Open the Interactive Web API
-Open your browser and visit:
-* 🌐 **Interactive API Portal (Swagger UI)**: [http://localhost:8000/docs](http://localhost:8000/docs)
-* 📖 **Alternative API Documentation (ReDoc)**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+#### 2. Frontend Setup (Next.js 16 Portal)
+```bash
+cd frontend
+npm install
+npm run dev
+```
+* Web Command & Trooper Portal: [http://localhost:3000](http://localhost:3000)
+
+#### 3. Mobile Server Setup (Flutter Web)
+```bash
+python mobile_server.py --port 8080
+```
+* PRAHARI Bandhu Mobile Client: [http://localhost:8080](http://localhost:8080)
+
+#### 4. Run Automated Test Suite
+```bash
+pytest backend/tests/ -v
+```
+* Runs all 114 tests covering security access control, BOLA protection, Hungarian URO optimization, forward-looking ML calibration, and mobile API integration.
 
 ---
 
