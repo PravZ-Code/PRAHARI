@@ -1,0 +1,50 @@
+# Environment & Secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Databases & Runtime Data
+*.db*
+*.sqlite*
+prahari.db*
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+build/
+dist/
+launcher_build/
+launcher_dist/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+*.tmp
+*.bak
+
+# Documentation (per user instruction)
+docs/
+
+# Portable Runtimes & Packaging Binaries
+runtime/
+logs/
+.agents/
+*.exe
+!PRAHARI_Launcher.exe
+*.zip
+*.ps1
+build_production_zip.py
+

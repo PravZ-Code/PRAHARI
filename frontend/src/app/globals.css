@@ -1,0 +1,421 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Official Defense & Government Typography Tokens */
+  --font-noto: 'Noto Sans', var(--font-noto-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-devanagari: 'Noto Sans Devanagari', 'Noto Sans', sans-serif;
+  --font-tamil: 'Noto Sans Tamil', 'Noto Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, 'Courier New', monospace;
+  /* GoI Brand Variables */
+  --goi-navy: #0c3866;
+  --goi-navy-dark: #072648;
+  --goi-saffron: #ff9933;
+  --goi-saffron-dark: #e65100;
+  --goi-green: #138808;
+  --goi-green-dark: #0d6506;
+  --goi-background: #f8fafc;
+  --goi-surface: #ffffff;
+  --goi-border: #cbd5e1;
+  --goi-border-light: #e2e8f0;
+  --goi-text: #0f172a;
+  --goi-text-muted: #475569;
+  --font-scale: 1rem;
+
+  /* Official UX4G Design System Root Contract Tokens */
+  --ux4g-color-primary-600: #0c3866;
+  --ux4g-color-primary-700: #072648;
+  --ux4g-color-primary-800: #051c36;
+  --ux4g-color-secondary-600: #ff9933;
+  --ux4g-color-secondary-700: #e65100;
+  --ux4g-focus-outline: #005ea8;
+
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
+[id] {
+  scroll-margin-top: 5rem;
+}
+
+.scroll-target-highlight {
+  animation: scrollTargetHighlight 1.4s ease-out;
+}
+
+@keyframes scrollTargetHighlight {
+  0% { box-shadow: 0 0 0 0 rgba(255, 153, 51, 0.55); }
+  45% { box-shadow: 0 0 0 5px rgba(255, 153, 51, 0.24); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 153, 51, 0); }
+}
+
+/* High Contrast Mode for Accessibility (WCAG 2.1 AA) */
+.high-contrast {
+  --goi-navy: #001f3f;
+  --goi-background: #000000;
+  --goi-surface: #111111;
+  --goi-border: #ffff00;
+  --goi-border-light: #ffff00;
+  --goi-text: #ffffff;
+  --goi-text-muted: #ffff00;
+  color: #ffffff !important;
+  background-color: #000000 !important;
+}
+
+.high-contrast * {
+  border-color: #ffff00 !important;
+}
+
+.high-contrast button,
+.high-contrast a {
+  outline: 2px solid #ffff00 !important;
+}
+
+/* Invert Filter for Accessibility */
+html.invert-colors {
+  filter: invert(100%) hue-rotate(180deg);
+}
+html.invert-colors img,
+html.invert-colors video {
+  filter: invert(100%) hue-rotate(180deg);
+}
+
+/* Grayscale/Desaturation */
+html.desaturate-colors {
+  filter: grayscale(100%);
+}
+
+/* Text Spacing (Letter and Word Spacing per GIGW 3.0 / WCAG) */
+html.extra-text-spacing body {
+  letter-spacing: 0.12em !important;
+  word-spacing: 0.16em !important;
+}
+
+/* Line Height */
+html.extra-line-height body {
+  line-height: 2 !important;
+}
+
+/* Hide Images */
+html.hide-images img:not(.keep-visible),
+html.hide-images picture {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* Big Cursor */
+html.big-cursor,
+html.big-cursor * {
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='%230c3866' stroke='white' stroke-width='1.5'><path d='M3 3l7 18 3-7 7-3L3 3z'/></svg>"), default !important;
+}
+
+/* NIC Portal Card & Section Elevation Tokens */
+.nic-card {
+  background-color: #ffffff;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  box-shadow: 6px 10px 10px -3px rgba(0, 0, 0, 0.08);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
+}
+
+.nic-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 6px 16px 24px -3px rgba(12, 56, 102, 0.14);
+  border-color: #cbd5e1;
+}
+
+.nic-section-bg {
+  background-color: #eeecf9;
+}
+
+.nic-primary-navy {
+  color: #29136C;
+}
+
+.nic-bg-navy {
+  background-color: #29136C;
+}
+
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: var(--font-scale, 16px);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  color: var(--goi-text);
+  background-color: var(--goi-background);
+  font-family: var(--font-noto-sans), var(--font-noto-devanagari), var(--font-noto-tamil), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  line-height: 1.5;
+  letter-spacing: -0.011em;
+}
+
+h1, h2, h3, h4, h5, h6, .font-heading {
+  font-family: var(--font-noto-sans), var(--font-noto-devanagari), var(--font-noto-tamil), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.022em !important;
+}
+
+button, input, select, textarea, optgroup {
+  font-family: inherit !important;
+}
+
+/* Visible accessible focus for keyboard navigation (WCAG 2.1 AA) */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--ux4g-focus-outline, #005ea8);
+  outline-offset: 2px;
+}
+
+/* Skip link for screen readers and keyboard users */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #0c3866;
+  color: white;
+  padding: 8px 16px;
+  z-index: 100;
+  transition: top 0.2s;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+@layer components {
+  .gov-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .gov-card {
+    @apply bg-white border border-slate-200 rounded-lg shadow-sm p-6;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+  }
+
+  .gov-card:hover {
+    @apply border-slate-300;
+    box-shadow: 0 6px 18px -4px rgba(12, 56, 102, 0.08), 0 2px 6px -2px rgba(0, 0, 0, 0.04);
+  }
+
+  .gov-card-interactive {
+    @apply gov-card cursor-pointer active:scale-[0.995];
+  }
+
+  .gov-card-interactive:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px -6px rgba(12, 56, 102, 0.12), 0 4px 8px -2px rgba(0, 0, 0, 0.05);
+  }
+
+  .gov-card-header {
+    @apply border-b border-slate-200 pb-3 mb-4 flex items-center justify-between;
+  }
+
+  .gov-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#0c3866] hover:bg-[#072648] text-white font-semibold text-sm rounded-md shadow-sm transition-all duration-150 focus:ring-2 focus:ring-[#0c3866] focus:ring-offset-2 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .gov-btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 font-medium text-sm rounded-md border border-slate-300 shadow-sm transition-all duration-150 focus:ring-2 focus:ring-[#0c3866] focus:ring-offset-2 active:scale-[0.98];
+  }
+
+  .gov-btn-success {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#138808] hover:bg-[#0d6506] text-white font-semibold text-sm rounded-md shadow-sm transition-all duration-150 active:scale-[0.98];
+  }
+
+  .gov-btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#b42318] hover:bg-[#8a1c13] text-white font-semibold text-sm rounded-md shadow-sm transition-all duration-150 active:scale-[0.98];
+  }
+
+  .gov-input {
+    @apply w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-md text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0c3866] focus:border-[#0c3866] transition-all duration-150;
+  }
+
+  .gov-label {
+    @apply block text-sm font-semibold text-slate-800 mb-1.5;
+  }
+
+  .gov-badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold;
+  }
+}
+
+/* Animations for Government Interfaces */
+.animate-fade-in {
+  animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Official Government Portal Smooth Transitions & Hover Lift */
+.gov-card, .nic-card, .smooth-card {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
+}
+
+.gov-card:hover, .nic-card:hover, .smooth-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 28px -6px rgba(12, 56, 102, 0.14), 0 6px 12px -2px rgba(0, 0, 0, 0.06);
+}
+
+/* Shared government action language: clear hierarchy, compact status labels,
+   and restrained motion used for primary citizen/service actions. */
+.gov-action-card {
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 8px rgba(12, 56, 102, 0.08);
+}
+
+.gov-action-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px -8px rgba(12, 56, 102, 0.2);
+}
+
+.gov-action-button {
+  min-height: 2.5rem;
+  border-radius: 0.375rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.gov-status-tag {
+  border-radius: 0.25rem;
+  letter-spacing: 0.03em;
+}
+
+.gov-icon-box {
+  border-radius: 0.5rem;
+}
+
+/* Keep transitions scoped to interactive controls; global transitions make
+   focus and reduced-motion behavior unpredictable. */
+.ux4g-btn, button, a {
+  transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+  transition-duration: 150ms;
+}
+
+button:active, .ux4g-btn:active {
+  transform: translateY(1px);
+}
+
+.smooth-all {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.smooth-fade {
+  animation: smoothFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes smoothFade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.smooth-scale-in {
+  animation: smoothScaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes smoothScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  @keyframes heroZoom {
+    0%, 100% { transform: scale(1.05); }
+    50% { transform: scale(1.1); }
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Bulletin Ticker / Marquee Animation for What's New */
+@keyframes nicTickerFade {
+  0%, 100% { opacity: 1; transform: translateY(0); }
+  50% { opacity: 0.88; transform: translateY(-1px); }
+}
+
+.nic-ticker-item {
+  animation: nicTickerFade 4s ease-in-out infinite;
+}
+
+/* Status Indicator Pulse */
+@keyframes nicPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(1.08); }
+}
+
+.nic-pulse {
+  animation: nicPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Live SLA Pulse Animation */
+.sla-live-pulse {
+  animation: livePulse 2.5s infinite;
+}
+
+@keyframes livePulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(220, 38, 38, 0);
+  }
+}
+
+/* Accessibility: Disable motion for users with vestibular/motion disorders */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Print Stylesheet for official receipts & reports */
+@media print {
+  header, footer, nav, button, .no-print {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 12pt !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+}
