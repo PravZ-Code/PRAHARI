@@ -1,0 +1,34 @@
+# PRAHARI Vercel Deployment — Slim Runtime Dependencies
+# This file excludes dev/test tools and pins lightweight versions
+# to stay under Vercel's 500 MB function bundle limit.
+
+# --- Web Framework ---
+fastapi>=0.110.0
+uvicorn>=0.28.0
+python-multipart>=0.0.9
+orjson>=3.9.0
+httpx>=0.27.0
+
+# --- Database ---
+sqlalchemy>=2.0.28
+# psycopg2-binary excluded — Vercel demo uses SQLite; add back for remote PG
+
+# --- Auth & Security ---
+pydantic>=2.6.0
+pydantic-settings>=2.2.0
+python-jose[cryptography]>=3.3.0
+cryptography>=42.0.0
+passlib[bcrypt]>=1.7.4
+bcrypt>=4.0.0
+python-dotenv>=1.0.0
+
+# --- ML Inference (required at runtime) ---
+numpy>=2.0.0,<2.3.0
+xgboost>=2.0.0
+scikit-learn>=1.4.0
+pandas>=2.2.0,<2.3.0
+scipy>=1.12.0,<1.15.0
+
+# --- PDF & QR ---
+reportlab>=4.1.0
+qrcode>=7.4.2
