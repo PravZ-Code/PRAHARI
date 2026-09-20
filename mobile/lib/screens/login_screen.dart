@@ -15,7 +15,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _serviceNoController = TextEditingController(text: 'rajesh_kumar');
+  final _serviceNoController = TextEditingController(text: 'CRP-2019-45821');
   final _pinController = TextEditingController(text: 'demo123');
   bool _obscurePin = true;
   bool _backendOnline = false;
@@ -221,7 +221,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 textCapitalization: TextCapitalization.characters,
                 style: const TextStyle(fontSize: 16),
                 decoration: InputDecoration(
-                  hintText: 'Force username or service number',
+                  hintText: 'Force username (rajesh_kumar) or Service No (CRP-2019-45821)',
                   prefixIcon: const Icon(Icons.badge_outlined, color: Ux4gDefenseTheme.mhaNavy),
                   filled: true,
                   fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
@@ -331,22 +331,30 @@ class _LoginScreenState extends State<LoginScreen> {
                         Expanded(
                           child: OutlinedButton(
                             onPressed: () {
-                              _serviceNoController.text = 'CRPF-84012';
+                              _serviceNoController.text = 'CRP-2019-45821';
                               _pinController.text = 'demo123';
                               _handleLogin();
                             },
-                            child: const Text('Trooper Rajesh', style: TextStyle(fontSize: 12)),
+                            child: const Text(
+                              'Trooper Rajesh\nCRP-2019-45821',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 11, height: 1.2),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: OutlinedButton(
                             onPressed: () {
-                              _serviceNoController.text = 'CRPF-91024';
+                              _serviceNoController.text = 'CRP-2021-88412';
                               _pinController.text = 'demo123';
                               _handleLogin();
                             },
-                            child: const Text('Trooper Ankit', style: TextStyle(fontSize: 12)),
+                            child: const Text(
+                              'Trooper Ankit\nCRP-2021-88412',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 11, height: 1.2),
+                            ),
                           ),
                         ),
                       ],

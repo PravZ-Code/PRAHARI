@@ -98,7 +98,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     final isDark = themeLocale.isDark;
 
     final soldierName = auth.profile?.name ?? auth.user?.name ?? _cachedProfile?['name'] ?? 'Trooper';
-    final serviceNo = auth.profile?.serviceNumber ?? auth.user?.serviceNumber ?? _cachedProfile?['service_number'] ?? 'CRPF-84012';
+    final serviceNo = auth.profile?.serviceNumber ?? auth.user?.serviceNumber ?? _cachedProfile?['service_number'] ?? 'CRP-2019-45821';
     final unitName = auth.profile?.unitName ?? auth.user?.unitName ?? _cachedProfile?['unit_name'] ?? 'Alpha Company';
     final restStatus = _cachedProfile?['rest_status'] ?? 'Rest compliant';
     final statusLabel = _cachedProfile?['status_label'] ?? 'On track';

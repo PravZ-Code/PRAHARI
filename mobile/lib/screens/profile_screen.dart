@@ -66,7 +66,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               }
 
               final auth = context.read<AuthProvider>();
-              final sNum = auth.profile?.serviceNumber ?? auth.user?.serviceNumber ?? 'CRPF-84012';
+              final sNum = auth.profile?.serviceNumber ?? auth.user?.serviceNumber ?? 'CRP-2019-45821';
               await SecureAuthStore().savePin(sNum, newPin);
 
               if (ctx.mounted) Navigator.pop(ctx);
@@ -139,7 +139,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final isDark = themeLocale.isDark;
 
     final soldierName = auth.profile?.name ?? auth.user?.name ?? 'Trooper';
-    final serviceNo = auth.profile?.serviceNumber ?? auth.user?.serviceNumber ?? 'CRPF-84012';
+    final serviceNo = auth.profile?.serviceNumber ?? auth.user?.serviceNumber ?? 'CRP-2019-45821';
     final rank = auth.profile?.rank ?? auth.user?.rank ?? 'Constable';
     final unit = auth.profile?.unitName ?? auth.user?.unitName ?? 'Alpha Company, 79 Bn CRPF';
     final lastSync = syncQueue.lastSyncTime != null
