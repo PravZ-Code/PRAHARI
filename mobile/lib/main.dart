@@ -49,6 +49,7 @@ class PrahariApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: Ux4gDefenseTheme.buildTheme(
           isDark: themeLocale.isDark,
+          isHighContrast: themeLocale.isHighContrast,
           fontScale: themeLocale.fontScale,
         ),
         home: const AuthGate(),

@@ -86,35 +86,36 @@ class Ux4gBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeLocaleProvider>().isDark;
     Color bg;
     Color fg;
     Color border;
 
     switch (type) {
       case Ux4gBadgeType.success:
-        bg = const Color(0xFFDCFCE7);
-        fg = const Color(0xFF166534);
-        border = const Color(0xFF86EFAC);
+        bg = isDark ? Ux4gDefenseTheme.successSurfaceDark : Ux4gDefenseTheme.successSurfaceLight;
+        fg = isDark ? Ux4gDefenseTheme.defenseGreenLight : Ux4gDefenseTheme.successTextLight;
+        border = isDark ? Ux4gDefenseTheme.defenseGreenLight : const Color(0xFF86EFAC);
         break;
       case Ux4gBadgeType.warning:
-        bg = const Color(0xFFFEF3C7);
-        fg = const Color(0xFF92400E);
-        border = const Color(0xFFFCD34D);
+        bg = isDark ? Ux4gDefenseTheme.warningSurfaceDark : Ux4gDefenseTheme.warningSurfaceLight;
+        fg = isDark ? Ux4gDefenseTheme.tacticalAmberLight : Ux4gDefenseTheme.warningTextLight;
+        border = isDark ? Ux4gDefenseTheme.tacticalAmberLight : const Color(0xFFFCD34D);
         break;
       case Ux4gBadgeType.danger:
-        bg = const Color(0xFFFEE2E2);
-        fg = const Color(0xFF991B1B);
-        border = const Color(0xFFFCA5A5);
+        bg = isDark ? Ux4gDefenseTheme.errorSurfaceDark : Ux4gDefenseTheme.errorSurfaceLight;
+        fg = isDark ? Ux4gDefenseTheme.crisisRedLight : Ux4gDefenseTheme.errorTextLight;
+        border = isDark ? Ux4gDefenseTheme.crisisRedLight : const Color(0xFFFCA5A5);
         break;
       case Ux4gBadgeType.info:
-        bg = const Color(0xFFE0F2FE);
-        fg = const Color(0xFF075985);
-        border = const Color(0xFF7DD3FC);
+        bg = isDark ? Ux4gDefenseTheme.infoSurfaceDark : Ux4gDefenseTheme.infoSurfaceLight;
+        fg = isDark ? Ux4gDefenseTheme.infoBlueLight : Ux4gDefenseTheme.infoTextLight;
+        border = isDark ? Ux4gDefenseTheme.infoBlueLight : const Color(0xFF7DD3FC);
         break;
       case Ux4gBadgeType.neutral:
-        bg = const Color(0xFFF1F5F9);
-        fg = const Color(0xFF334155);
-        border = const Color(0xFFCBD5E1);
+        bg = isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9);
+        fg = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155);
+        border = isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1);
         break;
     }
 

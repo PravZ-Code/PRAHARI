@@ -11,27 +11,50 @@ class ApiService {
   factory ApiService() => _instance;
   ApiService._internal();
 
+  /// Compile-time configurable backend URL.
+  /// Build with: flutter build apk --dart-define=API_BASE_URL=https://api.yourdomain.com/api
+  /// or: flutter run --dart-define=PRAHARI_API_URL=http://10.0.2.2:8000/api
+  static const String _envBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+  static const String _prahariEnvBaseUrl = String.fromEnvironment('PRAHARI_API_URL', defaultValue: '');
+
   String _customBaseUrl = '';
   String? _token;
 
   String get defaultBaseUrl {
+    // 1. Compile-time override (production builds)
+    if (_prahariEnvBaseUrl.isNotEmpty) {
+      return _prahariEnvBaseUrl.replaceAll(RegExp(r'/+$'), '');
+    }
+    if (_envBaseUrl.isNotEmpty) {
+      return _envBaseUrl.replaceAll(RegExp(r'/+$'), '');
+    }
+    // 2. Web: use the serving host
     if (kIsWeb) {
       final host = Uri.base.host.isNotEmpty ? Uri.base.host : 'localhost';
-      return 'http://$host:8000/api';
+      final port = Uri.base.port != 0 && Uri.base.port != 80 && Uri.base.port != 443
+          ? ':${Uri.base.port}'
+          : ':8000';
+      return 'http://$host$port/api';
     }
+    // 3. Android emulator → host machine
     try {
       if (Platform.isAndroid) {
-        // In Android emulators, 10.0.2.2 points to host machine localhost
         return 'http://10.0.2.2:8000/api';
       }
     } catch (_) {}
+    // 4. Desktop / iOS simulator → localhost
     return 'http://localhost:8000/api';
   }
 
   String get baseUrl => _customBaseUrl.isNotEmpty ? _customBaseUrl : defaultBaseUrl;
 
   Future<void> setCustomBaseUrl(String url) async {
-    _customBaseUrl = url.trim().replaceAll(RegExp(r'/+$'), '');
+    final normalized = url.trim().replaceAll(RegExp(r'/+$'), '');
+    final parsed = Uri.tryParse(normalized);
+    if (parsed == null || parsed.host.isEmpty || !['http', 'https'].contains(parsed.scheme)) {
+      throw ArgumentError('API URL must be an absolute http(s) URL');
+    }
+    _customBaseUrl = normalized;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('custom_base_url', _customBaseUrl);
   }

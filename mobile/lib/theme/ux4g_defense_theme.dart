@@ -19,6 +19,15 @@ class Ux4gDefenseTheme {
   static const Color infoBlue = Color(0xFF006D75);
   static const Color infoBlueLight = Color(0xFF91E8E0);
 
+  static const Color successSurfaceLight = Color(0xFFDCFCE7);
+  static const Color successTextLight = Color(0xFF166534);
+  static const Color warningSurfaceLight = Color(0xFFFEF3C7);
+  static const Color warningTextLight = Color(0xFF92400E);
+  static const Color errorSurfaceLight = Color(0xFFFEE2E2);
+  static const Color errorTextLight = Color(0xFF991B1B);
+  static const Color infoSurfaceLight = Color(0xFFE0F2FE);
+  static const Color infoTextLight = Color(0xFF075985);
+
   // --- Surfaces (Light Mode) ---
   static const Color bgLight = Color(0xFFFAFAFA);
   static const Color surfaceLight = Color(0xFFFFFFFF);
@@ -36,6 +45,10 @@ class Ux4gDefenseTheme {
   static const Color textPrimaryDark = Color(0xFFFAFAFA);
   static const Color textSecondaryDark = Color(0xFFE5E5E5);
   static const Color textMutedDark = Color(0xFFD9D9D9);
+  static const Color successSurfaceDark = Color(0xFF1B5E20);
+  static const Color warningSurfaceDark = Color(0xFF5D3200);
+  static const Color errorSurfaceDark = Color(0xFF5F1713);
+  static const Color infoSurfaceDark = Color(0xFF063F43);
 
   // --- Elevation Shadows (WCAG 2.1 Level AA) ---
   static List<BoxShadow> elevationLevel1(bool isDark) => [
@@ -54,7 +67,11 @@ class Ux4gDefenseTheme {
       ];
 
   // --- Build ThemeData ---
-  static ThemeData buildTheme({required bool isDark, double fontScale = 1.0}) {
+  static ThemeData buildTheme({required bool isDark, bool isHighContrast = false, double fontScale = 1.0}) {
+    final primary = isHighContrast ? Colors.black : (isDark ? mhaNavyLight : mhaNavy);
+    final background = isHighContrast ? Colors.black : (isDark ? bgDark : bgLight);
+    final surface = isHighContrast ? Colors.black : (isDark ? surfaceDark : surfaceLight);
+    final onSurface = isHighContrast ? Colors.white : (isDark ? textPrimaryDark : textPrimaryLight);
     final baseTextTheme = isDark
         ? Typography.material2021().white
         : Typography.material2021().black;
@@ -107,17 +124,17 @@ class Ux4gDefenseTheme {
 
     return ThemeData(
       useMaterial3: true,
-      brightness: isDark ? Brightness.dark : Brightness.light,
-      primaryColor: mhaNavy,
-      scaffoldBackgroundColor: isDark ? bgDark : bgLight,
+      brightness: isDark || isHighContrast ? Brightness.dark : Brightness.light,
+      primaryColor: primary,
+      scaffoldBackgroundColor: background,
       colorScheme: ColorScheme(
-        brightness: isDark ? Brightness.dark : Brightness.light,
-        primary: isDark ? mhaNavyLight : mhaNavy,
+        brightness: isDark || isHighContrast ? Brightness.dark : Brightness.light,
+        primary: primary,
         onPrimary: Colors.white,
-        secondary: indiaSaffron,
-        onSecondary: const Color(0xFF1E293B),
-        surface: isDark ? surfaceDark : surfaceLight,
-        onSurface: isDark ? textPrimaryDark : textPrimaryLight,
+        secondary: isHighContrast ? Colors.yellow : indiaSaffron,
+        onSecondary: Colors.black,
+        surface: surface,
+        onSurface: onSurface,
         error: crisisRed,
         onError: Colors.white,
       ),
@@ -135,7 +152,7 @@ class Ux4gDefenseTheme {
         ),
       ),
       cardTheme: CardThemeData(
-        color: isDark ? surfaceDark : surfaceLight,
+        color: surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
@@ -159,7 +176,7 @@ class Ux4gDefenseTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(6),
-          borderSide: const BorderSide(color: mhaNavy, width: 2),
+          borderSide: BorderSide(color: isHighContrast ? Colors.yellow : primary, width: 2),
         ),
         labelStyle: TextStyle(color: isDark ? textSecondaryDark : textSecondaryLight),
         hintStyle: TextStyle(color: isDark ? textMutedDark : textMutedLight),

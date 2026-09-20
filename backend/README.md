@@ -4,30 +4,9 @@ Welcome to the **PRAHARI Backend** service. This backend powers the entire platf
 
 ---
 
-## ⚡ One-Click Run (Easiest Way for Team Members)
+## ⚡ Quick Run
 
-We have created one-click start scripts so you don't need to manually configure anything:
-
-### 🪟 On Windows:
-Simply **double-click** `run.bat` (or run it from terminal):
-```cmd
-run.bat
-```
-
-### 🍎 / 🐧 On Mac / Linux:
-Make it executable and run:
-```bash
-chmod +x run.sh
-./run.sh
-```
-
-**What the script does automatically for you:**
-1. Creates a Python virtual environment (`.venv`)
-2. Installs all required packages from `requirements.txt`
-3. Copies `.env.example` to `.env`
-4. Creates the database and seeds demonstration troops, rosters, and cases
-5. Starts the FastAPI server on `http://localhost:8000`
-6. Opens your web browser directly to the interactive Swagger API documentation
+The repository uses standard Python scripts; use the manual commands below to configure and launch.
 
 ---
 
@@ -77,20 +56,12 @@ In `frontend/.env.local`, set:
 NEXT_PUBLIC_API_URL=http://localhost:8000/api
 ```
 
-### 2. Mobile App (Flutter / React Native)
-* **Android Emulator**: In Android emulators, `localhost` refers to the device itself. Use `10.0.2.2`:
-  ```dart
-  const String apiBaseUrl = "http://10.0.2.2:8000/api";
-  ```
-* **iOS Simulator**:
-  ```dart
-  const String apiBaseUrl = "http://localhost:8000/api";
-  ```
-* **Physical Device (via Wi-Fi)**:
-  Connect both your PC and phone to the same Wi-Fi network and find your PC's IP address (`ipconfig` on Windows):
-  ```dart
-  const String apiBaseUrl = "http://192.168.x.x:8000/api";
-  ```
+### 2. Mobile App (Flutter)
+Use the build-time `PRAHARI_API_URL` or `API_BASE_URL` value when the default host is not suitable:
+```bash
+flutter run --dart-define=PRAHARI_API_URL=http://10.0.2.2:8000/api
+```
+For a physical device, replace the host with your development machine's LAN IP. iOS simulators can use `http://localhost:8000/api`.
 
 ---
 
