@@ -138,6 +138,7 @@ def optimize_roster(
     1. MOS trade matching (Armorer <-> Armorer, Radio Operator <-> Radio Operator, GD <-> GD)
     2. 8-hour rolling rest barrier between consecutive duty shifts
     3. Fairness cap: <= 2 high-burden shifts (night/split) in any rolling 7-day period
+    4. Section 29 Intervention Equity: penalize excessive swap concentration on single soldiers
     """
     # 1. Map personnel by ID
     p_map = {p["id"]: dict(p) for p in personnel_list}
@@ -242,8 +243,10 @@ def optimize_roster(
                     if not validate_fairness_cap(hypo_low, max_heavy_in_7d=2):
                         continue
 
-                    # Mathematical Objective: Maximize relief benefit while penalizing excess load on low trooper
-                    benefit = (risk_high - risk_low) * 100.0 - (0.05 * burden_scores[low_pid])
+                    # Mathematical Objective: Maximize acute burnout relief while enforcing Section 29 Intervention Equity
+                    # Penalize selecting troopers who have higher baseline burden or accumulated recent duty shifts
+                    equity_penalty = (0.08 * burden_scores[low_pid]) + (0.05 * len(p_shifts.get(low_pid, [])))
+                    benefit = (risk_high - risk_low) * 100.0 - equity_penalty
                     if benefit > best_pair_benefit:
                         best_pair_benefit = benefit
                         best_pair_match = (high_pid, low_pid, target_shift, candidate_shift)
@@ -267,6 +270,7 @@ def optimize_roster(
             p_high = p_map[high_pid]
             p_low = p_map[low_pid]
             risk_high = float(p_high.get("risk_score", 0.0))
+            risk_low = float(p_low.get("risk_score", 0.0))
 
             # Execute Swap
             high_duty_orig = target_shift.get("duty_type", "patrol")
@@ -291,7 +295,7 @@ def optimize_roster(
             absorption_delta = 0.06  # Modest increase for resilient trooper
 
             new_risk_high = round(max(0.20, risk_high - relief_delta), 2)
-            new_risk_low = round(min(0.55, float(p_low.get("risk_score", 0.0)) + absorption_delta), 2)
+            new_risk_low = round(min(0.55, risk_low + absorption_delta), 2)
 
             p_high["risk_score"] = new_risk_high
             p_low["risk_score"] = new_risk_low
@@ -334,7 +338,7 @@ def optimize_roster(
                 "date": str(shift_date),
                 "trade": p_high.get("trade", "GD"),
                 "projected_risk_change_a": {"from": risk_high, "to": new_risk_high},
-                "projected_risk_change_b": {"from": float(p_map[low_pid].get("risk_score", 0.0)), "to": new_risk_low}
+                "projected_risk_change_b": {"from": risk_low, "to": new_risk_low}
             })
 
     # Calculate post-optimization distributions
@@ -365,4 +369,3 @@ def optimize_roster(
         "swaps": swaps,
         "risk_reduction_pct": max(0.0, reduction_pct)
     }
-

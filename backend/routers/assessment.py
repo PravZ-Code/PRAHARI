@@ -230,6 +230,20 @@ def request_help(
     db.commit()
     db.refresh(case)
 
+    from services.notification_service import create_notification
+    create_notification(
+        db=db,
+        title="Urgent Welfare Help Requested",
+        message=f"{p.rank} {p.name} requested confidential welfare assistance.",
+        recipient_role="welfare",
+        personnel_id=p.id,
+        unit_id=p.unit_id,
+        link="/welfare",
+        priority="urgent",
+        entity_type="emergency",
+        entity_id=case.id
+    )
+
     return {
         "message": "Your request has been received with highest priority. A dedicated welfare officer will reach out immediately.",
         "case_id": case.id

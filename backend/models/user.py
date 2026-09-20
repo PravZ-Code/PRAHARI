@@ -19,6 +19,8 @@ class User(AuthBase):
     personnel_id = Column(String(36), nullable=True, index=True)
     unit_id = Column(String(36), nullable=True, index=True)
     is_active = Column(Boolean, default=True)
+    last_login_at = Column(DateTime(timezone=True), nullable=True)
+    previous_login_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     @property
@@ -68,3 +70,17 @@ class User(AuthBase):
             return db.query(AuditLog).filter(AuditLog.user_id == self.id).all()
         finally:
             db.close()
+
+
+class TokenBlacklist(AuthBase):
+    """
+    Server-side invalidation blacklist for revoked JWT tokens (logout, security revocation).
+    Stored in prahari_auth.db.
+    """
+    __tablename__ = "token_blacklist"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    token_jti = Column(String(64), index=True, nullable=True)
+    token_hash = Column(String(64), index=True, nullable=False)
+    blacklisted_at = Column(DateTime(timezone=True), server_default=func.now())
+    expires_at = Column(DateTime(timezone=True), nullable=True)

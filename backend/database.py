@@ -1,9 +1,12 @@
 import os
+import logging
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from sqlalchemy.pool import QueuePool
 from config import settings
+
+logger = logging.getLogger("prahari.database")
 
 
 def _create_engine(db_url: str) -> Engine:
@@ -93,10 +96,43 @@ def get_auth_db():
         db.close()
 
 
+def _ensure_prediction_outcome_schema():
+    """Apply the prediction outcome migration independently of other migrations."""
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(engine)
+    if "risk_predictions" not in inspector.get_table_names():
+        return
+
+    columns = {column["name"] for column in inspector.get_columns("risk_predictions")}
+    migrations = (
+        ("outcome_14d", "ALTER TABLE risk_predictions ADD COLUMN outcome_14d INTEGER"),
+        ("outcome_observed_at", "ALTER TABLE risk_predictions ADD COLUMN outcome_observed_at DATETIME"),
+        ("outcome_definition", "ALTER TABLE risk_predictions ADD COLUMN outcome_definition VARCHAR(64)"),
+    )
+    for column_name, statement in migrations:
+        if column_name not in columns:
+            try:
+                with engine.begin() as connection:
+                    connection.execute(text(statement))
+                logger.info("Applied risk_predictions migration: %s", column_name)
+            except Exception:
+                logger.exception("Failed to apply risk_predictions migration: %s", column_name)
+                raise
+
+    with engine.begin() as connection:
+        connection.execute(text(
+            "CREATE INDEX IF NOT EXISTS idx_prediction_outcome_maturity "
+            "ON risk_predictions (outcome_14d, predicted_at)"
+        ))
+
+
 def create_all_tables():
     """Create all tables in their respective physical databases."""
+    import models  # Ensure all declarative models are registered on Base / AuthBase
     AuthBase.metadata.create_all(bind=auth_engine)
     Base.metadata.create_all(bind=engine)
+    _ensure_prediction_outcome_schema()
 
 
 def ensure_schema_compatibility():
@@ -110,6 +146,13 @@ def ensure_schema_compatibility():
     try:
         inspector_auth = inspect(auth_engine)
         if "users" in inspector_auth.get_table_names():
+            cols_auth = [c["name"] for c in inspector_auth.get_columns("users")]
+            with auth_engine.begin() as auth_conn:
+                if "last_login_at" not in cols_auth:
+                    auth_conn.execute(text("ALTER TABLE users ADD COLUMN last_login_at DATETIME"))
+                if "previous_login_at" not in cols_auth:
+                    auth_conn.execute(text("ALTER TABLE users ADD COLUMN previous_login_at DATETIME"))
+
             with auth_engine.connect() as auth_conn:
                 user_cnt = auth_conn.execute(text("SELECT COUNT(*) FROM users")).scalar()
                 if user_cnt == 0:
@@ -162,5 +205,17 @@ def ensure_schema_compatibility():
                     conn.execute(text("CREATE INDEX IF NOT EXISTS idx_buddy_sync ON buddy_signals (submitted_at, unit_id)"))
                 if "welfare_cases" in table_names:
                     conn.execute(text("CREATE INDEX IF NOT EXISTS idx_welfare_case_sync ON welfare_cases (created_at, unit_id, risk_level)"))
+                if "notifications" in table_names:
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS idx_notifications_sync ON notifications (recipient_role, is_read, created_at)"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications (user_id, is_read)"))
+                if "risk_predictions" in table_names:
+                    prediction_cols = [c["name"] for c in inspector.get_columns("risk_predictions")]
+                    if "outcome_14d" not in prediction_cols:
+                        conn.execute(text("ALTER TABLE risk_predictions ADD COLUMN outcome_14d INTEGER"))
+                    if "outcome_observed_at" not in prediction_cols:
+                        conn.execute(text("ALTER TABLE risk_predictions ADD COLUMN outcome_observed_at DATETIME"))
+                    if "outcome_definition" not in prediction_cols:
+                        conn.execute(text("ALTER TABLE risk_predictions ADD COLUMN outcome_definition VARCHAR(64)"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS idx_prediction_outcome_maturity ON risk_predictions (outcome_14d, predicted_at)"))
     except Exception:
         pass

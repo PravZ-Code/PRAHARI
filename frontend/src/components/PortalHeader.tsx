@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { DatabaseSyncIndicator } from "@/components/DatabaseSyncIndicator";
+import { NotificationBell } from "@/components/NotificationBell";
 
 export const PortalHeader: React.FC = () => {
   const pathname = usePathname();
@@ -204,6 +205,9 @@ export const PortalHeader: React.FC = () => {
                 </span>
               </div>
             )}
+
+            {/* Live Database-Backed Real-Time Notification Bell */}
+            {mounted && user && <NotificationBell />}
 
             {/* GIGW 3.0 / WCAG 2.1 AA Font Resizer */}
             <div className="flex items-center gap-1 bg-white/10 rounded px-1.5 py-0.5 text-[11px] font-bold">

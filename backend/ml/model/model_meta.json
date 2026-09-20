@@ -1,67 +1,98 @@
 {
   "model_version": "v2.0-defense-calibrated",
   "model_architecture": "Calibrated Regularized Gradient Boosted Trees (XGBoost 3.4)",
-  "trained_at": "2026-09-20T07:20:24.832855+00:00",
+  "trained_at": "2026-09-20T17:19:16.514457+00:00",
   "total_features": 26,
   "dataset": {
-    "total_samples": 1000,
-    "positive_samples": 55,
-    "negative_samples": 945,
-    "imbalance_ratio": 17.18,
-    "validation_strategy": "5-Fold StratifiedGroupKFold (Zero Soldier Leakage)"
+    "total_samples": 6094,
+    "positive_samples": 1410,
+    "negative_samples": 4684,
+    "imbalance_ratio": 3.32,
+    "validation_strategy": "5-Fold StratifiedGroupKFold (Zero Soldier Leakage)",
+    "data_sources": [
+      "Kaggle / HackerEarth Employee Burnout Dataset (22,750 samples)",
+      "Kaggle Sleep Health and Lifestyle Clinical Dataset (374 clinical samples)",
+      "Operational Battalion Longitudinal Duty & Leave Ledger (CRPF/MHA)"
+    ]
   },
   "metrics": {
-    "auroc": 0.9999,
-    "pr_auc": 0.9988,
-    "brier_score": 0.0014,
-    "ece": 0.0012,
-    "f1": 0.9818,
+    "auroc": 0.9681,
+    "pr_auc": 0.9321,
+    "brier_score": 0.0488,
+    "ece": 0.0074,
+    "f1": 0.8532,
     "fold_aurocs": [
-      1.0,
-      1.0,
-      1.0,
-      1.0,
-      0.9995
+      0.9656,
+      0.9719,
+      0.9688,
+      0.9675,
+      0.9674
     ]
   },
   "model_comparison": {
     "Logistic_Regression": {
-      "auroc": 1.0,
-      "pr_auc": 1.0,
-      "f1": 1.0,
-      "brier_score": 0.0002,
-      "ece": 0.003
+      "auroc": 0.9444,
+      "pr_auc": 0.8796,
+      "f1": 0.8032,
+      "brier_score": 0.0821,
+      "ece": 0.0934
     },
     "Random_Forest": {
-      "auroc": 1.0,
-      "pr_auc": 1.0,
-      "f1": 0.9908,
-      "brier_score": 0.0009,
-      "ece": 0.0046
+      "auroc": 0.965,
+      "pr_auc": 0.9258,
+      "f1": 0.8425,
+      "brier_score": 0.0615,
+      "ece": 0.0739
     },
     "XGBoost_Standard": {
-      "auroc": 0.9999,
-      "pr_auc": 0.9988,
-      "f1": 0.9818,
-      "brier_score": 0.0014,
-      "ece": 0.0019
+      "auroc": 0.9682,
+      "pr_auc": 0.9323,
+      "f1": 0.8519,
+      "brier_score": 0.0571,
+      "ece": 0.0602
     },
     "Calibrated_XGBoost": {
-      "auroc": 0.9999,
-      "pr_auc": 0.9988,
-      "f1": 0.9818,
-      "brier_score": 0.0014,
-      "ece": 0.0012
+      "auroc": 0.9681,
+      "pr_auc": 0.9321,
+      "f1": 0.8532,
+      "brier_score": 0.0488,
+      "ece": 0.0074
     }
   },
   "calibration": {
     "method": "Platt Scaling (Logit-Calibrated Empirical Sigmoid)",
-    "validation_split": "StratifiedGroupKFold (Person-Level Zero Leakage)",
-    "platt_slope": 1.1132,
-    "platt_intercept": -0.3576,
-    "brier_score": 0.0014,
-    "ece": 0.0012
+    "validation_split": "Nested cross-fitting: StratifiedGroupKFold model OOF + 5-fold calibration OOF",
+    "platt_slope": 1.0983,
+    "platt_intercept": -0.9671,
+    "brier_score": 0.0488,
+    "ece": 0.0074
   },
+  "calibration_bins": [
+    {
+      "bin": "0.0 - 0.25 (Green)",
+      "predicted_prob": 0.036,
+      "empirical_prob": 0.037,
+      "count": 4575
+    },
+    {
+      "bin": "0.25 - 0.50 (Yellow)",
+      "predicted_prob": 0.383,
+      "empirical_prob": 0.395,
+      "count": 238
+    },
+    {
+      "bin": "0.50 - 0.75 (Orange)",
+      "predicted_prob": 0.627,
+      "empirical_prob": 0.619,
+      "count": 218
+    },
+    {
+      "bin": "0.75 - 1.0 (Red)",
+      "predicted_prob": 0.959,
+      "empirical_prob": 0.953,
+      "count": 1063
+    }
+  ],
   "risk_bands": {
     "green": [
       0.0,
@@ -82,64 +113,64 @@
   },
   "top_predictive_features": [
     {
-      "feature": "mood_score_avg_14d",
-      "gain": 118.3739,
-      "weight": 143
-    },
-    {
-      "feature": "sleep_quality_avg_14d",
-      "gain": 118.1873,
-      "weight": 61
-    },
-    {
-      "feature": "stress_level_avg_14d",
-      "gain": 101.5083,
-      "weight": 7
-    },
-    {
-      "feature": "mood_score_avg_7d",
-      "gain": 16.8718,
-      "weight": 8
-    },
-    {
-      "feature": "sleep_hours_avg_7d",
-      "gain": 7.8878,
-      "weight": 7
-    },
-    {
       "feature": "social_connection_avg_7d",
-      "gain": 2.0308,
-      "weight": 2
-    },
-    {
-      "feature": "hard_area_months",
-      "gain": 0.7751,
-      "weight": 1
-    },
-    {
-      "feature": "total_transfers",
-      "gain": 0.0,
-      "weight": 0
-    },
-    {
-      "feature": "months_at_current_posting",
-      "gain": 0.0,
-      "weight": 0
+      "gain": 206.1818,
+      "weight": 308
     },
     {
       "feature": "leave_denial_rate_6m",
-      "gain": 0.0,
-      "weight": 0
+      "gain": 107.0067,
+      "weight": 288
     },
     {
-      "feature": "leave_applications_30d",
-      "gain": 0.0,
-      "weight": 0
+      "feature": "mood_score_avg_7d",
+      "gain": 92.4559,
+      "weight": 114
     },
     {
-      "feature": "consecutive_duty_days",
-      "gain": 0.0,
-      "weight": 0
+      "feature": "energy_level_avg_7d",
+      "gain": 37.3839,
+      "weight": 210
+    },
+    {
+      "feature": "unit_buddy_signals_4w",
+      "gain": 31.0943,
+      "weight": 150
+    },
+    {
+      "feature": "avg_hours_per_day_14d",
+      "gain": 29.6307,
+      "weight": 224
+    },
+    {
+      "feature": "stress_level_avg_7d",
+      "gain": 28.3613,
+      "weight": 162
+    },
+    {
+      "feature": "unit_buddy_avg_concern",
+      "gain": 20.5352,
+      "weight": 211
+    },
+    {
+      "feature": "appetite_score_avg_7d",
+      "gain": 19.5811,
+      "weight": 135
+    },
+    {
+      "feature": "night_shift_density_14d",
+      "gain": 17.0073,
+      "weight": 151
+    },
+    {
+      "feature": "area_type_encoded",
+      "gain": 11.9159,
+      "weight": 5
+    },
+    {
+      "feature": "hard_area_months",
+      "gain": 11.8855,
+      "weight": 119
     }
   ]
 }

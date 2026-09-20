@@ -639,6 +639,32 @@ def submit_welfare_sos(
         "triggered_at": now.isoformat()
     })
 
+    from services.notification_service import create_notification
+    create_notification(
+        db=db,
+        title="CRITICAL: Emergency SOS Broadcast",
+        message=f"{p.rank} {p.name} has triggered an Emergency SOS distress broadcast.",
+        recipient_role="welfare",
+        personnel_id=p.id,
+        unit_id=p.unit_id,
+        link="/welfare",
+        priority="critical",
+        entity_type="emergency",
+        entity_id=case.id
+    )
+    create_notification(
+        db=db,
+        title="CRITICAL: Emergency SOS Broadcast",
+        message=f"{p.rank} {p.name} has triggered an Emergency SOS distress broadcast.",
+        recipient_role="commander",
+        personnel_id=p.id,
+        unit_id=p.unit_id,
+        link="/commander",
+        priority="critical",
+        entity_type="emergency",
+        entity_id=case.id
+    )
+
     return {
         "case_id": case.id,
         "message": "Immediate SOS registered. A Welfare Officer will contact you directly."

@@ -19,6 +19,7 @@ from routers.resilience import router as resilience_router
 from routers.grievance import router as grievance_router
 from routers.personnel import router as personnel_router
 from routers.sync import router as sync_router
+from routers.notifications import router as notifications_router
 from middleware.correlation import CorrelationIdMiddleware
 from middleware.security import SecurityMiddleware
 from middleware.prometheus import generate_prometheus_metrics
@@ -68,6 +69,7 @@ app.include_router(resilience_router, tags=["Resilience & Team Safety"])
 app.include_router(grievance_router, prefix="/api/grievance", tags=["Grievance & Leave SLA Engine"])
 app.include_router(personnel_router, prefix="/api/personnel", tags=["Personnel Welfare & Transparency"])
 app.include_router(sync_router, prefix="/api/sync", tags=["Real-Time Database Synchronization"])
+app.include_router(notifications_router, prefix="/api/notifications", tags=["Notifications & Alerts"])
 
 
 @app.get("/metrics", response_class=Response)

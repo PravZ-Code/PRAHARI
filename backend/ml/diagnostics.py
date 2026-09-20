@@ -23,12 +23,34 @@ def generate_model_registry_metadata() -> Dict[str, Any]:
             pass
 
     meta_path = os.path.join(ARTIFACTS_DIR, "model_registry.json")
+    registry_file = None
     if os.path.exists(meta_path):
         try:
             with open(meta_path, "r") as f:
-                return json.load(f)
+                registry_file = json.load(f)
         except Exception:
-            pass
+            registry_file = None
+
+    if live_meta:
+        live_metrics = live_meta.get("metrics", {})
+        registry = dict(registry_file or {})
+        registry.update({
+            "model_id": "PRAHARI-XGB-V2-DEFENSE",
+            "architecture": live_meta.get("model_architecture", "Calibrated Gradient Boosted Decision Trees"),
+            "trained_at": live_meta.get("trained_at"),
+            "sample_size_troopers": live_meta.get("dataset", {}).get("total_samples"),
+            "primary_metrics": {
+                "auroc": live_metrics.get("auroc"),
+                "pr_auc": live_metrics.get("pr_auc"),
+                "f1_score": live_metrics.get("f1"),
+                "brier_score": live_metrics.get("brier_score"),
+                "expected_calibration_error": live_metrics.get("ece"),
+            },
+            "calibration": live_meta.get("calibration", {}),
+            "validation": live_meta.get("dataset", {}),
+            "top_predictive_features": live_meta.get("top_predictive_features", []),
+        })
+        return registry
 
     # Defaults or live trained metrics
     metrics = {

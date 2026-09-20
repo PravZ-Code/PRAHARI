@@ -59,6 +59,9 @@ class RiskPrediction(Base):
     abstention_reason = Column(String(255), nullable=True)
     signal_reliability = Column(String(20), nullable=True, default="high")
     what_changed = Column(JSON, nullable=True)
+    outcome_14d = Column(Integer, nullable=True, index=True)
+    outcome_observed_at = Column(DateTime(timezone=True), nullable=True)
+    outcome_definition = Column(String(64), nullable=True)
 
     personnel = relationship("Personnel", back_populates="predictions")
     welfare_cases = relationship("WelfareCase", back_populates="trigger_prediction")

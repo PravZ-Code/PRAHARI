@@ -335,12 +335,13 @@ def run_flagship_counterfactual_simulation(
     projected_score = float(cf_pred["risk_score"])
     projected_level = str(cf_pred["risk_level"]).upper()
 
-    # Guarantee monotonic relief logic
-    if projected_score >= curr_score:
-        projected_score = round(curr_score * 0.85, 4)
-        projected_level = "YELLOW" if projected_score >= 0.25 else "GREEN"
-
     reduction_pct = round(((curr_score - projected_score) / max(0.01, curr_score)) * 100, 1)
+    recommendation_status = "MODELED_BENEFIT" if projected_score < curr_score else "NO_MODELED_BENEFIT"
+    recommendation_notice = (
+        "The proposed intervention is associated with a lower modeled risk. Human approval remains required."
+        if recommendation_status == "MODELED_BENEFIT"
+        else "The model does not support this intervention as a risk-reducing recommendation. Review the plan with a welfare officer."
+    )
 
     # 6. Compute SHAP Waterfall Attribution Shifts
     shap_deltas = compute_shap_waterfall_delta(
@@ -389,7 +390,7 @@ def run_flagship_counterfactual_simulation(
     verdict = (
         f"Simulated Counterfactual Analysis: {soldier.rank} {soldier.name}'s calibrated risk drops from "
         f"{curr_score:.2f} ({curr_level}) to {projected_score:.2f} ({projected_level}) "
-        f"— an overall strain reduction of {reduction_pct}%. "
+        f"— modeled change: {reduction_pct}%. {recommendation_notice} "
         f"Status: {cascade_eval['safety_verdict']}"
     )
 
@@ -403,6 +404,8 @@ def run_flagship_counterfactual_simulation(
         "projected_score": round(projected_score, 4),
         "projected_level": projected_level,
         "stress_reduction_percentage": reduction_pct,
+        "recommendation_status": recommendation_status,
+        "recommendation_notice": recommendation_notice,
         "benefits": benefit_breakdown,
         "simple_verdict": verdict,
         "shap_waterfall_shifts": shap_deltas[:6],

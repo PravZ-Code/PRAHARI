@@ -1,6 +1,7 @@
 # Environment & Secrets
 .env
 .env.*
+!.env.example
 *.pem
 *.key
 
@@ -47,4 +48,9 @@ logs/
 *.zip
 *.ps1
 build_production_zip.py
+.pytest_tmp/
+user_prompt_full.txt
+PRAHARI_*.md
+audit_reports_subagents/
+
 

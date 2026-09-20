@@ -27,6 +27,8 @@ def ensure_database_seeded():
 
 @pytest.fixture(scope="function")
 def client():
+    from middleware.security import rate_limiter
+    rate_limiter.reset()
     with TestClient(app) as c:
         yield c
 

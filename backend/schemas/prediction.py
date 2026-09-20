@@ -3,7 +3,7 @@ from typing import Optional, List, Dict, Any
 
 class BatchPredictRequest(BaseModel):
     unit_id: Optional[str] = None
-    model_version: str = "v1.0"
+    model_version: Optional[str] = None
 
 class BatchPredictResponse(BaseModel):
     total_predicted: int

@@ -8,8 +8,16 @@ from models.model_health import ModelHealthSnapshot
 from ml.feature_engineering import build_feature_vector
 from ml.predict import predict_batch
 from ml.drift_detector import compute_distribution_drift
+from ml.outcome_monitoring import (
+    MIN_CALIBRATION_SAMPLE_SIZE,
+    compute_observed_ece,
+    refresh_matured_prediction_outcomes,
+)
 
-def run_batch_predictions(db: Session, unit_id: Optional[str] = None, model_version: str = "v1.0") -> Dict[str, Any]:
+def run_batch_predictions(db: Session, unit_id: Optional[str] = None, model_version: Optional[str] = None) -> Dict[str, Any]:
+    if model_version is None:
+        from ml.predict import get_model_metadata
+        model_version = get_model_metadata().get("model_version", "unknown")
     query = db.query(Personnel)
     if unit_id:
         query = query.filter(Personnel.unit_id == unit_id)
@@ -91,22 +99,15 @@ def run_batch_predictions(db: Session, unit_id: Optional[str] = None, model_vers
     if earlier_snap and earlier_snap.risk_distribution:
         drift_result = compute_distribution_drift(distribution, earlier_snap.risk_distribution)
 
-    # Compute real Expected Calibration Error (ECE) dynamically
-    ece = 0.0
-    if predictions:
-        bins = [[] for _ in range(5)]
-        for p in predictions:
-            score = p.get("risk_score", 0.5)
-            idx = min(4, max(0, int(score * 5)))
-            bins[idx].append(p)
-        for b in bins:
-            if b:
-                b_conf = sum(p["confidence_score"] for p in b) / len(b)
-                b_qual = sum(p["data_quality_score"] for p in b) / len(b)
-                ece += (len(b) / len(predictions)) * abs(b_conf - b_qual)
-        ece = round(float(ece * 0.25), 4)
-    else:
-        ece = 0.025
+    # ECE requires matured predicted-probability/outcome pairs from this exact model version.
+    refresh_matured_prediction_outcomes(db, now)
+    matured = db.query(RiskPrediction).filter(
+        RiskPrediction.model_version == model_version,
+        RiskPrediction.outcome_14d.is_not(None),
+        RiskPrediction.abstention_flag == 0,
+    ).all()
+    outcome_pairs = [(float(item.prob_14d or item.risk_score), int(item.outcome_14d)) for item in matured]
+    ece = compute_observed_ece(outcome_pairs) if len(outcome_pairs) >= MIN_CALIBRATION_SAMPLE_SIZE else None
 
     snapshot = ModelHealthSnapshot(
         snapshot_date=now,
@@ -126,5 +127,6 @@ def run_batch_predictions(db: Session, unit_id: Optional[str] = None, model_vers
         "total_predicted": total_pred,
         "distribution": distribution,
         "cases_created": cases_created,
-        "model_version": model_version
+        "model_version": model_version,
+        "matured_outcome_count": len(outcome_pairs),
     }

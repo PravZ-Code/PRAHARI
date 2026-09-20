@@ -193,7 +193,7 @@ def approve_uro_result(
     try:
         res = approve_uro_run(
             db=db,
-            run_id=run_id,
+            run_id=run.id,
             user_id=current_user.id,
             user_role=current_user.role,
             as_role=as_role,
@@ -212,7 +212,8 @@ def reject_uro_result(
     current_user: User = Depends(require_role("commander", "welfare", "admin")),
     db: Session = Depends(get_db)
 ):
-    run = db.query(URORun).filter(URORun.id == run_id).first()
+    base_run_id = run_id.rsplit("_", 1)[0] if ("_" in run_id and not run_id.startswith("uro_swap") and not run_id.startswith("swap_")) else run_id
+    run = db.query(URORun).filter((URORun.id == run_id) | (URORun.id == base_run_id)).first()
     if not run:
         raise HTTPException(status_code=404, detail="URO run not found")
 
@@ -225,7 +226,7 @@ def reject_uro_result(
     try:
         res = reject_uro_run(
             db=db,
-            run_id=run_id,
+            run_id=run.id,
             user_id=current_user.id,
             user_role=current_user.role,
             reason=reason

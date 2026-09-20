@@ -28,6 +28,7 @@ from services.grievance_service import (
 )
 from middleware.rbac import require_role, get_current_user
 from services.sync_service import sync_broadcaster
+from services.notification_service import create_notification
 
 router = APIRouter()
 
@@ -156,6 +157,34 @@ def file_request(
             "status": obj.status,
             "is_fast_lane": bool(obj.is_fast_lane),
         })
+        soldier = db.query(Personnel).filter(Personnel.id == obj.personnel_id).first()
+        unit_id = soldier.unit_id if soldier else None
+        soldier_label = f"{soldier.rank} {soldier.name}" if soldier and soldier.rank else (soldier.name if soldier else "Trooper")
+        desc_snippet = (obj.description or obj.category or "Leave request")[:80]
+        create_notification(
+            db=db,
+            title=f"New {obj.request_type.capitalize()} Request",
+            message=f"{soldier_label} filed {obj.category}: {desc_snippet}",
+            recipient_role="welfare",
+            personnel_id=obj.personnel_id,
+            unit_id=unit_id,
+            link="/approvals",
+            priority="urgent" if obj.is_fast_lane else "normal",
+            entity_type="grievance",
+            entity_id=obj.id
+        )
+        create_notification(
+            db=db,
+            title=f"New {obj.request_type.capitalize()} Pending Approval",
+            message=f"{soldier_label} filed {obj.category}. Command review required.",
+            recipient_role="commander",
+            personnel_id=obj.personnel_id,
+            unit_id=unit_id,
+            link="/approvals",
+            priority="urgent" if obj.is_fast_lane else "normal",
+            entity_type="grievance",
+            entity_id=obj.id
+        )
         return _format_grievance_response(obj, db)
     except ValueError as e:
         db.rollback()
@@ -525,6 +554,19 @@ def approve_request(
             "role_signed": role_to_sign or current_user.role,
             "status": "approved" if target.commander_approved and target.welfare_approved else "partially_approved",
         })
+        is_fully_approved = bool(target.commander_approved and target.welfare_approved)
+        status_label = "fully approved" if is_fully_approved else "partially approved (pending final sign-off)"
+        create_notification(
+            db=db,
+            title=f"Request Update: {target.category}",
+            message=f"Your {target.request_type} request has been {status_label}.",
+            recipient_role="personnel",
+            personnel_id=target.personnel_id,
+            link="/portal",
+            priority="normal",
+            entity_type="grievance",
+            entity_id=target.id
+        )
         return res
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -557,6 +599,17 @@ def reject_request(
             "status": "rejected",
             "reason": reason,
         })
+        create_notification(
+            db=db,
+            title=f"Request Decision: {target.category}",
+            message=f"Your {target.request_type} request was not approved: {reason}",
+            recipient_role="personnel",
+            personnel_id=target.personnel_id,
+            link="/portal",
+            priority="high",
+            entity_type="grievance",
+            entity_id=target.id
+        )
         return res
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

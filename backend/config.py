@@ -7,15 +7,17 @@ load_dotenv()
 class Settings(BaseSettings):
     APP_ENV: str = os.getenv("APP_ENV", "development")
     BUILD_VERSION: str = os.getenv("BUILD_VERSION", "1.0.0")
+    PORT: int = int(os.getenv("PORT", "8000"))
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
     MAX_REQUEST_BODY_BYTES: int = int(os.getenv("MAX_REQUEST_BODY_BYTES", str(2 * 1024 * 1024)))
     ENABLE_SECURITY_HEADERS: bool = os.getenv("ENABLE_SECURITY_HEADERS", "true").lower() == "true"
     REQUIRE_ML_ARTIFACTS: bool = os.getenv("REQUIRE_ML_ARTIFACTS", "true").lower() == "true"
     ALLOWED_ORIGINS: str = os.getenv(
         "ALLOWED_ORIGINS",
-        "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173,http://localhost:3001,http://127.0.0.1:3001,http://localhost:8080,http://127.0.0.1:8080",
+        "http://localhost:3000,http://127.0.0.1:3000",
     )
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "prahari")
-    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "prahari_dev_2026")
+    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "")
     POSTGRES_DB: str = os.getenv("POSTGRES_DB", "prahari_db")
     POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "localhost")
     POSTGRES_PORT: int = int(os.getenv("POSTGRES_PORT", "5432"))

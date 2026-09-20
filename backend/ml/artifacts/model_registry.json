@@ -1,42 +1,42 @@
 {
   "model_id": "PRAHARI-XGB-V2-DEFENSE",
-  "architecture": "Calibrated Gradient Boosted Decision Trees (XGBoost 2.0.3)",
-  "trained_at": "2026-09-05T14:30:00Z",
-  "sample_size_troopers": 1000,
+  "architecture": "Calibrated Regularized Gradient Boosted Trees (XGBoost 3.4)",
+  "trained_at": "2026-09-20T17:19:16.514457+00:00",
+  "sample_size_troopers": 6094,
   "training_horizon_days": 180,
-  "total_observations": 180000,
+  "total_observations": 85316,
   "primary_metrics": {
-    "auroc": 0.985,
-    "pr_auc": 0.942,
-    "f1_score": 0.912,
-    "brier_score": 0.021,
-    "expected_calibration_error": 0.015,
+    "auroc": 0.9681,
+    "pr_auc": 0.9321,
+    "f1_score": 0.8532,
+    "brier_score": 0.0488,
+    "expected_calibration_error": 0.0074,
     "false_positive_rate_green": 0.008
   },
   "calibration_bins": [
     {
-      "bin": "0.0 - 0.2 (Green)",
-      "predicted_prob": 0.08,
-      "empirical_prob": 0.075,
-      "count": 850
+      "bin": "0.0 - 0.25 (Green)",
+      "predicted_prob": 0.036,
+      "empirical_prob": 0.037,
+      "count": 4575
     },
     {
-      "bin": "0.2 - 0.5 (Yellow)",
-      "predicted_prob": 0.36,
-      "empirical_prob": 0.355,
-      "count": 95
+      "bin": "0.25 - 0.50 (Yellow)",
+      "predicted_prob": 0.383,
+      "empirical_prob": 0.395,
+      "count": 238
     },
     {
-      "bin": "0.5 - 0.75 (Orange)",
-      "predicted_prob": 0.63,
-      "empirical_prob": 0.64,
-      "count": 35
+      "bin": "0.50 - 0.75 (Orange)",
+      "predicted_prob": 0.627,
+      "empirical_prob": 0.619,
+      "count": 218
     },
     {
       "bin": "0.75 - 1.0 (Red)",
-      "predicted_prob": 0.89,
-      "empirical_prob": 0.885,
-      "count": 20
+      "predicted_prob": 0.959,
+      "empirical_prob": 0.953,
+      "count": 1063
     }
   ],
   "subgroup_fairness_audit": {
@@ -63,34 +63,34 @@
   },
   "top_global_shap_factors": [
     {
-      "feature": "consecutive_duty_days",
-      "display": "Continuous Duty Without Rest",
-      "mean_abs_shap": 0.342
-    },
-    {
-      "feature": "night_shift_density_14d",
-      "display": "14-Day Night Shift Density",
-      "mean_abs_shap": 0.285
+      "feature": "social_connection_avg_7d",
+      "display": "Social Connection Avg 7D",
+      "mean_abs_shap": 2.062
     },
     {
       "feature": "leave_denial_rate_6m",
-      "display": "6-Month Leave Denial Ratio",
-      "mean_abs_shap": 0.241
+      "display": "Leave Denial Rate 6M",
+      "mean_abs_shap": 1.07
     },
     {
-      "feature": "hard_area_months",
-      "display": "Hard Area Deployment Tenure",
-      "mean_abs_shap": 0.198
+      "feature": "mood_score_avg_7d",
+      "display": "Mood Score Avg 7D",
+      "mean_abs_shap": 0.925
     },
     {
-      "feature": "sleep_quality_trend",
-      "display": "Sleep Quality Deterioration Trend",
-      "mean_abs_shap": 0.165
+      "feature": "energy_level_avg_7d",
+      "display": "Energy Level Avg 7D",
+      "mean_abs_shap": 0.374
     },
     {
       "feature": "unit_buddy_signals_4w",
-      "display": "Unit Peer Concern Signal Density",
-      "mean_abs_shap": 0.124
+      "display": "Unit Buddy Signals 4W",
+      "mean_abs_shap": 0.311
+    },
+    {
+      "feature": "avg_hours_per_day_14d",
+      "display": "Avg Hours Per Day 14D",
+      "mean_abs_shap": 0.296
     }
   ]
 }

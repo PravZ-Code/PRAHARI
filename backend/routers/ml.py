@@ -40,7 +40,7 @@ def get_model_health(
             "distribution": latest.risk_distribution,
             "avg_confidence": float(latest.avg_confidence),
             "avg_data_quality": float(latest.avg_data_quality),
-            "calibration_error": float(latest.calibration_error) if latest.calibration_error is not None else 0.0,
+            "calibration_error": float(latest.calibration_error) if latest.calibration_error is not None else None,
             "drift_detected": latest.drift_detected
         }
 

@@ -7,7 +7,8 @@ from jose import jwt, JWTError
 from sqlalchemy.orm import Session
 from config import settings
 from database import get_db, get_auth_db
-from models.user import User
+import hashlib
+from models.user import User, TokenBlacklist
 
 security = HTTPBearer(auto_error=False)
 
@@ -33,6 +34,28 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
     return encoded_jwt
 
+def blacklist_token(auth_db: Session, token: str):
+    """
+    Records revoked JWT in the persistent TokenBlacklist table.
+    """
+    try:
+        t_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        existing = auth_db.query(TokenBlacklist).filter(TokenBlacklist.token_hash == t_hash).first()
+        if not existing:
+            payload = None
+            try:
+                payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM], options={"verify_exp": False})
+            except Exception:
+                pass
+            jti = payload.get("jti") if payload else None
+            exp_ts = payload.get("exp") if payload else None
+            exp_dt = datetime.fromtimestamp(exp_ts, tz=timezone.utc) if exp_ts else None
+            bl = TokenBlacklist(token_hash=t_hash, token_jti=jti, expires_at=exp_dt)
+            auth_db.add(bl)
+            auth_db.commit()
+    except Exception:
+        auth_db.rollback()
+
 async def get_current_user(
     request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(security),
@@ -48,6 +71,16 @@ async def get_current_user(
     )
     if not token:
         raise credentials_exception
+
+    # Verify token is not in server-side blacklist
+    t_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    if auth_db.query(TokenBlacklist).filter(TokenBlacklist.token_hash == t_hash).first():
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session has been terminated / token revoked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     try:
         payload = jwt.decode(
             token,

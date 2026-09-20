@@ -133,6 +133,19 @@ async def sync_stream_endpoint(
                         if role == "personnel":
                             if not user_pid or event_pid != user_pid:
                                 continue
+                    elif event_type == "notification_created":
+                        target_role = (event_data.get("recipient_role") or "").lower()
+                        target_uid = event_data.get("user_id")
+                        target_pid = event_data.get("personnel_id")
+                        if role == "personnel":
+                            if target_role not in ("personnel", "all") and target_uid != current_user.id and target_pid != user_pid:
+                                continue
+                        elif role == "commander":
+                            if target_role not in ("commander", "all") and target_uid != current_user.id:
+                                continue
+                        elif role in ("welfare", "welfare_officer"):
+                            if target_role not in ("welfare", "welfare_officer", "all") and target_uid != current_user.id:
+                                continue
 
                     yield format_sse(event_type, packet)
                     sent_count += 1

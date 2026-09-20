@@ -4,8 +4,9 @@ from sqlalchemy import func
 from database import get_db, get_auth_db
 from models.user import User
 from models.personnel import Personnel, Unit
+from datetime import datetime, timezone
 from schemas.auth import LoginRequest, TokenResponse, UserProfile
-from middleware.rbac import verify_password, create_access_token, get_current_user
+from middleware.rbac import verify_password, create_access_token, get_current_user, blacklist_token
 from middleware.audit import log_audit
 from config import settings
 
@@ -163,6 +164,11 @@ def login(
         details={"username": user.username, "role": user.role}
     )
 
+    # Record login timestamps for 'Since Previous Login' notification calculation
+    user.previous_login_at = user.last_login_at
+    user.last_login_at = datetime.now(timezone.utc)
+    auth_db.commit()
+
     profile = _build_user_profile(user, db=db)
     return TokenResponse(access_token=token, token_type="bearer", user=profile)
 
@@ -198,8 +204,21 @@ def refresh_token(
     return TokenResponse(access_token=token, token_type="bearer", user=profile)
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout(response: Response):
+def logout(
+    request: Request,
+    response: Response,
+    auth_db: Session = Depends(get_auth_db)
+):
+    """
+    Terminate user session, clear HTTP cookie, and record token in the persistent blacklist.
+    """
     response.delete_cookie("prahari_session", path="/")
+    token = request.cookies.get("prahari_session")
+    auth_hdr = request.headers.get("Authorization") or request.headers.get("authorization")
+    if auth_hdr and auth_hdr.startswith("Bearer "):
+        token = auth_hdr.split(" ")[1]
+    if token:
+        blacklist_token(auth_db, token)
 
 def _build_user_profile(user: User, db: Session = None) -> UserProfile:
     """Build rich UserProfile by resolving people information from the Operational/Personnel DB."""

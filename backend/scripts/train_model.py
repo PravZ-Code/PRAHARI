@@ -96,36 +96,20 @@ def compute_forward_strain_target(p_id: str, t0: date, db: Session) -> int:
 
     return 1 if is_high_strain else 0
 
-def execute_training(db: Session):
-    print("[TRAIN] Initiating PRAHARI Longitudinal Defense ML Pipeline...")
-    personnel_list = db.query(Personnel).all()
-    if not personnel_list:
-        print("[ERROR] No personnel data found in database.")
-        return
+def execute_training(db: Session, empirical_sample_size: int = 4000):
+    print("[TRAIN] Initiating PRAHARI Longitudinal Defense ML Pipeline with Real-Life Empirical Datasets...")
+    from ml.data_loader import get_combined_training_data
 
-    # Extract across 2 distinct temporal windows to provide longitudinal coverage
-    # T1 = 2026-08-01 (historical window), T2 = 2026-08-20 (recent operational window)
-    reference_slices = [date(2026, 8, 1), date(2026, 8, 20)]
-    records = []
-
-    print(f"[DATA] Processing {len(personnel_list)} personnel across {len(reference_slices)} longitudinal reference slices...")
-    for t0 in reference_slices:
-        print(f"[DATA] Slicing observation window T0 = {t0}...")
-        for p in personnel_list:
-            feat = build_feature_vector(p, db, as_of_date=t0)
-            target = compute_forward_strain_target(p.id, t0, db)
-            feat["personnel_id"] = p.id
-            feat["y_14d"] = target
-            records.append(feat)
-
-    df = pd.DataFrame(records)
+    # Load and fuse real-world Kaggle Employee Burnout (22,750 records) & Sleep Health datasets
+    # alongside live operational longitudinal tracking records
+    df = get_combined_training_data(db=db, empirical_sample_size=empirical_sample_size, random_state=42)
     y = df["y_14d"].values.astype(int)
 
-    print(f"[DATA] Longitudinal Training Matrix: {df.shape[0]} sample points, {len(FEATURE_COLUMNS)} features.")
+    print(f"[DATA] Final Grounded Training Matrix: {df.shape[0]} sample points, {len(FEATURE_COLUMNS)} features.")
     print(f"[DATA] Forward 14-Day Strain Escalation Prevalence: {y.mean():.2%}")
 
     model, metrics = train_model(df, y)
-    print(f"[SUCCESS] Defense Calibrated Model Successfully Trained and Exported.")
+    print(f"[SUCCESS] Defense Calibrated Model Successfully Trained from Real-Life Public Datasets and Exported.")
     return model, metrics
 
 if __name__ == "__main__":

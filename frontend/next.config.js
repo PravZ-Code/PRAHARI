@@ -3,18 +3,14 @@ const nextConfig = {
   reactStrictMode: true,
   output: "standalone",
   async rewrites() {
+    const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000";
     return [
       {
         source: "/backend/:path*",
-        destination: "http://127.0.0.1:8000/:path*",
+        destination: `${backendUrl}/:path*`,
       },
     ];
   },
-  allowedDevOrigins: [
-    "26.90.10.235",
-    "localhost",
-    "127.0.0.1",
-  ],
   typescript: {
     ignoreBuildErrors: true,
   },

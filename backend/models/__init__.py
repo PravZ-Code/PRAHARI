@@ -1,6 +1,6 @@
 from database import Base
 from models.personnel import Unit, Personnel
-from models.user import User
+from models.user import User, TokenBlacklist
 from models.deployment import DeploymentHistory
 from models.leave import LeaveRecord
 from models.duty_roster import DutyRoster
@@ -13,12 +13,14 @@ from models.model_health import ModelHealthSnapshot
 from models.audit import AuditLog
 from models.grievance import GrievanceRequest
 from models.resilience_intervention import ResilienceIntervention
+from models.notification import Notification
 
 __all__ = [
     "Base",
     "Unit",
     "Personnel",
     "User",
+    "TokenBlacklist",
     "DeploymentHistory",
     "LeaveRecord",
     "DutyRoster",
@@ -33,5 +35,6 @@ __all__ = [
     "ModelHealthSnapshot",
     "AuditLog",
     "GrievanceRequest",
-    "ResilienceIntervention"
+    "ResilienceIntervention",
+    "Notification"
 ]
