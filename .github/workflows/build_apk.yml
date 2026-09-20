@@ -1,4 +1,4 @@
-﻿name: Build PRAHARI Android APK
+name: Build PRAHARI Android APK
 
 on:
   push:
@@ -21,20 +21,19 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'
           channel: 'stable'
           cache: true
 
       - name: Get Dependencies
-        working-directory: prahari/mobile
+        working-directory: mobile
         run: flutter pub get
 
       - name: Build Release APK
-        working-directory: prahari/mobile
+        working-directory: mobile
         run: flutter build apk --release --no-tree-shake-icons
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: prahari-mobile-apk
-          path: prahari/mobile/build/app/outputs/flutter-apk/app-release.apk
+          path: mobile/build/app/outputs/flutter-apk/app-release.apk
