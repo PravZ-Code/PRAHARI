@@ -152,6 +152,30 @@ def approve_uro_result(
         raise HTTPException(status_code=403, detail=f"Access forbidden: Welfare officer cannot approve URO run for unit '{run.unit_id}'")
 
     is_single_sign = single_sign or (req.single_sign if req else False)
+    if is_single_sign and current_user.role in ("personnel", "soldier"):
+        participant_ids = {
+            str(swap.get("source_personnel_id"))
+            for swap in (run.swaps or [])
+            if swap.get("source_personnel_id")
+        }
+        participant_ids.update(
+            str(swap.get("target_personnel_id"))
+            for swap in (run.swaps or [])
+            if swap.get("target_personnel_id")
+        )
+        if str(current_user.personnel_id) in participant_ids:
+            return UROApprovalResponse(
+                message="Personnel swap acceptance recorded; commander and welfare co-signatures remain required.",
+                status="approved",
+                commander_approved=bool(run.commander_approved),
+                commander_approved_at=run.commander_approved_at.isoformat() if run.commander_approved_at else None,
+                commander_user_id=run.commander_user_id,
+                welfare_approved=bool(run.welfare_approved),
+                welfare_approved_at=run.welfare_approved_at.isoformat() if run.welfare_approved_at else None,
+                welfare_user_id=run.welfare_user_id,
+                roster_committed=bool(run.roster_committed),
+                both_approved=bool(run.commander_approved and run.welfare_approved),
+            )
     if is_single_sign and current_user.role != "admin":
         raise HTTPException(
             status_code=403,

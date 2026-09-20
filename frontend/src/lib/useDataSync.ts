@@ -29,7 +29,7 @@ export function useDataSync(options: UseDataSyncOptions = {}) {
     setDbMetrics(syncEngine.getDbMetrics());
     setQueuedCount(syncEngine.getQueuedCount());
 
-    const unsubState = syncEngine.onStateChange((state: any) => {
+    const unsubState = syncEngine.onStateChange((state: SyncState) => {
       setSyncState(state);
       setLatencyMs(syncEngine.getLatency());
       setLastSyncedAt(syncEngine.getLastSyncedAt());

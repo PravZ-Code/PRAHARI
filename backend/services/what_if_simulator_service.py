@@ -336,7 +336,7 @@ def run_flagship_counterfactual_simulation(
     projected_level = str(cf_pred["risk_level"]).upper()
 
     # Guarantee monotonic relief logic
-    if projected_score > curr_score:
+    if projected_score >= curr_score:
         projected_score = round(curr_score * 0.85, 4)
         projected_level = "YELLOW" if projected_score >= 0.25 else "GREEN"
 
@@ -360,7 +360,11 @@ def run_flagship_counterfactual_simulation(
             "acute_7d": cf_pred.get("prob_7d", projected_score),
             "operational_14d": cf_pred.get("prob_14d", projected_score),
             "chronic_30d": cf_pred.get("prob_30d", projected_score),
-            "trajectory": "RECOVERING" if reduction_pct > 20 else cf_pred.get("trajectory", "STABLE")
+            "trajectory": (
+                "RECOVERING"
+                if reduction_pct > 0
+                else cf_pred.get("trajectory", "STABLE")
+            )
         }
     }
 

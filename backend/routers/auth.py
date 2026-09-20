@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from database import get_db, get_auth_db
 from models.user import User
 from models.personnel import Personnel, Unit
@@ -36,16 +37,18 @@ def login(
     # Resolve demo/display aliases
     resolved_identifier = USERNAME_ALIASES.get(identifier.lower(), identifier)
 
-    # 1. Look up user login credentials in the dedicated Authentication Database
+    # 1. Look up user login credentials in the dedicated Authentication Database (case-insensitive)
     user = auth_db.query(User).filter(
-        (User.username == resolved_identifier) | (User.username == identifier)
+        (func.lower(User.username) == resolved_identifier.lower()) | 
+        (func.lower(User.username) == identifier.lower())
     ).first()
 
     if not user:
-        # 2. Check if identifier matches a Personnel service_number in the Operational Database
+        # 2. Check if identifier matches a Personnel service_number in the Operational Database (case-insensitive)
         clean_id = identifier.upper().strip()
         personnel = db.query(Personnel).filter(
-            (Personnel.service_number == clean_id) | (Personnel.service_number == identifier)
+            (func.lower(Personnel.service_number) == identifier.lower()) |
+            (Personnel.service_number == clean_id)
         ).first()
         if not personnel:
             # Fallback matching with stripped punctuation
@@ -55,7 +58,6 @@ def login(
                 if p.service_number and p.service_number.replace("-", "").replace(" ", "").upper() == raw_clean:
                     personnel = p
                     break
-
         if personnel:
             user = auth_db.query(User).filter(User.personnel_id == personnel.id).first()
             if not user:

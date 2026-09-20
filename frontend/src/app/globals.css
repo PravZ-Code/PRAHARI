@@ -142,19 +142,19 @@ html {
 }
 
 body {
-  color: var(--goi-text);
-  background-color: var(--goi-background);
+  color: var(--ux4g-text-neutral-primary, var(--goi-text));
+  background-color: var(--ux4g-bg-neutral, var(--goi-background));
   font-family: var(--font-noto-sans), var(--font-noto-devanagari), var(--font-noto-tamil), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
   -webkit-font-smoothing: antialiased !important;
   -moz-osx-font-smoothing: grayscale !important;
   line-height: 1.5;
-  letter-spacing: -0.011em;
+  letter-spacing: 0;
 }
 
 h1, h2, h3, h4, h5, h6, .font-heading {
   font-family: var(--font-noto-sans), var(--font-noto-devanagari), var(--font-noto-tamil), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
   font-weight: 700 !important;
-  letter-spacing: -0.022em !important;
+  letter-spacing: 0 !important;
 }
 
 button, input, select, textarea, optgroup {
@@ -169,7 +169,7 @@ select:focus-visible,
 textarea:focus-visible,
 [tabindex="0"]:focus-visible,
 [role="button"]:focus-visible {
-  outline: 2px solid #ff9933 !important;
+  outline: 3px solid var(--ux4g-border-color-neutral-focus, #ff9933) !important;
   outline-offset: 2px !important;
   box-shadow: 0 0 0 4px rgba(255, 153, 51, 0.25) !important;
 }

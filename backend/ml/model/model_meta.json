@@ -1,7 +1,7 @@
 {
   "model_version": "v2.0-defense-calibrated",
   "model_architecture": "Calibrated Regularized Gradient Boosted Trees (XGBoost 3.4)",
-  "trained_at": "2026-09-19T08:12:34.593161+00:00",
+  "trained_at": "2026-09-20T07:20:24.832855+00:00",
   "total_features": 26,
   "dataset": {
     "total_samples": 1000,
@@ -13,7 +13,7 @@
   "metrics": {
     "auroc": 0.9999,
     "pr_auc": 0.9988,
-    "brier_score": 0.0013,
+    "brier_score": 0.0014,
     "ece": 0.0012,
     "f1": 0.9818,
     "fold_aurocs": [
@@ -44,22 +44,22 @@
       "pr_auc": 0.9988,
       "f1": 0.9818,
       "brier_score": 0.0014,
-      "ece": 0.0018
+      "ece": 0.0019
     },
     "Calibrated_XGBoost": {
       "auroc": 0.9999,
       "pr_auc": 0.9988,
       "f1": 0.9818,
-      "brier_score": 0.0013,
+      "brier_score": 0.0014,
       "ece": 0.0012
     }
   },
   "calibration": {
     "method": "Platt Scaling (Logit-Calibrated Empirical Sigmoid)",
     "validation_split": "StratifiedGroupKFold (Person-Level Zero Leakage)",
-    "platt_slope": 1.1155,
-    "platt_intercept": -0.3423,
-    "brier_score": 0.0013,
+    "platt_slope": 1.1132,
+    "platt_intercept": -0.3576,
+    "brier_score": 0.0014,
     "ece": 0.0012
   },
   "risk_bands": {
@@ -83,38 +83,38 @@
   "top_predictive_features": [
     {
       "feature": "mood_score_avg_14d",
-      "gain": 122.6243,
-      "weight": 144
+      "gain": 118.3739,
+      "weight": 143
     },
     {
       "feature": "sleep_quality_avg_14d",
-      "gain": 106.1684,
+      "gain": 118.1873,
       "weight": 61
     },
     {
       "feature": "stress_level_avg_14d",
-      "gain": 98.8064,
+      "gain": 101.5083,
       "weight": 7
     },
     {
       "feature": "mood_score_avg_7d",
-      "gain": 16.8442,
+      "gain": 16.8718,
       "weight": 8
     },
     {
       "feature": "sleep_hours_avg_7d",
-      "gain": 9.0212,
+      "gain": 7.8878,
       "weight": 7
     },
     {
       "feature": "social_connection_avg_7d",
-      "gain": 2.0286,
+      "gain": 2.0308,
       "weight": 2
     },
     {
       "feature": "hard_area_months",
-      "gain": 0.0,
-      "weight": 0
+      "gain": 0.7751,
+      "weight": 1
     },
     {
       "feature": "total_transfers",

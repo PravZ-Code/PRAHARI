@@ -2,6 +2,7 @@ import os
 import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Response, Request
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, auth_engine, Base, AuthBase, create_all_tables, ensure_schema_compatibility
 from routers.auth import router as auth_router
@@ -237,4 +238,11 @@ _mobile_web_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", 
 if os.path.exists(_mobile_web_dir) and os.path.isfile(os.path.join(_mobile_web_dir, "index.html")):
     from fastapi.staticfiles import StaticFiles
     app.mount("/mobile", StaticFiles(directory=_mobile_web_dir, html=True), name="mobile")
+else:
+    @app.get("/mobile/", response_class=HTMLResponse, include_in_schema=False)
+    def mobile_web_unbuilt():
+        return HTMLResponse(
+            content="<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>PRAHARI Mobile</title></head><body><main id=\"prahari_mobile\"><h1>PRAHARI Mobile</h1><p>The Flutter web bundle is not built in this environment.</p></main></body></html>",
+            status_code=200,
+        )
 

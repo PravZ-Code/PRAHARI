@@ -963,6 +963,7 @@ def seed_battalion():
                 timestamp=event_dt,
                 details=det
             )
+            alog.signature = sign_audit_hash(curr_hash)
             db.add(alog)
             prev_hash = curr_hash
             seq += 1

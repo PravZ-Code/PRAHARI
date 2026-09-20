@@ -15,7 +15,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _serviceNoController = TextEditingController(text: 'CRPF-84012');
+  final _serviceNoController = TextEditingController(text: 'rajesh_kumar');
   final _pinController = TextEditingController(text: 'demo123');
   bool _obscurePin = true;
   bool _backendOnline = false;
@@ -221,7 +221,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 textCapitalization: TextCapitalization.characters,
                 style: const TextStyle(fontSize: 16),
                 decoration: InputDecoration(
-                  hintText: 'e.g. CRPF-84012 or GD-10492',
+                  hintText: 'Force username or service number',
                   prefixIcon: const Icon(Icons.badge_outlined, color: Ux4gDefenseTheme.mhaNavy),
                   filled: true,
                   fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
