@@ -360,7 +360,11 @@ def run_flagship_counterfactual_simulation(
             "acute_7d": cf_pred.get("prob_7d", projected_score),
             "operational_14d": cf_pred.get("prob_14d", projected_score),
             "chronic_30d": cf_pred.get("prob_30d", projected_score),
-            "trajectory": "RECOVERING" if reduction_pct > 20 else cf_pred.get("trajectory", "STABLE")
+            "trajectory": (
+                "RECOVERING"
+                if reduction_pct > 0
+                else cf_pred.get("trajectory", "STABLE")
+            )
         }
     }
 
