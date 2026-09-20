@@ -2,7 +2,7 @@
 name = "prahari-backend"
 version = "1.0.0"
 description = "PRAHARI Defense & Paramilitary Welfare Platform Backend"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 
 [tool.vercel]
 entrypoint = "main:app"
