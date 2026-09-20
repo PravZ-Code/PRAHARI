@@ -1,10 +1,10 @@
 import pytest
 from fastapi.testclient import TestClient
-from main import app
+from main import app as fastapi_app
 
 @pytest.fixture
 def client():
-    return TestClient(app)
+    return TestClient(fastapi_app)
 
 def test_personnel_multi_user_isolation_lifecycle(client):
     """

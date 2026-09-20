@@ -1,6 +1,12 @@
 import os
+import sys
 import asyncio
 from contextlib import asynccontextmanager
+
+_backend_dir = os.path.dirname(os.path.abspath(__file__))
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+
 from fastapi import FastAPI, Response, Request
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -247,4 +253,43 @@ else:
             content="<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>PRAHARI Mobile</title></head><body><main id=\"prahari_mobile\"><h1>PRAHARI Mobile</h1><p>The Flutter web bundle is not built in this environment.</p></main></body></html>",
             status_code=200,
         )
+
+
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+def root_index():
+    return HTMLResponse(
+        content="""<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRAHARI Defense Platform API</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; background: #0b1329; color: #f8fafc; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 1rem; box-sizing: border-box; }
+        .card { background: #16223f; padding: 2.5rem; border-radius: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); max-width: 560px; width: 100%; border: 1px solid #223561; }
+        .badge { display: inline-block; background: #0284c7; color: white; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 1rem; }
+        h1 { color: #38bdf8; margin: 0 0 0.5rem 0; font-size: 1.5rem; font-weight: 700; }
+        p { color: #94a3b8; line-height: 1.6; font-size: 0.95rem; margin-bottom: 1.5rem; }
+        .links { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+        .links a { display: inline-block; background: #1e3a8a; color: #93c5fd; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-size: 0.875rem; font-weight: 600; border: 1px solid #2563eb; transition: all 0.15s ease; }
+        .links a:hover { background: #2563eb; color: #ffffff; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <span class="badge">Operational Ready</span>
+        <h1>PRAHARI Intelligence &amp; Welfare Platform</h1>
+        <p>AI-Powered Predictive Stress, Welfare &amp; Workload Balancing System (Ministry of Home Affairs / CRPF PS26186).</p>
+        <div class="links">
+            <a href="/docs">API Documentation (Swagger)</a>
+            <a href="/health">System Health</a>
+            <a href="/metrics">Telemetry Metrics</a>
+            <a href="/api/ml/diagnostics">ML Diagnostics</a>
+        </div>
+    </div>
+</body>
+</html>""",
+        status_code=200,
+    )
+
 

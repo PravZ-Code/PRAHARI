@@ -257,7 +257,7 @@ def generate_all_data(db: Session):
                 mood = int(np.clip(np.random.normal(2.6 - degradation_factor * 1.3, 0.5), 1, 5))
                 energy = int(np.clip(np.random.normal(2.5 - degradation_factor * 1.2, 0.5), 1, 5))
                 stress = int(np.clip(np.random.normal(3.2 + degradation_factor * 1.4, 0.5), 1, 5))
-                app = int(np.clip(np.random.normal(2.8 - degradation_factor * 1.0, 0.5), 1, 5))
+                app_score = int(np.clip(np.random.normal(2.8 - degradation_factor * 1.0, 0.5), 1, 5))
                 soc = int(np.clip(np.random.normal(2.4 - degradation_factor * 1.2, 0.5), 1, 5))
             elif profile == "elevated":
                 sq = int(np.clip(np.random.normal(2.8, 0.6), 1, 5))
@@ -265,7 +265,7 @@ def generate_all_data(db: Session):
                 mood = int(np.clip(np.random.normal(2.8, 0.6), 1, 5))
                 energy = int(np.clip(np.random.normal(2.8, 0.6), 1, 5))
                 stress = int(np.clip(np.random.normal(3.5, 0.6), 1, 5))
-                app = int(np.clip(np.random.normal(3.0, 0.6), 1, 5))
+                app_score = int(np.clip(np.random.normal(3.0, 0.6), 1, 5))
                 soc = int(np.clip(np.random.normal(2.8, 0.6), 1, 5))
             elif profile == "normal":
                 sq = int(np.clip(np.random.normal(3.4, 0.5), 1, 5))
@@ -273,7 +273,7 @@ def generate_all_data(db: Session):
                 mood = int(np.clip(np.random.normal(3.5, 0.5), 1, 5))
                 energy = int(np.clip(np.random.normal(3.4, 0.5), 1, 5))
                 stress = int(np.clip(np.random.normal(2.4, 0.6), 1, 5))
-                app = int(np.clip(np.random.normal(3.5, 0.5), 1, 5))
+                app_score = int(np.clip(np.random.normal(3.5, 0.5), 1, 5))
                 soc = int(np.clip(np.random.normal(3.4, 0.5), 1, 5))
             else: # resilient
                 sq = int(np.clip(np.random.normal(4.2, 0.4), 1, 5))
@@ -281,7 +281,7 @@ def generate_all_data(db: Session):
                 mood = int(np.clip(np.random.normal(4.2, 0.4), 1, 5))
                 energy = int(np.clip(np.random.normal(4.1, 0.4), 1, 5))
                 stress = int(np.clip(np.random.normal(1.6, 0.4), 1, 5))
-                app = int(np.clip(np.random.normal(4.1, 0.4), 1, 5))
+                app_score = int(np.clip(np.random.normal(4.1, 0.4), 1, 5))
                 soc = int(np.clip(np.random.normal(4.2, 0.4), 1, 5))
 
             assessment = SelfAssessment(
@@ -292,7 +292,7 @@ def generate_all_data(db: Session):
                 mood_score=mood,
                 energy_level=energy,
                 stress_level=stress,
-                appetite_score=app,
+                appetite_score=app_score,
                 social_connection=soc,
                 is_offline_entry=False,
                 synced_at=assessed_dt

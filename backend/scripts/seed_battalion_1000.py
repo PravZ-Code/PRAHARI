@@ -462,7 +462,7 @@ def seed_battalion():
                     mood = int(np.clip(np.random.normal(3.3 - deg_factor * 1.9, 0.4), 1, 5))
                     energy = int(np.clip(np.random.normal(3.3 - deg_factor * 1.8, 0.4), 1, 5))
                     stress = int(np.clip(np.random.normal(2.5 + deg_factor * 2.2, 0.4), 1, 5))
-                    app = int(np.clip(np.random.normal(3.4 - deg_factor * 1.7, 0.4), 1, 5))
+                    app_score = int(np.clip(np.random.normal(3.4 - deg_factor * 1.7, 0.4), 1, 5))
                     soc = int(np.clip(np.random.normal(3.3 - deg_factor * 1.8, 0.4), 1, 5))
                 elif profile == "orange":
                     # Moderate progressive degradation
@@ -471,7 +471,7 @@ def seed_battalion():
                     mood = int(np.clip(np.random.normal(3.6 - deg_factor * 1.2, 0.5), 1, 5))
                     energy = int(np.clip(np.random.normal(3.5 - deg_factor * 1.2, 0.5), 1, 5))
                     stress = int(np.clip(np.random.normal(2.2 + deg_factor * 1.8, 0.5), 1, 5))
-                    app = int(np.clip(np.random.normal(3.6 - deg_factor * 1.1, 0.5), 1, 5))
+                    app_score = int(np.clip(np.random.normal(3.6 - deg_factor * 1.1, 0.5), 1, 5))
                     soc = int(np.clip(np.random.normal(3.6 - deg_factor * 1.2, 0.5), 1, 5))
                 elif profile == "yellow":
                     # Mild operational strain
@@ -480,7 +480,7 @@ def seed_battalion():
                     mood = int(np.clip(np.random.normal(3.2, 0.5), 1, 5))
                     energy = int(np.clip(np.random.normal(3.1, 0.5), 1, 5))
                     stress = int(np.clip(np.random.normal(3.2, 0.5), 1, 5))
-                    app = int(np.clip(np.random.normal(3.3, 0.5), 1, 5))
+                    app_score = int(np.clip(np.random.normal(3.3, 0.5), 1, 5))
                     soc = int(np.clip(np.random.normal(3.2, 0.5), 1, 5))
                 else:  # green
                     # Resilient & well-balanced
@@ -489,7 +489,7 @@ def seed_battalion():
                     mood = int(np.clip(np.random.normal(4.3, 0.4), 1, 5))
                     energy = int(np.clip(np.random.normal(4.2, 0.4), 1, 5))
                     stress = int(np.clip(np.random.normal(1.7, 0.4), 1, 5))
-                    app = int(np.clip(np.random.normal(4.2, 0.4), 1, 5))
+                    app_score = int(np.clip(np.random.normal(4.2, 0.4), 1, 5))
                     soc = int(np.clip(np.random.normal(4.3, 0.4), 1, 5))
 
                 sa = SelfAssessment(
@@ -501,7 +501,7 @@ def seed_battalion():
                     mood_score=mood,
                     energy_level=energy,
                     stress_level=stress,
-                    appetite_score=app,
+                    appetite_score=app_score,
                     social_connection=soc,
                     is_offline_entry=False,
                     synced_at=assessed_dt

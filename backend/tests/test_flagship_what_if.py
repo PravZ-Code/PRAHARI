@@ -18,7 +18,7 @@ from services.what_if_simulator_service import (
     get_personnel_baseline_features
 )
 from fastapi.testclient import TestClient
-from main import app
+from main import app as fastapi_app
 from middleware.rbac import create_access_token
 
 
@@ -147,7 +147,7 @@ def test_auto_prescriptive_optimizer(db):
 
 def test_api_what_if_candidates_endpoint(welfare_headers):
     """Verifies GET /api/resilience/what-if-candidates returns personnel for cockpit selector."""
-    client = TestClient(app)
+    client = TestClient(fastapi_app)
     res = client.get("/api/resilience/what-if-candidates", headers=welfare_headers)
     assert res.status_code == 200
     data = res.json()
@@ -166,7 +166,7 @@ def test_api_what_if_test_expanded_levers(welfare_headers, db):
     soldier = db.query(Personnel).first()
     assert soldier is not None
 
-    client = TestClient(app)
+    client = TestClient(fastapi_app)
     payload = {
         "personnel_id": soldier.id,
         "shift_change": "day",

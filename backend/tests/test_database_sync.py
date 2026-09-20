@@ -1,10 +1,10 @@
 import uuid
 import pytest
 from fastapi.testclient import TestClient
-from main import app
+from main import app as fastapi_app
 from services.sync_service import sync_broadcaster
 
-client = TestClient(app)
+client = TestClient(fastapi_app)
 
 def test_sync_status_endpoint():
     """Verify /api/sync/status returns sub-millisecond database telemetry and accurate record counts."""

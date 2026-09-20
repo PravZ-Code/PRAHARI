@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from main import app
+from main import app as fastapi_app
 from database import SessionLocal, Base, engine, AuthSessionLocal, AuthBase, auth_engine, create_all_tables
 import models  # noqa: F401 - registers all model metadata before table creation
 from models.user import User
@@ -29,7 +29,7 @@ def ensure_database_seeded():
 def client():
     from middleware.security import rate_limiter
     rate_limiter.reset()
-    with TestClient(app) as c:
+    with TestClient(fastapi_app) as c:
         yield c
 
 @pytest.fixture(scope="function")

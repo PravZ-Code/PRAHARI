@@ -5,7 +5,7 @@ offline/air-gap fallback, and API response contracts.
 """
 
 from fastapi.testclient import TestClient
-from main import app
+from main import app as fastapi_app
 from services.bulletin_service import (
     get_live_bulletins,
     _categorize_title,
@@ -13,7 +13,7 @@ from services.bulletin_service import (
     STATUTORY_OFFLINE_BULLETINS
 )
 
-client = TestClient(app)
+client = TestClient(fastapi_app)
 
 
 def test_categorize_title():

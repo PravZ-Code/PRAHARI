@@ -2,14 +2,14 @@ import os
 import uuid
 import pytest
 from fastapi.testclient import TestClient
-from main import app
+from main import app as fastapi_app
 from database import SessionLocal
 from models.personnel import Personnel
 from models.user import User
 from models.welfare_case import WelfareCase
 from middleware.rbac import create_access_token
 
-client = TestClient(app)
+client = TestClient(fastapi_app)
 
 
 def test_sync_delta_unauthenticated_returns_401():

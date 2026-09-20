@@ -9,7 +9,7 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 from fastapi.testclient import TestClient
-from main import app
+from main import app as fastapi_app
 from database import SessionLocal
 from models.user import User
 from models.welfare_case import WelfareCase
@@ -21,7 +21,7 @@ def run_tests():
     print('PROJECT PRAHARI -- WORK PACKAGE 1: LOCAL AI COPILOT VERIFICATION')
     print('================================================================')
 
-    client = TestClient(app)
+    client = TestClient(fastapi_app)
     db = SessionLocal()
 
     # 1. Verify Health Endpoint

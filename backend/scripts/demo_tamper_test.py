@@ -12,7 +12,7 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 from fastapi.testclient import TestClient
-from main import app
+from main import app as fastapi_app
 from database import SessionLocal
 from models.user import User
 from models.audit import AuditLog
@@ -47,7 +47,7 @@ def run_demonstration():
     print(" Standard: Section 65B Indian Evidence Act Cryptographic Chaining")
     print("=" * 80)
 
-    client = TestClient(app)
+    client = TestClient(fastapi_app)
 
     # --------------------------------------------------------------------------
     # STAGE 1: Baseline Verification of Cryptographic Audit Chain
