@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "backend/main.py": {
+      "excludeFiles": "{PRAHARI_Launcher.exe,frontend/**,mobile/**,docs/**,assets/**,runtime/**,backend/tests/**,backend/scripts/**,backend/*.db*,gui_qt.py,launcher.py,*.spec,*.pyw}"
+    }
+  }
+}

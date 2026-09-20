@@ -3,7 +3,10 @@ import json
 import numpy as np
 import pandas as pd
 import xgboost as xgb
-import shap
+try:
+    import shap
+except ImportError:
+    shap = None
 from ml.feature_engineering import FEATURE_COLUMNS
 
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "model")
@@ -74,10 +77,12 @@ def get_model(model_path: str = MODEL_PATH):
 
     model = xgb.XGBClassifier()
     model.load_model(resolved_path)
-    try:
-        explainer = shap.TreeExplainer(model)
-    except Exception:
-        explainer = None
+    explainer = None
+    if shap is not None:
+        try:
+            explainer = shap.TreeExplainer(model)
+        except Exception:
+            explainer = None
     _cached_models[resolved_path] = (model, explainer)
     return model, explainer
 
@@ -147,6 +152,13 @@ def predict_batch(feature_records: list, model_path: str = MODEL_PATH) -> list:
                 shap_by_row = dict(zip(eligible_indices, shap_matrix))
             except Exception as e:
                 print(f"[SHAP Warning] TreeExplainer failed: {e}")
+        else:
+            try:
+                dmat = xgb.DMatrix(eligible_df)
+                shap_matrix = model.get_booster().predict(dmat, pred_contribs=True)[:, :-1]
+                shap_by_row = dict(zip(eligible_indices, shap_matrix))
+            except Exception as e:
+                print(f"[SHAP Warning] Native TreeSHAP computation failed: {e}")
 
     results = []
     for i in range(len(df)):
