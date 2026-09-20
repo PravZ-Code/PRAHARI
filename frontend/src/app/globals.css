@@ -23,14 +23,6 @@
   --goi-text-muted: #475569;
   --font-scale: 1rem;
 
-  /* Official UX4G Design System Root Contract Tokens */
-  --ux4g-color-primary-600: #0c3866;
-  --ux4g-color-primary-700: #072648;
-  --ux4g-color-primary-800: #051c36;
-  --ux4g-color-secondary-600: #ff9933;
-  --ux4g-color-secondary-700: #e65100;
-  --ux4g-focus-outline: #005ea8;
-
   scroll-behavior: smooth;
   scroll-padding-top: 5rem;
 }
@@ -150,19 +142,19 @@ html {
 }
 
 body {
-  color: var(--goi-text);
-  background-color: var(--goi-background);
+  color: var(--ux4g-text-neutral-primary, var(--goi-text));
+  background-color: var(--ux4g-bg-neutral, var(--goi-background));
   font-family: var(--font-noto-sans), var(--font-noto-devanagari), var(--font-noto-tamil), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
   -webkit-font-smoothing: antialiased !important;
   -moz-osx-font-smoothing: grayscale !important;
   line-height: 1.5;
-  letter-spacing: -0.011em;
+  letter-spacing: 0;
 }
 
 h1, h2, h3, h4, h5, h6, .font-heading {
   font-family: var(--font-noto-sans), var(--font-noto-devanagari), var(--font-noto-tamil), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
   font-weight: 700 !important;
-  letter-spacing: -0.022em !important;
+  letter-spacing: 0 !important;
 }
 
 button, input, select, textarea, optgroup {
@@ -175,7 +167,7 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid var(--ux4g-focus-outline, #005ea8);
+  outline: 3px solid var(--ux4g-border-color-neutral-focus, #005ea8);
   outline-offset: 2px;
 }
 

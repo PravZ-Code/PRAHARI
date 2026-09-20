@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { Noto_Sans, Noto_Sans_Devanagari, Noto_Sans_Tamil, Open_Sans } from "next/font/google";
+import { Noto_Sans, Noto_Sans_Devanagari, Noto_Sans_Tamil } from "next/font/google";
 import "ux4g-web-components/styles.css";
+import "ux4g-web-components/design-system";
 import "./globals.css";
 import { HeaderSwitch } from "@/components/HeaderSwitch";
 import { FooterSwitch } from "@/components/FooterSwitch";
@@ -10,7 +11,6 @@ import { I18nProvider } from "@/lib/i18n";
 const notoSans = Noto_Sans({ subsets: ["latin"], display: "swap", variable: "--font-noto-sans", weight: ["400", "500", "600", "700"] });
 const notoDevanagari = Noto_Sans_Devanagari({ subsets: ["devanagari"], display: "swap", variable: "--font-noto-devanagari", weight: ["400", "500", "600", "700"] });
 const notoTamil = Noto_Sans_Tamil({ subsets: ["tamil"], display: "swap", variable: "--font-noto-tamil", weight: ["400", "500", "600", "700"] });
-const openSans = Open_Sans({ subsets: ["latin"], display: "swap", variable: "--font-open-sans", weight: ["400", "500", "600", "700"] });
 
 export const metadata: Metadata = {
   title: "PRAHARI | Personnel Welfare & Grievance Resolution Portal | Government of India",
@@ -31,7 +31,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" data-theme="light" data-scroll-behavior="smooth" suppressHydrationWarning className={`${notoSans.variable} ${notoDevanagari.variable} ${notoTamil.variable} ${openSans.variable} font-sans`}>
+    <html lang="en" data-theme="light" data-scroll-behavior="smooth" suppressHydrationWarning className={`${notoSans.variable} ${notoDevanagari.variable} ${notoTamil.variable} font-sans`}>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -92,7 +92,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="bg-[#f8fafc] text-[#0f172a] min-h-screen flex flex-col font-sans" suppressHydrationWarning>
+      <body className="min-h-screen flex flex-col font-sans" suppressHydrationWarning>
         <I18nProvider>
           <HeaderSwitch />
           <OfflineBanner />

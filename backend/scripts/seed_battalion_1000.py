@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from database import engine, Base, SessionLocal
 from models import *
 from middleware.rbac import get_password_hash
-from middleware.audit import compute_audit_hash, format_iso_timestamp
+from middleware.audit import compute_audit_hash, format_iso_timestamp, sign_audit_hash
 from ml.feature_engineering import build_feature_vector, FEATURE_COLUMNS
 from ml.cohort_builder import build_cohort_templates, match_personnel_to_cohort, blend_baseline
 from ml.train import train_model
@@ -956,6 +956,7 @@ def seed_battalion():
                 timestamp=event_dt,
                 details=det
             )
+            alog.signature = sign_audit_hash(curr_hash)
             db.add(alog)
             prev_hash = curr_hash
             seq += 1
