@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from database import get_db
 from models.user import User
 from schemas.auth import LoginRequest, TokenResponse, UserProfile
@@ -19,11 +20,11 @@ def login(login_req: LoginRequest, request: Request, response: Response, db: Ses
             detail="Service number/username and PIN/password are required"
         )
 
-    user = db.query(User).filter(User.username == identifier).first()
+    user = db.query(User).filter(func.lower(User.username) == identifier.lower()).first()
     if not user:
         # Check if identifier matches a Personnel service_number with an existing user account
         from models.personnel import Personnel
-        personnel = db.query(Personnel).filter(Personnel.service_number == identifier).first()
+        personnel = db.query(Personnel).filter(func.lower(Personnel.service_number) == identifier.lower()).first()
         if personnel:
             user = db.query(User).filter(User.personnel_id == personnel.id).first()
             if not user:

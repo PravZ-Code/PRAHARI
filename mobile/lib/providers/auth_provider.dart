@@ -61,7 +61,7 @@ class AuthProvider with ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    final sNum = serviceNumber.trim().toUpperCase();
+    final sNum = serviceNumber.trim();
 
     // 1. Attempt online authentication
     try {
