@@ -13,7 +13,7 @@ class AuditLog(Base):
     current_hash = Column(String(64), nullable=False, default="0" * 64)
     signature = Column(String(128), nullable=True)  # Asymmetric / HMAC signature from isolated KMS key
     anchor_id = Column(String(36), nullable=True, index=True)  # Link to external checkpoint anchor
-    user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    user_id = Column(String(36), nullable=True, index=True)
     action = Column(String(50), nullable=False)
     resource_type = Column(String(50), nullable=False)
     resource_id = Column(String(36), nullable=True)
@@ -22,7 +22,18 @@ class AuditLog(Base):
     timestamp = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     details = Column(JSON, nullable=True)
 
-    user = relationship("User", back_populates="audit_logs")
+    @property
+    def user(self):
+        """Dynamically resolve user account from the Authentication Database."""
+        if not self.user_id:
+            return None
+        from database import AuthSessionLocal
+        from models.user import User
+        auth_db = AuthSessionLocal()
+        try:
+            return auth_db.query(User).filter(User.id == self.user_id).first()
+        finally:
+            auth_db.close()
 
 
 class AuditAnchor(Base):

@@ -14,7 +14,7 @@ class WelfareCase(Base):
     risk_level_at_creation = Column(String(10), nullable=False)
     status = Column(String(20), nullable=False, default="pending", index=True)
     # 'pending', 'acknowledged', 'plan_created', 'intervention_active', 'resolved', 'escalated'
-    assigned_officer_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    assigned_officer_id = Column(String(36), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     acknowledged_at = Column(DateTime(timezone=True), nullable=True)
     plan_created_at = Column(DateTime(timezone=True), nullable=True)
@@ -30,8 +30,20 @@ class WelfareCase(Base):
 
     personnel = relationship("Personnel", back_populates="welfare_cases")
     trigger_prediction = relationship("RiskPrediction", back_populates="welfare_cases")
-    assigned_officer = relationship("User", back_populates="assigned_welfare_cases")
     escalations = relationship("SLAEscalation", back_populates="case", cascade="all, delete-orphan")
+
+    @property
+    def assigned_officer(self):
+        """Dynamically resolve assigned officer user from the Authentication Database."""
+        if not self.assigned_officer_id:
+            return None
+        from database import AuthSessionLocal
+        from models.user import User
+        auth_db = AuthSessionLocal()
+        try:
+            return auth_db.query(User).filter(User.id == self.assigned_officer_id).first()
+        finally:
+            auth_db.close()
 
 
 class SLAEscalation(Base):

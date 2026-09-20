@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/lib/api";
 import { EvidenceConflictReport } from "@/lib/types";
 import { playTacticalClick } from "@/lib/sound";
+import { formatSourceType } from "@/lib/formatters";
 import {
   X,
   AlertTriangle,
@@ -349,7 +350,7 @@ export const EvidenceConflictModal: React.FC<EvidenceConflictModalProps> = ({
                             </td>
                             <td className="py-2.5 px-3">
                               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-                                {source.source_type}
+                                {formatSourceType(source.source_type)}
                               </span>
                             </td>
                             <td className="py-2.5 px-3 text-center font-mono font-bold text-cyan-400">

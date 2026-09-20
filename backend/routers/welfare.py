@@ -2,6 +2,7 @@ import os
 import tempfile
 from fastapi import APIRouter, Depends, HTTPException, Request, status, Query
 from fastapi.responses import FileResponse
+from starlette.background import BackgroundTask
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
@@ -39,6 +40,18 @@ from middleware.audit import log_audit
 
 router = APIRouter()
 
+@router.get("/bulletins")
+def get_bulletins(
+    refresh: bool = Query(False, description="Force live re-fetch from internet"),
+    limit: int = Query(10, ge=1, le=50, description="Max bulletins to return")
+):
+    """
+    Returns live dynamic welfare bulletins and official press releases from MHA, CRPF, and PIB.
+    Supports in-memory TTL caching and graceful fallback for air-gapped defense networks.
+    """
+    from services.bulletin_service import get_live_bulletins
+    return get_live_bulletins(force_refresh=refresh, limit=limit)
+
 @router.get("/cases", response_model=WelfareCasesResponse)
 def list_cases(
     status: Optional[List[str]] = Query(None),
@@ -75,13 +88,27 @@ def export_case_dossier(
     if not case:
         raise HTTPException(status_code=404, detail="Welfare case not found")
 
-    temp_dir = tempfile.gettempdir()
+    # Create an isolated temporary file with restricted permissions (0o600)
+    fd, pdf_path = tempfile.mkstemp(prefix=f"COI_Dossier_{case_id[:8]}_", suffix=".pdf")
+    os.close(fd)
+    try:
+        os.chmod(pdf_path, 0o600)
+    except Exception:
+        pass
+
     pdf_filename = f"COI_Dossier_{case_id[:8]}.pdf"
-    pdf_path = os.path.join(temp_dir, f"COI_Dossier_{case_id}.pdf")
+
+    def _cleanup_dossier_temp(path: str):
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+        except Exception:
+            pass
 
     try:
         generate_dossier_pdf(db=db, case_id=case_id, output_path=pdf_path)
     except Exception as e:
+        _cleanup_dossier_temp(pdf_path)
         raise HTTPException(status_code=500, detail=f"Failed to generate Court of Inquiry dossier: {str(e)}")
 
     log_audit(
@@ -96,7 +123,8 @@ def export_case_dossier(
     return FileResponse(
         path=pdf_path,
         media_type="application/pdf",
-        filename=pdf_filename
+        filename=pdf_filename,
+        background=BackgroundTask(_cleanup_dossier_temp, pdf_path)
     )
 
 @router.put("/case/{case_id}/acknowledge")
@@ -337,21 +365,14 @@ async def welfare_copilot_chat_alias(
 
 @router.get("/safety-patterns", response_model=List[SafetyPattern])
 def get_safety_patterns_endpoint(
-    current_user: User = Depends(require_role("commander", "welfare", "admin")),
+    current_user: User = Depends(require_role("welfare", "admin")),
     db: Session = Depends(get_db)
 ):
     """
     Returns proactive early-warning patterns across the force before acute crises occur.
+    Restricted to authorized Welfare Officers and Administrators per MHA Privacy Directives.
     """
     query = db.query(WelfareCase).join(Personnel)
-    if current_user.role == "commander":
-        if not current_user.unit_id:
-            raise HTTPException(status_code=403, detail="Commander has no assigned unit.")
-        query = query.filter(Personnel.unit_id == current_user.unit_id)
-    elif current_user.role == "personnel":
-        if not current_user.personnel_id:
-            return []
-        query = query.filter(WelfareCase.personnel_id == current_user.personnel_id)
     cases = query.order_by(WelfareCase.created_at.desc()).limit(10).all()
     patterns = []
 
@@ -414,18 +435,16 @@ def get_safety_patterns_endpoint(
 
 @router.get("/recovery-cases", response_model=List[CaseRecoveryItem])
 def get_recovery_cases_endpoint(
-    current_user: User = Depends(require_role("commander", "welfare", "admin", "personnel")),
+    current_user: User = Depends(require_role("welfare", "admin", "personnel")),
     db: Session = Depends(get_db)
 ):
     """
     Returns longitudinal follow-up cases tracking soldier recovery post-intervention.
+    Restricted to Welfare Officers/Admins, and individual Jawans querying their own recovery record.
+    Commanders are barred per MHCA 2017 §21 to prevent clinical prejudice.
     """
     query = db.query(WelfareCase).join(Personnel)
-    if current_user.role == "commander":
-        if not current_user.unit_id:
-            raise HTTPException(status_code=403, detail="Commander has no assigned unit.")
-        query = query.filter(Personnel.unit_id == current_user.unit_id)
-    elif current_user.role == "personnel":
+    if current_user.role == "personnel":
         if not current_user.personnel_id:
             return []
         query = query.filter(WelfareCase.personnel_id == current_user.personnel_id)

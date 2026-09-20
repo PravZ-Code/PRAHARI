@@ -42,7 +42,6 @@ import {
 } from "lucide-react";
 import { PrahariVaniSimulator } from "@/components/PrahariVaniSimulator";
 import { useTranslation, Language } from "@/lib/i18n";
-import { DatabaseSyncIndicator } from "@/components/DatabaseSyncIndicator";
 
 interface NavItem {
   label: string;
@@ -183,9 +182,8 @@ export const GovernmentHeader: React.FC = () => {
             </span>
           </div>
 
-          {/* Right: Database Sync & Language Selector */}
+          {/* Right: Language Selector */}
           <div className="flex items-center gap-3">
-            <DatabaseSyncIndicator compact={true} />
             <div className="flex items-center rounded bg-white border border-slate-300 p-0.5 text-[11px] font-bold shadow-2xs">
               <button
                 type="button"
@@ -361,19 +359,19 @@ export const GovernmentHeader: React.FC = () => {
                       ? "/admin"
                       : "/portal"
                   }
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#ff9933] hover:bg-[#e65100] text-slate-950 font-bold text-xs rounded-md shadow-sm transition-all"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#ff9933] hover:bg-[#e65100] text-slate-950 font-bold text-xs rounded-md shadow-sm hover-scale active-press hover-lift group"
                 >
                   <User className="w-3.5 h-3.5" />
                   <span>
                     Open {user.role === "commander" ? "Commander Portal" : user.role === "welfare" || user.role === "welfare_officer" ? "Welfare Portal" : user.role === "admin" ? "Admin Console" : "Trooper Portal"}
                   </span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <ArrowRight className="w-3.5 h-3.5 group-hover-arrow" />
                 </Link>
                 <button
                   type="button"
                   onClick={handleLogout}
                   aria-label="Sign out"
-                  className="px-2.5 py-1.5 border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-md transition-colors cursor-pointer"
+                  className="px-2.5 py-1.5 border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-md transition-all active-press cursor-pointer"
                   title="Sign Out"
                 >
                   <LogOut className="w-3.5 h-3.5" />
@@ -382,7 +380,7 @@ export const GovernmentHeader: React.FC = () => {
             ) : (
               <Link
                 href="/login"
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#0c3866] hover:bg-[#072648] text-white text-xs font-bold rounded-md shadow-2xs transition-colors"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#0c3866] hover:bg-[#072648] text-white text-xs font-bold rounded-md shadow-2xs hover-scale active-press hover-lift"
               >
                 <Lock className="w-3.5 h-3.5 text-[#ff9933]" />
                 <span>Personnel & Officer Login</span>
@@ -393,7 +391,7 @@ export const GovernmentHeader: React.FC = () => {
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-1.5 rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100"
+              className="md:hidden p-1.5 rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100 active-press transition-all"
               aria-label="Toggle navigation menu"
               aria-expanded={mobileMenuOpen}
               aria-controls="public-mobile-navigation"
@@ -417,10 +415,10 @@ export const GovernmentHeader: React.FC = () => {
                 className={`inline-flex items-center gap-2 px-4 py-3 border-b-2 font-medium tracking-tight whitespace-nowrap transition-all duration-200 ${
                   isActive
                     ? "bg-[#072648] border-[#ff9933] text-white font-bold shadow-inner"
-                    : "border-transparent text-slate-100 hover:bg-[#114780] hover:text-white hover:border-[#ff9933]/50"
+                    : "border-transparent text-slate-100 hover:bg-[#114780] hover:text-white hover:border-[#ff9933]/50 hover:-translate-y-0.5"
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? "text-[#ff9933]" : "text-slate-300"}`} />
+                <Icon className={`w-3.5 h-3.5 transition-transform duration-200 ${isActive ? "text-[#ff9933]" : "text-slate-300 group-hover:scale-110"}`} />
                 <span>{item.label}</span>
                 {item.badge && (
                   <span
@@ -439,7 +437,7 @@ export const GovernmentHeader: React.FC = () => {
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div id="public-mobile-navigation" className="md:hidden bg-[#0c3866] text-white px-4 py-3 border-b border-slate-700 space-y-2">
+        <div id="public-mobile-navigation" className="md:hidden bg-[#0c3866] text-white px-4 py-3 border-b border-slate-700 space-y-2 animate-fade-in-down">
           {/* Mobile Authenticated Status / SSO Login */}
           {user ? (
             <div className="p-2.5 rounded bg-[#072648] border border-slate-600 mb-2 space-y-2">

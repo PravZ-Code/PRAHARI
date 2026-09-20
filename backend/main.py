@@ -3,7 +3,7 @@ import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
-from database import engine, Base, ensure_schema_compatibility
+from database import engine, auth_engine, Base, AuthBase, create_all_tables, ensure_schema_compatibility
 from routers.auth import router as auth_router
 from routers.assessment import router as assessment_router
 from routers.buddy import router as buddy_router
@@ -27,8 +27,8 @@ from config import configured_origins, settings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Ensure database tables exist
-    Base.metadata.create_all(bind=engine)
+    # Ensure database tables exist across both Auth DB and Personnel DB
+    create_all_tables()
     ensure_schema_compatibility()
     # Launch background SLA tracking worker
     sla_task = asyncio.create_task(start_sla_worker())
@@ -45,7 +45,6 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=configured_origins(),
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}|26\.\d{1,3}\.\d{1,3}\.\d{1,3})(:\d+)?$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -75,8 +74,10 @@ def prometheus_metrics(request: Request):
     """Prometheus telemetry scrape endpoint for defense operations centers."""
     if settings.APP_ENV == "production":
         expected_token = os.getenv("PROMETHEUS_METRICS_KEY", "")
+        if not expected_token:
+            return Response(content="Prometheus scrape key not configured in production", status_code=503)
         client_token = request.headers.get("X-Metrics-Key") or request.query_params.get("key")
-        if expected_token and client_token != expected_token:
+        if client_token != expected_token:
             return Response(content="Unauthorized metrics scrape", status_code=401)
     content = generate_prometheus_metrics()
     return Response(content=content, media_type="text/plain; version=0.0.4")

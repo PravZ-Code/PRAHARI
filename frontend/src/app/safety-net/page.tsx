@@ -121,7 +121,7 @@ export default function AISafetyNetPage() {
           <p className="text-xs font-semibold text-slate-600">Analyzing live squad duty loads and recovery indicators...</p>
         </div>
       ) : patterns.length === 0 ? (
-        <div className="gov-card p-8 text-center text-slate-500 text-xs">
+        <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-8 text-center text-slate-500 text-xs">
           No early-warning stress patterns detected. Squad rest compliance is fully within safe limits.
         </div>
       ) : (
@@ -133,11 +133,7 @@ export default function AISafetyNetPage() {
               <button
                 key={p.id}
                 onClick={() => setSelectedPatternId(p.id)}
-                className={`px-3 py-1.5 rounded text-xs font-semibold border transition-colors ${
-                  selectedPatternId === p.id
-                    ? "bg-[#0c3866] text-white border-[#0c3866]"
-                    : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
-                }`}
+                className={`ux4g-filter-chip-md ${selectedPatternId === p.id ? "active" : ""}`}
               >
                 {p.trooperName} ({p.unit?.split(" ")[0] || "Squad"})
               </button>
@@ -146,13 +142,13 @@ export default function AISafetyNetPage() {
 
           {/* Main Pattern Detail Card */}
           {activePattern && (
-            <div className="gov-card p-6 space-y-6 bg-white">
+            <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-6 space-y-6 bg-white">
               {/* Header */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-slate-500 font-mono">{activePattern.id}</span>
-                    <span className="text-xs font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
+                    <span className="ux4g-tag-tonal-warning ux4g-tag-s font-bold">
                       Pattern Noticed
                     </span>
                   </div>

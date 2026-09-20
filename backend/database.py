@@ -1,44 +1,76 @@
 import os
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.pool import QueuePool, NullPool
+from sqlalchemy.orm import sessionmaker, declarative_base, Session
+from sqlalchemy.pool import QueuePool
 from config import settings
 
-database_url = settings.DATABASE_URL
-connect_args = {}
 
-if database_url.startswith("sqlite"):
-    connect_args = {"check_same_thread": False, "timeout": 60}
+def _create_engine(db_url: str) -> Engine:
+    connect_args = {}
+    if db_url.startswith("sqlite"):
+        connect_args = {"check_same_thread": False, "timeout": 60}
 
-engine_kwargs = {"pool_pre_ping": True, "connect_args": connect_args}
-if database_url.startswith("sqlite"):
-    engine_kwargs["poolclass"] = QueuePool
-    engine_kwargs["pool_size"] = 10
-    engine_kwargs["max_overflow"] = 15
-    engine_kwargs["pool_timeout"] = 30
-    engine_kwargs["pool_recycle"] = 1800
+    engine_kwargs = {"pool_pre_ping": True, "connect_args": connect_args}
+    if db_url.startswith("sqlite"):
+        engine_kwargs["poolclass"] = QueuePool
+        engine_kwargs["pool_size"] = 10
+        engine_kwargs["max_overflow"] = 15
+        engine_kwargs["pool_timeout"] = 30
+        engine_kwargs["pool_recycle"] = 1800
 
-engine = create_engine(database_url, **engine_kwargs)
+    eng = create_engine(db_url, **engine_kwargs)
 
-if database_url.startswith("sqlite"):
-    @event.listens_for(engine, "connect")
-    def set_sqlite_pragma(dbapi_connection, connection_record):
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA journal_mode=WAL")
-        cursor.execute("PRAGMA synchronous=NORMAL")
-        cursor.execute("PRAGMA busy_timeout=30000")
-        cursor.execute("PRAGMA cache_size=-64000")
-        cursor.execute("PRAGMA mmap_size=268435456")
-        cursor.execute("PRAGMA temp_store=MEMORY")
-        cursor.execute("PRAGMA wal_autocheckpoint=1000")
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
+    if db_url.startswith("sqlite"):
+        @event.listens_for(eng, "connect")
+        def set_sqlite_pragma(dbapi_connection, connection_record):
+            cursor = dbapi_connection.cursor()
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA synchronous=NORMAL")
+            cursor.execute("PRAGMA busy_timeout=30000")
+            cursor.execute("PRAGMA cache_size=-64000")
+            cursor.execute("PRAGMA mmap_size=268435456")
+            cursor.execute("PRAGMA temp_store=MEMORY")
+            cursor.execute("PRAGMA wal_autocheckpoint=1000")
+            cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.close()
+    return eng
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
+
+# 1. Operational & Personnel Database Engine (Personnel, Units, Rosters, Cases, Predictions)
+engine = _create_engine(settings.DATABASE_URL)
+
+# 2. Authentication & Identity Database Engine (Users, Credentials, Passwords, Roles)
+auth_engine = _create_engine(settings.AUTH_DATABASE_URL)
+
+# Base classes for declarative models
+Base = declarative_base()      # Personnel / Operational models
+AuthBase = declarative_base()  # Authentication / Identity models
+
+
+class MultiDBSession(Session):
+    """
+    Multi-database session router: transparently binds AuthBase models to auth_engine,
+    and Base models to the operational engine.
+    """
+    def get_bind(self, mapper=None, clause=None, bind=None, **kw):
+        if mapper is not None:
+            try:
+                entity = getattr(mapper, "class_", None)
+                if entity and issubclass(entity, AuthBase):
+                    return auth_engine
+            except Exception:
+                pass
+        return super().get_bind(mapper=mapper, clause=clause, bind=bind, **kw)
+
+
+# Dual sessionmakers
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, class_=MultiDBSession, bind=engine)
+AuthSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=auth_engine)
+
 
 def get_db():
+    """Dependency providing operational & personnel database session (with multi-DB routing)."""
     db = SessionLocal()
     try:
         yield db
@@ -49,9 +81,68 @@ def get_db():
         db.close()
 
 
+def get_auth_db():
+    """Dependency providing dedicated identity & authentication database session."""
+    db = AuthSessionLocal()
+    try:
+        yield db
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+def create_all_tables():
+    """Create all tables in their respective physical databases."""
+    AuthBase.metadata.create_all(bind=auth_engine)
+    Base.metadata.create_all(bind=engine)
+
+
 def ensure_schema_compatibility():
-    """Ensure newly added columns and sync indexes exist in SQLite or relational backend without destructive resets."""
+    """Ensure newly added columns, sync indexes, and multi-DB user migrations exist without destructive resets."""
     from sqlalchemy import inspect, text
+
+    # Ensure tables exist in both physical databases
+    create_all_tables()
+
+    # Migrate legacy users if prahari_auth.db is empty
+    try:
+        inspector_auth = inspect(auth_engine)
+        if "users" in inspector_auth.get_table_names():
+            with auth_engine.connect() as auth_conn:
+                user_cnt = auth_conn.execute(text("SELECT COUNT(*) FROM users")).scalar()
+                if user_cnt == 0:
+                    inspector_ops = inspect(engine)
+                    if "users" in inspector_ops.get_table_names():
+                        with engine.connect() as ops_conn:
+                            legacy_users = ops_conn.execute(
+                                text("SELECT id, username, password_hash, role, personnel_id, unit_id, is_active, created_at FROM users")
+                            ).fetchall()
+                            if legacy_users:
+                                insert_sql = text(
+                                    "INSERT INTO users (id, username, password_hash, role, personnel_id, unit_id, is_active, created_at) "
+                                    "VALUES (:id, :username, :password_hash, :role, :personnel_id, :unit_id, :is_active, :created_at)"
+                                )
+                                with auth_engine.begin() as tx:
+                                    for r in legacy_users:
+                                        tx.execute(insert_sql, {
+                                            "id": r[0],
+                                            "username": r[1],
+                                            "password_hash": r[2],
+                                            "role": r[3],
+                                            "personnel_id": r[4],
+                                            "unit_id": r[5],
+                                            "is_active": bool(r[6]),
+                                            "created_at": r[7]
+                                        })
+                                print(f"[MIGRATION] Migrated {len(legacy_users)} user accounts to prahari_auth.db")
+                                with engine.begin() as ops_tx:
+                                    ops_tx.execute(text("DROP TABLE IF EXISTS users"))
+                                print("[MIGRATION] Dropped legacy users table from prahari.db")
+    except Exception as e:
+        print(f"[MIGRATION NOTICE] Multi-DB user migration check: {e}")
+
     try:
         inspector = inspect(engine)
         table_names = set(inspector.get_table_names())
@@ -73,5 +164,3 @@ def ensure_schema_compatibility():
                     conn.execute(text("CREATE INDEX IF NOT EXISTS idx_welfare_case_sync ON welfare_cases (created_at, unit_id, risk_level)"))
     except Exception:
         pass
-
-

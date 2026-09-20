@@ -2,6 +2,7 @@ import React from "react";
 import { WelfareCaseItem } from "@/lib/types";
 import { RiskBadge } from "./RiskBadge";
 import { SLATimer } from "./SLATimer";
+import { formatTrigger } from "@/lib/formatters";
 import { User, Bell, BrainCircuit, ClipboardList, Siren, Users } from "lucide-react";
 
 interface CaseCardProps {
@@ -53,7 +54,7 @@ export const CaseCard: React.FC<CaseCardProps> = ({ welfareCase, isSelected = fa
       <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-m3-outline-variant/60 text-xs">
         <span className="text-m3-on-surface-variant font-medium flex items-center gap-1.5">
           {trigger ? <trigger.Icon className="w-3.5 h-3.5 text-m3-primary" /> : <Bell className="w-3.5 h-3.5 text-m3-primary" />}
-          {trigger?.label || welfareCase.triggered_by.replaceAll("_", " ")}
+          {trigger?.label || formatTrigger(welfareCase.triggered_by)}
         </span>
 
         <SLATimer

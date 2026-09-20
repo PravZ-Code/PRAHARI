@@ -1,4 +1,5 @@
 import uuid
+import logging
 from datetime import datetime, date, timezone
 from typing import Optional, Dict, Any
 from sqlalchemy.orm import Session
@@ -10,6 +11,8 @@ from models.uro import URORun
 from models.audit import AuditLog
 from middleware.audit import log_audit
 from ml.uro_optimizer import optimize_roster
+
+logger = logging.getLogger(__name__)
 
 def run_uro_optimization(
     db: Session,
@@ -213,7 +216,7 @@ def commit_uro_swaps(db: Session, uro_run: URORun, committed_by_user_id: Optiona
             }
         )
     except Exception as e:
-        print(f"[Audit Log Warning] Failed to log URO commit audit: {e}")
+        logger.warning(f"[Audit Log Warning] Failed to log URO commit audit: {e}")
 
     db.commit()
     return True
@@ -352,7 +355,7 @@ def reject_uro_run(
             }
         )
     except Exception as e:
-        print(f"[Audit Log Warning] Failed to log URO rejection: {e}")
+        logger.warning(f"[Audit Log Warning] Failed to log URO rejection: {e}")
 
     db.commit()
     db.refresh(run)

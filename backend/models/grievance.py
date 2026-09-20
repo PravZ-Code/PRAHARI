@@ -42,10 +42,10 @@ class GrievanceRequest(Base):
     # Dual Approval Sign-Off
     commander_approved = Column(Boolean, default=False, nullable=False)
     commander_approved_at = Column(DateTime(timezone=True), nullable=True)
-    commander_user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    commander_user_id = Column(String(36), nullable=True, index=True)
     welfare_approved = Column(Boolean, default=False, nullable=False)
     welfare_approved_at = Column(DateTime(timezone=True), nullable=True)
-    welfare_user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    welfare_user_id = Column(String(36), nullable=True, index=True)
     resolution_notes = Column(Text, nullable=True)
 
     # Outcome & Cost of Inaction Tracking

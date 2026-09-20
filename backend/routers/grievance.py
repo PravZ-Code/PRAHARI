@@ -1,6 +1,8 @@
 from typing import List, Optional
-from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import datetime, timezone, timedelta
+import io
+import csv
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -156,8 +158,10 @@ def file_request(
         })
         return _format_grievance_response(obj, db)
     except ValueError as e:
+        db.rollback()
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=500, detail=f"Filing failed: {e}")
 
 def _verify_grievance_access(current_user: User, req: GrievanceRequest, db: Session):
@@ -238,23 +242,104 @@ def get_pending_queue(
     ).all()
     return _format_grievance_responses_batch(reqs, db)
 
+@router.get("/my-requests/export")
+def export_my_requests_archive(
+    scope: str = Query("archive", description="Export scope: 'archive' (>30 days old), 'recent' (<=30 days old), or 'all'"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Exports historical request logs as a downloadable CSV attachment.
+    Under the 30-day retention policy, older requests are stored in offline logs
+    and can be downloaded for statutory audits or personal recordkeeping.
+    """
+    p_id = current_user.personnel_id
+    if not p_id:
+        raise HTTPException(status_code=404, detail="No personnel profile linked to current user.")
+
+    query = db.query(GrievanceRequest).filter(GrievanceRequest.personnel_id == p_id)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+
+    if scope == "archive":
+        query = query.filter(GrievanceRequest.filed_at < cutoff)
+    elif scope == "recent":
+        query = query.filter(GrievanceRequest.filed_at >= cutoff)
+
+    reqs = query.order_by(GrievanceRequest.filed_at.desc()).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Docket ID",
+        "Request Type",
+        "Category",
+        "Filing Date",
+        "Start Date",
+        "End Date",
+        "Status",
+        "Fast Lane 12H",
+        "SLA Target Hours",
+        "SLA Deadline",
+        "SLA Breached",
+        "Commander Approved",
+        "Welfare Approved",
+        "Description",
+        "Resolution Notes"
+    ])
+
+    for r in reqs:
+        writer.writerow([
+            r.id,
+            r.request_type,
+            r.category,
+            r.filed_at.isoformat() if r.filed_at else "",
+            r.start_date or "",
+            r.end_date or "",
+            r.status,
+            "YES" if r.is_fast_lane else "NO",
+            r.sla_deadline_hours,
+            r.sla_deadline.isoformat() if r.sla_deadline else "",
+            "YES" if r.sla_breached else "NO",
+            "YES" if r.commander_approved else "NO",
+            "YES" if r.welfare_approved else "NO",
+            (r.description or "").replace("\n", " "),
+            (r.resolution_notes or "").replace("\n", " ")
+        ])
+
+    csv_data = output.getvalue()
+    filename = f"PRAHARI_Grievance_Archive_{p_id[:8]}_{scope}.csv"
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+    )
+
 @router.get("/mine", response_model=List[GrievanceResponse])
 @router.get("/my-requests", response_model=List[GrievanceResponse])
 @router.get("/my-status", response_model=List[GrievanceResponse])
 def get_my_requests(
+    days: Optional[int] = Query(None, description="Optional filter for requests filed in the last N days (e.g. 30)"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Returns requests filed by or for the current authenticated personnel.
+    Supports filtering by last N days (e.g. days=30).
     """
     p_id = current_user.personnel_id
     if not p_id:
         return []
 
-    reqs = db.query(GrievanceRequest).filter(
+    query = db.query(GrievanceRequest).filter(
         GrievanceRequest.personnel_id == p_id
-    ).order_by(GrievanceRequest.filed_at.desc()).all()
+    )
+    if days is not None and days > 0:
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+        query = query.filter(GrievanceRequest.filed_at >= cutoff)
+
+    reqs = query.order_by(GrievanceRequest.filed_at.desc()).all()
     return _format_grievance_responses_batch(reqs, db)
 
 @router.get("/unit/{unit_id}/queue", response_model=List[GrievanceResponse])

@@ -566,7 +566,7 @@ def commit_plan_endpoint(
 @router.get("/intervention-effectiveness", summary="Section 28: Force-wide Intervention Effectiveness Registry")
 def get_intervention_effectiveness(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("admin", "welfare", "commander"))
+    current_user: User = Depends(require_role("admin", "welfare", "commander", "personnel", "jawan", "soldier"))
 ):
     """
     Section 28: Intervention Effectiveness Registry.

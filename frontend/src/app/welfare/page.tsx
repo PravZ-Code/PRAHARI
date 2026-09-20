@@ -14,6 +14,7 @@ import { PrahariVaniSimulator } from "@/components/PrahariVaniSimulator";
 import { EvidenceConflictModal } from "@/components/EvidenceConflictModal";
 import { TrendAnalysisModal } from "@/components/TrendAnalysisModal";
 import { playSuccessChime, playTacticalClick } from "@/lib/sound";
+import { formatTrigger, formatRecoveryStatus } from "@/lib/formatters";
 import {
   HeartHandshake,
   CheckCircle,
@@ -480,8 +481,8 @@ export default function WelfarePage() {
                   </div>
 
                   <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100 text-xs">
-                    <span className="text-slate-500 capitalize">
-                      Trigger: <strong>{c.triggered_by.replace(/_/g, " ")}</strong>
+                    <span className="text-slate-500">
+                      Trigger: <strong>{formatTrigger(c.triggered_by)}</strong>
                     </span>
                     <SLATimer
                       deadline={c.sla_acknowledge_deadline}
@@ -500,7 +501,7 @@ export default function WelfarePage() {
         {/* RIGHT: Granular Case Triage Detail (7 cols) */}
         <div className="lg:col-span-7">
           {selectedCaseDetail ? (
-            <div className="gov-card space-y-6">
+            <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-6 space-y-6">
               
               {/* Case Header */}
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-slate-200 pb-4">
@@ -686,7 +687,7 @@ export default function WelfarePage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <strong className="text-emerald-900 text-sm font-bold">
-                        Outcome Check: {reassessResult.recovery_status.replace(/_/g, " ")}
+                        Outcome Check: {formatRecoveryStatus(reassessResult.recovery_status)}
                       </strong>
                       <span className="text-xs px-2 py-0.5 rounded bg-emerald-200 text-emerald-900 font-bold">
                         Stress Reduction: -{reassessResult.delta_risk.toFixed(1)}%
@@ -705,7 +706,7 @@ export default function WelfarePage() {
                   <div className="flex items-center justify-between">
                     <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                       <Activity className="w-4 h-4 text-[#0c3866]" />
-                      <span>Primary Contributing Factors (SHAP Administrative Attribution)</span>
+                      <span>Primary Contributing Factors (Operational Attribution)</span>
                     </h3>
                     <span className="text-[11px] text-slate-500">
                       Ranked by Impact
@@ -848,7 +849,7 @@ export default function WelfarePage() {
               )}
             </div>
           ) : (
-            <div className="gov-card p-16 text-center text-slate-500 text-xs">
+            <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-16 text-center text-slate-500 text-xs">
               Select a personnel file from the docket list on the left to view the welfare record.
             </div>
           )}
@@ -857,8 +858,8 @@ export default function WelfarePage() {
 
       {/* Intervention Plan Modal */}
       {showPlanModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-300 rounded-lg p-6 max-w-lg w-full space-y-4 shadow-xl">
+        <div className="fixed inset-0 z-50 ux4g-modal-backdrop ux4g-modal-backdrop-50 flex items-center justify-center p-4">
+          <div className="ux4g-modal-box ux4g-modal-m bg-white p-6 max-w-lg w-full space-y-4 shadow-xl">
             <div className="border-b border-slate-200 pb-2">
               <h3 className="text-base font-bold text-slate-900">Formulate Welfare Support Plan</h3>
               <p className="text-xs text-slate-500">Record statutory support measures for this personnel.</p>
@@ -899,14 +900,14 @@ export default function WelfarePage() {
                 <button
                   type="button"
                   onClick={() => setShowPlanModal(false)}
-                  className="px-4 py-2 rounded bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-semibold"
+                  className="ux4g-btn ux4g-btn-outline-primary ux4g-btn-sm"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="px-4 py-2 rounded bg-[#0c3866] hover:bg-[#0a2f55] text-white text-xs font-bold"
+                  className="ux4g-btn ux4g-btn-primary ux4g-btn-sm"
                 >
                   Save to Record
                 </button>

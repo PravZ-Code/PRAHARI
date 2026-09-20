@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { UnitCardData, UnitReadinessDetail } from "@/lib/types";
+import { formatCategory } from "@/lib/formatters";
 import {
   Users,
   ShieldAlert,
@@ -200,7 +201,7 @@ export default function CommanderPage() {
             id="formation-select"
             value={selectedUnitId}
             onChange={(e) => handleUnitChange(e.target.value)}
-            className="gov-input text-xs py-1.5 font-bold min-w-[260px] max-w-full"
+            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold min-w-[260px] max-w-full focus:ring-2 focus:ring-primary-500"
           >
             {units.length === 0 ? (
               <option value="">Loading formations...</option>
@@ -217,7 +218,7 @@ export default function CommanderPage() {
 
       {/* Decision Summary KPI Grid (Live from Backend) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-        <div className="gov-card p-3.5 space-y-1 bg-white">
+        <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-3.5 space-y-1 bg-white">
           <span className="text-[11px] font-bold text-slate-500 uppercase block">Open Requests</span>
           <span className="text-2xl font-bold text-[#0c3866]">
             {dashboardKpis?.open_requests ?? pendingRequests.length}
@@ -225,7 +226,7 @@ export default function CommanderPage() {
           <span className="text-[10px] text-slate-500 block">Waiting for review</span>
         </div>
 
-        <div className="gov-card p-3.5 space-y-1 bg-amber-50/50 border-amber-300">
+        <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-3.5 space-y-1 bg-amber-50/50 border-amber-300">
           <span className="text-[11px] font-bold text-amber-800 uppercase block">Urgent Needs</span>
           <span className="text-2xl font-bold text-amber-700">
             {dashboardKpis?.urgent_needs ?? 0}
@@ -233,7 +234,7 @@ export default function CommanderPage() {
           <span className="text-[10px] text-amber-800 block">Family emergency</span>
         </div>
 
-        <div className="gov-card p-3.5 space-y-1 bg-white">
+        <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-3.5 space-y-1 bg-white">
           <span className="text-[11px] font-bold text-slate-500 uppercase block">Needs Review</span>
           <span className="text-2xl font-bold text-slate-700">
             {dashboardKpis?.needs_review ?? 0}
@@ -241,7 +242,7 @@ export default function CommanderPage() {
           <span className="text-[10px] text-slate-500 block">Delayed leave</span>
         </div>
 
-        <div className="gov-card p-3.5 space-y-1 bg-white">
+        <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-3.5 space-y-1 bg-white">
           <span className="text-[11px] font-bold text-slate-500 uppercase block">Heavy Shift Load</span>
           <span className="text-2xl font-bold text-slate-900">
             {dashboardKpis?.heavy_shift_load ?? 0}
@@ -249,7 +250,7 @@ export default function CommanderPage() {
           <span className="text-[10px] text-slate-500 block">Troopers need rest</span>
         </div>
 
-        <div className="gov-card p-3.5 space-y-1 bg-white">
+        <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-3.5 space-y-1 bg-white">
           <span className="text-[11px] font-bold text-slate-500 uppercase block">Unit Readiness</span>
           <span className="text-2xl font-bold text-emerald-700">
             {dashboardKpis?.unit_readiness ?? readinessDetail?.readiness_score ?? activeUnit?.readiness_score ?? 91}%
@@ -257,7 +258,7 @@ export default function CommanderPage() {
           <span className="text-[10px] text-emerald-800 block">Operational</span>
         </div>
 
-        <div className="gov-card p-3.5 space-y-1 bg-white">
+        <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-3.5 space-y-1 bg-white">
           <span className="text-[11px] font-bold text-slate-500 uppercase block">Rest Compliance</span>
           <span className="text-2xl font-bold text-slate-900">
             {dashboardKpis?.rest_compliance ?? 97.2}%
@@ -268,7 +269,7 @@ export default function CommanderPage() {
         {/* Section 31: Welfare Debt KPI Card */}
         <div
           onClick={() => setActiveTab("bottlenecks")}
-          className={`gov-card p-3.5 space-y-1 cursor-pointer transition-all hover:shadow-md ${
+          className={`ux4g-card ux4g-card-solid ux4g-card-vertical p-3.5 space-y-1 cursor-pointer transition-all hover:shadow-md ${
             (welfareDebt?.welfare_debt_score ?? 0) >= 70
               ? "bg-rose-50/70 border-rose-300"
               : (welfareDebt?.welfare_debt_score ?? 0) >= 35
@@ -300,52 +301,54 @@ export default function CommanderPage() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-slate-200 flex items-center gap-4 text-xs font-semibold overflow-x-auto">
-        <button
-          onClick={() => setActiveTab("overview")}
-          className={`pb-2.5 border-b-2 transition-colors whitespace-nowrap ${
-            activeTab === "overview"
-              ? "border-[#0c3866] text-[#0c3866] font-bold"
-              : "border-transparent text-slate-600 hover:text-slate-900"
-          }`}
-        >
-          Pending Requests ({pendingRequests.length})
-        </button>
-        <button
-          onClick={() => setActiveTab("requests")}
-          className={`pb-2.5 border-b-2 transition-colors whitespace-nowrap ${
-            activeTab === "requests"
-              ? "border-[#0c3866] text-[#0c3866] font-bold"
-              : "border-transparent text-slate-600 hover:text-slate-900"
-          }`}
-        >
-          Squad Workload &amp; Rest Hours
-        </button>
-        <button
-          onClick={() => setActiveTab("workload")}
-          className={`pb-2.5 border-b-2 transition-colors whitespace-nowrap ${
-            activeTab === "workload"
-              ? "border-[#0c3866] text-[#0c3866] font-bold"
-              : "border-transparent text-slate-600 hover:text-slate-900"
-          }`}
-        >
-          Unit Scheduling Balance (Private Self-Correction)
-        </button>
-        <button
-          onClick={() => setActiveTab("bottlenecks")}
-          className={`pb-2.5 border-b-2 transition-colors whitespace-nowrap flex items-center gap-1.5 ${
-            activeTab === "bottlenecks"
-              ? "border-[#0c3866] text-[#0c3866] font-bold"
-              : "border-transparent text-slate-600 hover:text-slate-900"
-          }`}
-        >
-          <span>SLA Bottlenecks &amp; Welfare Debt</span>
-          {bottleneckData && bottleneckData.total_breached > 0 && (
-            <span className="px-1.5 py-0.5 bg-amber-100 text-amber-900 text-[10px] rounded-full font-bold">
-              {bottleneckData.total_breached}
-            </span>
-          )}
-        </button>
+      <div className="ux4g-tab ux4g-tab-underline ux4g-tab-md border-b border-slate-200">
+        <ul className="ux4g-tab-list flex items-center gap-4 text-xs font-semibold overflow-x-auto">
+          <li
+            onClick={() => setActiveTab("overview")}
+            className={`ux4g-tab-item cursor-pointer pb-2.5 transition-colors whitespace-nowrap ${
+              activeTab === "overview"
+                ? "is-active border-b-2 border-[#0c3866] text-[#0c3866] font-bold"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            Pending Requests ({pendingRequests.length})
+          </li>
+          <li
+            onClick={() => setActiveTab("requests")}
+            className={`ux4g-tab-item cursor-pointer pb-2.5 transition-colors whitespace-nowrap ${
+              activeTab === "requests"
+                ? "is-active border-b-2 border-[#0c3866] text-[#0c3866] font-bold"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            Squad Workload &amp; Rest Hours
+          </li>
+          <li
+            onClick={() => setActiveTab("workload")}
+            className={`ux4g-tab-item cursor-pointer pb-2.5 transition-colors whitespace-nowrap ${
+              activeTab === "workload"
+                ? "is-active border-b-2 border-[#0c3866] text-[#0c3866] font-bold"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            Unit Scheduling Balance (Private Self-Correction)
+          </li>
+          <li
+            onClick={() => setActiveTab("bottlenecks")}
+            className={`ux4g-tab-item cursor-pointer pb-2.5 transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+              activeTab === "bottlenecks"
+                ? "is-active border-b-2 border-[#0c3866] text-[#0c3866] font-bold"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <span>SLA Bottlenecks &amp; Welfare Debt</span>
+            {bottleneckData && bottleneckData.total_breached > 0 && (
+              <span className="ux4g-tag-tonal-warning ux4g-tag-s font-bold text-[10px]">
+                {bottleneckData.total_breached}
+              </span>
+            )}
+          </li>
+        </ul>
       </div>
 
       {/* Tab 1: Requests & Decision Focus */}
@@ -405,7 +408,7 @@ export default function CommanderPage() {
                       : "Standard";
                     const soldierName = req.personnel_name || req.soldier;
                     const rankTrade = `${req.rank || "Trooper"} · ${req.trade || "GD"}`;
-                    const categoryDesc = req.description || req.category?.replace(/_/g, " ") || req.type;
+                    const categoryDesc = req.description || formatCategory(req.category || req.type);
                     const cover = req.suggested_replacement_name
                       ? `${req.suggested_replacement_name} (Cover Assigned)`
                       : req.proposedCover || "Trade-Compatible Cover Ready";
@@ -462,7 +465,7 @@ export default function CommanderPage() {
 
       {/* Tab 2: Workload & Rest */}
       {activeTab === "requests" && (
-        <div className="gov-card p-5 space-y-4 bg-white">
+        <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-5 space-y-4 bg-white">
           <div className="border-b border-slate-200 pb-3">
             <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider font-heading">
               Squad Workload &amp; Rest Hours
@@ -511,7 +514,7 @@ export default function CommanderPage() {
 
       {/* Tab 3: Administrative Self-Correction */}
       {activeTab === "workload" && (
-        <div className="gov-card p-5 space-y-4 bg-white">
+        <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-5 space-y-4 bg-white">
           <div className="border-b border-slate-200 pb-3 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider font-heading">
@@ -554,7 +557,7 @@ export default function CommanderPage() {
       {activeTab === "bottlenecks" && (
         <div className="space-y-6">
           {/* Section 31: Welfare Debt Deep Dive */}
-          <div className="gov-card p-5 space-y-4 bg-white border-2 border-slate-200 shadow-sm">
+          <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-5 space-y-4 bg-white border-2 border-slate-200 shadow-sm">
             <div className="border-b border-slate-200 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <div className="flex items-center gap-2">
@@ -660,7 +663,7 @@ export default function CommanderPage() {
           </div>
 
           {/* Section 12: Resolution Bottlenecks League Table */}
-          <div className="gov-card p-5 space-y-4 bg-white border border-slate-200 shadow-sm">
+          <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-5 space-y-4 bg-white border border-slate-200 shadow-sm">
             <div className="border-b border-slate-200 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider font-heading">

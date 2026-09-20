@@ -128,7 +128,7 @@ export const GovernmentFooter: React.FC = () => {
             </p>
             <div className="mt-3 p-2.5 rounded bg-slate-900 border border-slate-800 text-[11px] text-amber-300/90 leading-normal">
               <strong>{lang === "hi" ? "प्रमुख नियम: " : lang === "ta" ? "முக்கிய விதி: " : "Core Mandate: "}</strong>
-              {lang === "hi" ? "सहायता पहले, पूर्वानुमान बाद में। कमान अधिकारी की प्रत्यक्ष मानवीय समीक्षा अनिवार्य है।" : lang === "ta" ? "முதலில் உதவி, அடுத்து கணிப்பு. கட்டளை அதிகாரியின் நேரடி மனித மதிப்பாய்வு கட்டாயமாகும்." : "Help First. Predict Second. Automated algorithms never decline leave independently."}
+              {lang === "hi" ? "सहायता पहले, पूर्वानुमान बाद में। कमान अधिकारी की प्रत्यक्ष मानवीय समीक्षा अनिवार्य है।" : lang === "ta" ? "முதலில் உதவி, அடுத்து கணிப்பு. கட்டளை அதிகாரியின் நேரடி மனித மதிப்பாய்வு கட்டாயமாகும்." : "Help First. Predict Second. Automated systems never decline leave independently."}
             </div>
           </div>
 
@@ -184,6 +184,11 @@ export const GovernmentFooter: React.FC = () => {
                 </Link>
               </li>
               <li>
+                <Link href="/terms" className="hover:text-white transition-colors underline font-medium">
+                  Terms of Service & System Usage Charter
+                </Link>
+              </li>
+              <li>
                 <span className="text-slate-400">Mental Healthcare Act 2017 (§21 Confidentiality)</span>
               </li>
               <li>
@@ -195,8 +200,14 @@ export const GovernmentFooter: React.FC = () => {
               <li>
                 <span className="text-slate-400">GIGW 3.0 & WCAG 2.1 Level AA Compliant</span>
               </li>
+              <li className="pt-1">
+                <span className="inline-block px-2 py-1 rounded bg-slate-900 border border-slate-700 text-[10px] text-amber-300 font-medium">
+                  Decision Support System Only — Not a clinical diagnostic device
+                </span>
+              </li>
             </ul>
           </div>
+
 
           {/* Col 4: Troop Helplines & Ministry Info */}
           <div>

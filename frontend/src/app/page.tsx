@@ -43,6 +43,32 @@ import {
 import { PrahariVaniSimulator } from "@/components/PrahariVaniSimulator";
 import { useTranslation } from "@/lib/i18n";
 import { getStoredUser, UserProfile } from "@/lib/auth";
+import { api } from "@/lib/api";
+
+interface LiveBulletin {
+  id: string;
+  title: string;
+  source: string;
+  date: string;
+  tag: string;
+  is_new: boolean;
+  link: string;
+  snippet?: string;
+}
+
+interface UnifiedBulletin {
+  id?: string;
+  title: string;
+  source?: string;
+  date: string;
+  tag: string;
+  is_new?: boolean;
+  isNew?: boolean;
+  link?: string;
+  href?: string;
+  snippet?: string;
+  action?: () => void;
+}
 
 export default function HomePage() {
   const { t, lang } = useTranslation();
@@ -53,6 +79,10 @@ export default function HomePage() {
   const [isPaused, setIsPaused] = useState(false);
   const [whatsNewIndex, setWhatsNewIndex] = useState(0);
   const [selectedCalDate, setSelectedCalDate] = useState<number>(13);
+  const [liveBulletins, setLiveBulletins] = useState<LiveBulletin[]>([]);
+  const [bulletinSource, setBulletinSource] = useState<string>("live_internet");
+  const [bulletinUpdated, setBulletinUpdated] = useState<string>("");
+  const [bulletinLoading, setBulletinLoading] = useState<boolean>(false);
 
   const heroSlideImages = [
     "/images/crpf_parade_official.jpg",
@@ -79,7 +109,31 @@ export default function HomePage() {
 
   useEffect(() => {
     setUser(getStoredUser());
+    fetchLiveBulletins();
   }, []);
+
+  const fetchLiveBulletins = async (forceRefresh = false) => {
+    setBulletinLoading(true);
+    try {
+      const res = await api.get(`/welfare/bulletins${forceRefresh ? "?refresh=true" : ""}`);
+      if (res.data && res.data.bulletins && res.data.bulletins.length > 0) {
+        setLiveBulletins(res.data.bulletins);
+        setBulletinSource(res.data.source || "live_internet");
+        if (res.data.last_updated) {
+          try {
+            const dt = new Date(res.data.last_updated);
+            setBulletinUpdated(dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+          } catch {
+            setBulletinUpdated("");
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to fetch live bulletins, using default items:", err);
+    } finally {
+      setBulletinLoading(false);
+    }
+  };
 
   const getServiceLink = (url: string) => {
     if (!user) {
@@ -187,29 +241,29 @@ export default function HomePage() {
                     <div className="flex flex-wrap items-center gap-3">
                       <Link
                         href={getServiceLink("/request?type=leave")}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#ff9933] hover:bg-[#e65100] text-slate-950 font-bold rounded-md shadow-md text-xs sm:text-sm transition-all transform hover:scale-[1.02]"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#ff9933] hover:bg-[#e65100] text-slate-950 font-bold rounded-md shadow-md text-xs sm:text-sm hover-scale active-press hover-lift hover-glow-saffron group"
                       >
                         <FileText className="w-4 h-4" />
                         <span>Apply for Leave / Support</span>
-                        <ArrowRight className="w-4 h-4" />
+                        <ArrowRight className="w-4 h-4 group-hover-arrow" />
                       </Link>
                       <Link
                         href={getServiceLink("/emergency")}
-                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-md shadow-sm text-xs sm:text-sm transition-all"
+                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-md shadow-sm text-xs sm:text-sm hover-scale active-press hover-lift"
                       >
-                        <AlertTriangle className="w-4 h-4 text-white" />
+                        <AlertTriangle className="w-4 h-4 text-white animate-pulse" />
                         <span>Emergency SOS (12h SLA)</span>
                       </Link>
                       <Link
                         href={getServiceLink("/track")}
-                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white font-bold rounded-md border border-white/20 shadow-sm text-xs sm:text-sm transition-all"
+                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white font-bold rounded-md border border-white/20 shadow-sm text-xs sm:text-sm hover-scale active-press hover-lift group"
                       >
-                        <Search className="w-4 h-4 text-cyan-300" />
+                        <Search className="w-4 h-4 text-cyan-300 group-hover:scale-110 transition-transform" />
                         <span>Track Application</span>
                       </Link>
                       <Link
                         href="/privacy"
-                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-slate-200 font-semibold rounded-md border border-white/15 text-xs sm:text-sm transition-all"
+                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-slate-200 font-semibold rounded-md border border-white/15 text-xs sm:text-sm hover-scale active-press hover-lift"
                       >
                         <ShieldCheck className="w-4 h-4 text-emerald-300" />
                         <span>Statutory Protection</span>
@@ -383,10 +437,10 @@ export default function HomePage() {
                         <span>
                           <strong>{lang === "hi" ? "अनिवार्य मानवीय निगरानी: " : lang === "ta" ? "கட்டாய மனித மேற்பார்வை: " : "Mandatory Human Oversight: "}</strong>
                           {lang === "hi"
-                            ? "स्वचालित एल्गोरिदम कभी भी स्वतंत्र रूप से अवकाश अस्वीकार नहीं करते।"
+                            ? "स्वचालित प्रणालियाँ कभी भी स्वतंत्र रूप से अवकाश अस्वीकार नहीं करतीं।"
                             : lang === "ta"
-                            ? "தானியங்கி வழிமுறைகள் சுயாதீனமாக விடுப்பை நிராகரிப்பதில்லை."
-                            : "Automated AI algorithms never decline leave or alter duty rosters."}
+                            ? "தானியங்கி அமைப்புகள் சுயாதீனமாக விடுப்பை நிராகரிப்பதில்லை."
+                            : "Automated systems never decline leave or alter duty rosters independently."}
                         </span>
                       </li>
                       <li className="flex items-start gap-2">
@@ -489,63 +543,105 @@ export default function HomePage() {
               <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Left: What's New Sliding Feed */}
                 <div className="lg:col-span-7 bg-white p-6 rounded-lg border border-slate-200 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between border-b-2 border-[#29136C] pb-2">
+                  <div className="flex flex-wrap items-center justify-between border-b-2 border-[#29136C] pb-2 gap-2">
                     <div className="flex items-center gap-2">
                       <Bell className="w-5 h-5 text-[#ff9933]" />
                       <h2 className="text-xl font-bold text-[#29136C] font-heading">
                         What&apos;s New & Welfare Bulletins
                       </h2>
                     </div>
-                    <span className="text-[11px] text-slate-500 font-semibold">Live MHA/CRPF Feed</span>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-emerald-700">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        {bulletinSource === "live_internet" ? "LIVE MHA/CRPF FEED" : "STATUTORY WELFARE FEED"}
+                      </span>
+                      {bulletinUpdated && (
+                        <span className="text-[10px] text-slate-400 font-mono hidden sm:inline" title="Last live sync timestamp">
+                          {bulletinUpdated}
+                        </span>
+                      )}
+                      <button
+                        onClick={() => fetchLiveBulletins(true)}
+                        disabled={bulletinLoading}
+                        className="p-1 rounded hover:bg-slate-100 text-slate-500 hover:text-[#29136C] transition-colors disabled:opacity-50"
+                        title="Force sync latest bulletins from official sources"
+                        aria-label="Refresh bulletins"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${bulletinLoading ? "animate-spin text-[#29136C]" : ""}`} />
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-3">
-                    {whatsNewItems.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="p-3 rounded-lg border border-slate-100 hover:border-slate-300 hover:bg-slate-50 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs"
-                      >
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-mono font-bold text-slate-500">
-                              {item.date}
-                            </span>
-                            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-100 text-blue-800">
-                              {item.tag}
-                            </span>
-                            {item.isNew && (
-                              <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-red-600 text-white animate-pulse">
-                                NEW
-                              </span>
-                            )}
-                          </div>
-                          {item.action ? (
-                            <button
-                              onClick={item.action}
-                              className="text-left font-semibold text-[#0c3866] hover:underline"
-                            >
-                              {item.title}
-                            </button>
-                          ) : item.href.startsWith("http") ? (
-                            <a
-                              href={item.href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="font-semibold text-[#0c3866] hover:underline inline-flex items-center gap-1.5 group/link"
-                              title="Open official Government press release in new tab"
-                            >
-                              <span>{item.title}</span>
-                              <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover/link:text-[#0c3866] shrink-0" />
-                            </a>
-                          ) : (
-                            <Link href={item.href} className="font-semibold text-[#0c3866] hover:underline">
-                              {item.title}
-                            </Link>
-                          )}
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-slate-400 shrink-0 hidden sm:block" />
+                    {bulletinLoading && liveBulletins.length === 0 ? (
+                      <div className="p-8 text-center text-xs text-slate-400">
+                        <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-[#29136C]" />
+                        <span>Synchronizing live MHA/CRPF bulletins...</span>
                       </div>
-                    ))}
+                    ) : (
+                      (liveBulletins.length > 0 ? liveBulletins : whatsNewItems).map((item: UnifiedBulletin, idx: number) => {
+                        const href = item.link || item.href || "#";
+                        const isNew = Boolean(item.is_new ?? item.isNew);
+                        const isExternal = href.startsWith("http");
+
+                        return (
+                          <div
+                            key={item.id || idx}
+                            className="p-3 rounded-lg border border-slate-100 hover:border-slate-300 hover:bg-slate-50 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs"
+                          >
+                            <div className="space-y-1 flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-[10px] font-mono font-bold text-slate-500">
+                                  {item.date}
+                                </span>
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-800">
+                                  {item.tag}
+                                </span>
+                                {item.source && (
+                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                                    {item.source}
+                                  </span>
+                                )}
+                                {isNew && (
+                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-red-600 text-white animate-pulse">
+                                    NEW
+                                  </span>
+                                )}
+                              </div>
+                              {item.action ? (
+                                <button
+                                  onClick={item.action}
+                                  className="text-left font-semibold text-[#0c3866] hover:underline block"
+                                >
+                                  {item.title}
+                                </button>
+                              ) : isExternal ? (
+                                <a
+                                  href={href}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-semibold text-[#0c3866] hover:underline inline-flex items-center gap-1.5 group/link"
+                                  title="Open official press release / portal in new tab"
+                                >
+                                  <span className="line-clamp-2">{item.title}</span>
+                                  <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover/link:text-[#0c3866] shrink-0" />
+                                </a>
+                              ) : (
+                                <Link href={href} className="font-semibold text-[#0c3866] hover:underline block">
+                                  {item.title}
+                                </Link>
+                              )}
+                              {item.snippet && (
+                                <p className="text-[11px] text-slate-500 line-clamp-1 italic">
+                                  {item.snippet}
+                                </p>
+                              )}
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-slate-400 shrink-0 hidden sm:block" />
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
 
                   <div className="pt-2 text-right">
@@ -719,13 +815,13 @@ export default function HomePage() {
                 {/* 1. Request Leave */}
                 <Link
                   href={getServiceLink("/request?type=leave")}
-                  className="nic-card flex flex-col justify-between p-5 border-t-4 border-t-[#0c3866] bg-white group"
+                  className="nic-card hover-lift active-press animate-fade-in-up stagger-1 flex flex-col justify-between p-5 border-t-4 border-t-[#0c3866] bg-white group"
                 >
                   <div className="space-y-3">
-                    <div className="w-12 h-12 rounded-xl bg-blue-50 text-[#0c3866] flex items-center justify-center group-hover:bg-[#0c3866] group-hover:text-white transition-colors shadow-2xs">
+                    <div className="w-12 h-12 rounded-xl bg-blue-50 text-[#0c3866] flex items-center justify-center group-hover:bg-[#0c3866] group-hover:text-white transition-colors shadow-2xs group-hover-bounce">
                       <Calendar className="w-6 h-6" />
                     </div>
-                    <h3 className="text-base font-bold text-slate-900 font-heading">
+                    <h3 className="text-base font-bold text-slate-900 font-heading group-hover:text-[#0c3866] transition-colors">
                       {t.services.leave.title}
                     </h3>
                     <p className="text-xs text-slate-600 leading-relaxed">
@@ -735,7 +831,7 @@ export default function HomePage() {
                   <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-[#0c3866]">
                     <span><span>Apply for Leave</span></span>
                     {user ? (
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      <ArrowRight className="w-4 h-4 group-hover-arrow" />
                     ) : (
                       <Lock className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#0c3866]" />
                     )}
@@ -745,17 +841,17 @@ export default function HomePage() {
                 {/* 2. Family Emergency */}
                 <Link
                   href={getServiceLink("/emergency")}
-                  className="nic-card flex flex-col justify-between p-5 border-t-4 border-t-red-600 bg-white group"
+                  className="nic-card hover-lift active-press animate-fade-in-up stagger-2 flex flex-col justify-between p-5 border-t-4 border-t-red-600 bg-white group"
                 >
                   <div className="space-y-3">
-                    <div className="w-12 h-12 rounded-xl bg-red-50 text-red-700 flex items-center justify-center group-hover:bg-red-600 group-hover:text-white transition-colors shadow-2xs">
+                    <div className="w-12 h-12 rounded-xl bg-red-50 text-red-700 flex items-center justify-center group-hover:bg-red-600 group-hover:text-white transition-colors shadow-2xs group-hover-bounce">
                       <AlertTriangle className="w-6 h-6" />
                     </div>
                     <div className="flex items-center justify-between">
-                      <h3 className="text-base font-bold text-slate-900 font-heading">
+                      <h3 className="text-base font-bold text-slate-900 font-heading group-hover:text-red-700 transition-colors">
                           {t.services.emergency.title}
                         </h3>
-                        <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-red-100 text-red-700 uppercase">
+                        <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-red-100 text-red-700 uppercase animate-pulse">
                           12h Fast-Lane
                         </span>
                       </div>
@@ -766,7 +862,7 @@ export default function HomePage() {
                   <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-red-700">
                     <span><span>Emergency SOS (12h)</span></span>
                     {user ? (
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      <ArrowRight className="w-4 h-4 group-hover-arrow" />
                     ) : (
                       <Lock className="w-3.5 h-3.5 text-red-400 group-hover:text-red-700" />
                     )}
@@ -776,13 +872,13 @@ export default function HomePage() {
                 {/* 3. Confidential Welfare Support */}
                 <Link
                   href={getServiceLink("/request?type=welfare")}
-                  className="nic-card flex flex-col justify-between p-5 border-t-4 border-t-emerald-600 bg-white group"
+                  className="nic-card hover-lift active-press animate-fade-in-up stagger-3 flex flex-col justify-between p-5 border-t-4 border-t-emerald-600 bg-white group"
                 >
                   <div className="space-y-3">
-                    <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-colors shadow-2xs">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-colors shadow-2xs group-hover-bounce">
                       <HeartHandshake className="w-6 h-6" />
                     </div>
-                    <h3 className="text-base font-bold text-slate-900 font-heading">
+                    <h3 className="text-base font-bold text-slate-900 font-heading group-hover:text-emerald-700 transition-colors">
                       Welfare Support
                     </h3>
                     <p className="text-xs text-slate-600 leading-relaxed">
@@ -792,7 +888,7 @@ export default function HomePage() {
                   <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-emerald-700">
                     <span><span>Request Support</span></span>
                     {user ? (
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      <ArrowRight className="w-4 h-4 group-hover-arrow" />
                     ) : (
                       <Lock className="w-3.5 h-3.5 text-emerald-400 group-hover:text-emerald-700" />
                     )}
@@ -802,13 +898,13 @@ export default function HomePage() {
                 {/* 4. Grievance Desk */}
                 <Link
                   href={getServiceLink("/request?type=grievance")}
-                  className="nic-card flex flex-col justify-between p-5 border-t-4 border-t-amber-500 bg-white group"
+                  className="nic-card hover-lift active-press animate-fade-in-up stagger-4 flex flex-col justify-between p-5 border-t-4 border-t-amber-500 bg-white group"
                 >
                   <div className="space-y-3">
-                    <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-colors shadow-2xs">
+                    <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-colors shadow-2xs group-hover-bounce">
                       <FileText className="w-6 h-6" />
                     </div>
-                    <h3 className="text-base font-bold text-slate-900 font-heading">
+                    <h3 className="text-base font-bold text-slate-900 font-heading group-hover:text-amber-800 transition-colors">
                       Grievance Desk
                     </h3>
                     <p className="text-xs text-slate-600 leading-relaxed">
@@ -818,7 +914,7 @@ export default function HomePage() {
                   <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-amber-800">
                     <span><span>File Grievance</span></span>
                     {user ? (
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      <ArrowRight className="w-4 h-4 group-hover-arrow" />
                     ) : (
                       <Lock className="w-3.5 h-3.5 text-amber-400 group-hover:text-amber-800" />
                     )}
@@ -874,17 +970,17 @@ export default function HomePage() {
                   Emerging Technologies for Force Welfare
                 </h2>
                 <p className="text-xs text-slate-600 max-w-xl mx-auto">
-                  Architected with clinical safety guardrails, cryptographic integrity, and algorithmic rest barriers.
+                  Architected with clinical safety guardrails, statutory record integrity, and duty rest safeguards.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Innovation 1 */}
-                <div className="nic-card p-6 bg-white space-y-3 border-t-4 border-t-[#29136C]">
-                  <div className="w-10 h-10 rounded-lg bg-indigo-50 text-[#29136C] flex items-center justify-center font-bold">
+                <div className="nic-card hover-lift active-press animate-fade-in-up stagger-1 p-6 bg-white space-y-3 border-t-4 border-t-[#29136C] group">
+                  <div className="w-10 h-10 rounded-lg bg-indigo-50 text-[#29136C] flex items-center justify-center font-bold group-hover-bounce">
                     <Cpu className="w-5 h-5" />
                   </div>
-                  <h3 className="text-base font-bold text-slate-900 font-heading">
+                  <h3 className="text-base font-bold text-slate-900 font-heading group-hover:text-[#29136C] transition-colors">
                     {t.innovations.guardrails.title}
                   </h3>
                   <p className="text-xs text-slate-600 leading-relaxed">
@@ -899,11 +995,11 @@ export default function HomePage() {
                 </div>
 
                 {/* Innovation 2 */}
-                <div className="nic-card p-6 bg-white space-y-3 border-t-4 border-t-emerald-600">
-                  <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
+                <div className="nic-card hover-lift active-press animate-fade-in-up stagger-2 p-6 bg-white space-y-3 border-t-4 border-t-emerald-600 group">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold group-hover-bounce">
                     <Scale className="w-5 h-5" />
                   </div>
-                  <h3 className="text-base font-bold text-slate-900 font-heading">
+                  <h3 className="text-base font-bold text-slate-900 font-heading group-hover:text-emerald-700 transition-colors">
                     {t.innovations.uro.title}
                   </h3>
                   <p className="text-xs text-slate-600 leading-relaxed">
@@ -912,17 +1008,17 @@ export default function HomePage() {
                   <div className="pt-2">
                     <Link href="/what-if" className="text-[11px] font-bold text-emerald-700 hover:underline flex items-center gap-1">
                       <span>Explore Tactical Roster Engine</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <ArrowRight className="w-3.5 h-3.5 group-hover-arrow" />
                     </Link>
                   </div>
                 </div>
 
                 {/* Innovation 3 */}
-                <div className="nic-card p-6 bg-white space-y-3 border-t-4 border-t-amber-600">
-                  <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-800 flex items-center justify-center font-bold">
+                <div className="nic-card hover-lift active-press animate-fade-in-up stagger-3 p-6 bg-white space-y-3 border-t-4 border-t-amber-600 group">
+                  <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-800 flex items-center justify-center font-bold group-hover-bounce">
                     <Database className="w-5 h-5" />
                   </div>
-                  <h3 className="text-base font-bold text-slate-900 font-heading">
+                  <h3 className="text-base font-bold text-slate-900 font-heading group-hover:text-amber-800 transition-colors">
                     Cryptographic Audit Ledger
                   </h3>
                   <p className="text-xs text-slate-600 leading-relaxed">
@@ -931,7 +1027,7 @@ export default function HomePage() {
                   <div className="pt-2">
                     <Link href={getServiceLink("/admin")} className="text-[11px] font-bold text-amber-800 hover:underline flex items-center gap-1">
                       <span>Verify Ledger Integrity (SHA-256)</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <ArrowRight className="w-3.5 h-3.5 group-hover-arrow" />
                     </Link>
                   </div>
                 </div>
@@ -941,9 +1037,9 @@ export default function HomePage() {
             {/* ========================================================================= */}
             {/* NATIONAL READINESS & IMPACT METRICS STRIP                                 */}
             {/* ========================================================================= */}
-            <section className="bg-[#0c3866] text-white rounded-xl p-8 shadow-lg border-b-4 border-[#ff9933]">
+            <section className="bg-[#0c3866] text-white rounded-xl p-8 shadow-lg border-b-4 border-[#ff9933] hover-lift transition-all">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-                <div className="space-y-1">
+                <div className="space-y-1 hover-scale transition-transform duration-200 cursor-default p-2 rounded-lg hover:bg-white/5">
                   <span className="text-2xl sm:text-3xl font-extrabold text-[#ff9933] font-mono block">
                     3,25,000+
                   </span>
@@ -953,7 +1049,7 @@ export default function HomePage() {
                   <span className="text-[10px] text-slate-400">Across 5 Tactical Sectors</span>
                 </div>
 
-                <div className="space-y-1 border-l border-white/20">
+                <div className="space-y-1 border-l border-white/20 hover-scale transition-transform duration-200 cursor-default p-2 rounded-lg hover:bg-white/5">
                   <span className="text-2xl sm:text-3xl font-extrabold text-emerald-400 font-mono block">
                     99.4%
                   </span>
@@ -963,7 +1059,7 @@ export default function HomePage() {
                   <span className="text-[10px] text-slate-400">&lt;12h Emergency Review</span>
                 </div>
 
-                <div className="space-y-1 border-l border-white/20">
+                <div className="space-y-1 border-l border-white/20 hover-scale transition-transform duration-200 cursor-default p-2 rounded-lg hover:bg-white/5">
                   <span className="text-2xl sm:text-3xl font-extrabold text-white font-mono block">
                     0
                   </span>
@@ -973,7 +1069,7 @@ export default function HomePage() {
                   <span className="text-[10px] text-slate-400">100% Human Sign-Off</span>
                 </div>
 
-                <div className="space-y-1 border-l border-white/20">
+                <div className="space-y-1 border-l border-white/20 hover-scale transition-transform duration-200 cursor-default p-2 rounded-lg hover:bg-white/5">
                   <span className="text-2xl sm:text-3xl font-extrabold text-[#ff9933] font-mono block">
                     24x7
                   </span>
@@ -988,11 +1084,11 @@ export default function HomePage() {
             {/* ========================================================================= */}
             {/* HELPLINE OUTREACH BANNER (BUTTON PHONE SIMULATOR)                         */}
             {/* ========================================================================= */}
-            <section id="helpline" className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-lg p-6 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-6">
+            <section id="helpline" className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-lg p-6 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-6 hover-lift transition-all">
               <div className="space-y-2 max-w-xl">
                 <div className="flex items-center gap-2">
                   <span className="w-8 h-8 rounded-full bg-amber-600 text-white flex items-center justify-center shadow-xs">
-                    <PhoneCall className="w-4 h-4" />
+                    <PhoneCall className="w-4 h-4 animate-bounce" />
                   </span>
                   <h3 className="text-base font-bold text-amber-950 font-heading">
                     Prahari Helpline (IVR) · No Smartphone Required
@@ -1006,7 +1102,7 @@ export default function HomePage() {
               <div className="flex flex-wrap items-center gap-3 shrink-0">
                 <button
                   onClick={() => setShowVani(true)}
-                  className="px-5 py-2.5 bg-[#0c3866] hover:bg-[#072648] text-white text-xs font-bold rounded-md shadow-md flex items-center gap-2 transition-colors"
+                  className="px-5 py-2.5 bg-[#0c3866] hover:bg-[#072648] text-white text-xs font-bold rounded-md shadow-md flex items-center gap-2 hover-scale active-press hover-glow-navy"
                 >
                   <PhoneCall className="w-4 h-4 text-[#ff9933] animate-pulse" />
                   <span>Launch Phone Simulator</span>

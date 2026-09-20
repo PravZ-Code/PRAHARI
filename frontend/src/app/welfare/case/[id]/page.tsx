@@ -13,6 +13,7 @@ import { CopilotDrawer } from "@/components/CopilotDrawer";
 import { EvidenceConflictModal } from "@/components/EvidenceConflictModal";
 import { TrendAnalysisModal } from "@/components/TrendAnalysisModal";
 import { playSuccessChime, playTacticalClick } from "@/lib/sound";
+import { formatRecoveryStatus, formatStatus } from "@/lib/formatters";
 import {
   ArrowLeft,
   User,
@@ -242,7 +243,7 @@ export default function CaseDetailPage() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <strong className="text-emerald-900 text-sm font-bold">
-                Progress Check Completed: {reassessResult.recovery_status.replace(/_/g, " ")}
+                Progress Check Completed: {formatRecoveryStatus(reassessResult.recovery_status)}
               </strong>
               <span className="text-xs px-2 py-0.5 rounded bg-emerald-200 text-emerald-900 font-bold">
                 Stress Change: -{reassessResult.delta_risk.toFixed(1)}%
@@ -256,14 +257,14 @@ export default function CaseDetailPage() {
       )}
 
       {/* Main Case Dossier Card */}
-      <div className="gov-card space-y-6">
+      <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-6 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono font-bold text-slate-500">
                 CASE REF: {detail.id.toUpperCase()}
               </span>
-              <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-[#0c3866] font-semibold">
+              <span className="ux4g-tag-tonal-brand ux4g-tag-s font-semibold">
                 Protected Under Mental Healthcare Act 2017
               </span>
             </div>
@@ -293,7 +294,7 @@ export default function CaseDetailPage() {
 
           <div className="p-3 bg-slate-50 border border-slate-200 rounded">
             <span className="text-slate-500 block">Docket Status</span>
-            <strong className="text-emerald-700 text-sm block mt-1 uppercase">{detail.status}</strong>
+            <strong className="text-emerald-700 text-sm block mt-1">{formatStatus(detail.status)}</strong>
             <span className="text-[10px] text-slate-400">Statutory Welfare Track</span>
           </div>
 
@@ -316,7 +317,7 @@ export default function CaseDetailPage() {
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                 <Activity className="w-4 h-4 text-[#0c3866]" />
-                <span>Primary Operational Stress Catalysts (SHAP Attribution)</span>
+                <span>Primary Operational Risk Factors (Factor Attribution)</span>
               </h3>
               <span className="text-[11px] text-slate-500">
                 Ranked by Magnitude

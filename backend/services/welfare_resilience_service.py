@@ -12,7 +12,6 @@ Features implemented:
 
 from datetime import datetime, timedelta, date
 from typing import Dict, Any, List, Optional
-import math
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
@@ -67,7 +66,6 @@ def compute_welfare_reserve(db: Session, unit_id: str) -> Dict[str, Any]:
         ).order_by(RiskPrediction.predicted_at.desc()).first()
 
         score = float(latest_pred.risk_score) if latest_pred else 0.25
-        level = latest_pred.risk_level if latest_pred else "green"
 
         # Check recent night duties in last 7 days
         recent_nights = db.query(func.count(DutyRoster.id)).filter(
@@ -348,11 +346,6 @@ def track_personnel_recovery(db: Session, personnel_id: str) -> Dict[str, Any]:
     welfare_cases = db.query(WelfareCase).filter(
         WelfareCase.personnel_id == personnel_id
     ).order_by(WelfareCase.created_at.asc()).all()
-
-    # Find longitudinal self assessments
-    assessments = db.query(SelfAssessment).filter(
-        SelfAssessment.personnel_id == personnel_id
-    ).order_by(SelfAssessment.assessed_at.asc()).all()
 
     # Find predictions history
     predictions = db.query(RiskPrediction).filter(

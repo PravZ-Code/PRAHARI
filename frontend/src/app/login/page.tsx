@@ -46,6 +46,25 @@ export default function LoginPage() {
   useEffect(() => {
     setMounted(true);
     generateCaptcha();
+
+    const searchParams = new URLSearchParams(window.location.search);
+    const redirectParam = searchParams.get("redirect");
+    const errorParam = searchParams.get("error");
+
+    // If redirected to login with redirect or error param, the server rejected the session.
+    // Clear stale local storage auth data to immediately prevent an infinite redirect loop.
+    if (redirectParam || errorParam) {
+      clearAuthData();
+      if (errorParam === "session_expired") {
+        setErrorMessage("Your operational session has expired. Please sign in again.");
+      } else if (errorParam === "unauthorized") {
+        setErrorMessage("Your credentials could not be verified or session was revoked. Please sign in.");
+      } else if (redirectParam) {
+        setErrorMessage("Please sign in with authorized credentials to access this portal.");
+      }
+      return;
+    }
+
     if (isAuthenticated()) {
       const u = getStoredUser();
       let target = "/portal";
@@ -182,7 +201,7 @@ export default function LoginPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
         {/* LEFT COLUMN: Login Form (7 cols) */}
-        <div className="md:col-span-7 gov-card space-y-6">
+        <div className="md:col-span-7 ux4g-card ux4g-card-solid ux4g-card-vertical p-6 space-y-6">
           <div className="border-b border-slate-200 pb-3">
             <h2 className="text-base font-bold text-[#0c3866] flex items-center gap-2">
               <KeyRound className="w-4 h-4 text-[#0c3866]" />
@@ -194,7 +213,7 @@ export default function LoginPage() {
           </div>
 
           {errorMessage && (
-            <div className="p-3 bg-red-50 border border-red-300 rounded text-xs text-red-900 flex items-start gap-2">
+            <div className="ux4g-alert ux4g-alert-error flex items-start gap-2">
               <AlertCircle className="w-4 h-4 text-red-700 flex-shrink-0 mt-0.5" />
               <div>
                 <strong>Authentication Error:</strong> {errorMessage}
@@ -203,7 +222,7 @@ export default function LoginPage() {
           )}
 
           {successMessage && (
-            <div className="p-3 bg-emerald-50 border border-emerald-300 rounded text-xs text-emerald-900 flex items-center gap-2">
+            <div className="ux4g-alert ux4g-alert-success flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-700 flex-shrink-0" />
               <div>{successMessage}</div>
             </div>
@@ -225,8 +244,8 @@ export default function LoginPage() {
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter your service number or username"
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded focus:ring-2 focus:ring-[#0c3866] focus:border-transparent outline-none transition-all"
+                  placeholder="Enter service number (e.g. rajesh_kumar)"
+                  className="w-full pl-9 pr-4 py-2 text-sm border border-slate-300 rounded focus:ring-2 focus:ring-[#0c3866] focus:border-transparent outline-none transition-all"
                 />
               </div>
             </div>
@@ -275,7 +294,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={generateCaptcha}
-                  className="p-2 border border-slate-300 rounded hover:bg-slate-100 text-slate-600"
+                  className="ux4g-icon-btn ux4g-icon-btn-outline-primary ux4g-icon-btn-sm shrink-0"
                   title="Reload Captcha"
                   aria-label="Reload Captcha"
                 >
@@ -298,7 +317,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-4 py-2.5 px-4 bg-[#0c3866] hover:bg-[#0a2f55] text-white text-sm font-bold rounded shadow transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="ux4g-btn ux4g-btn-primary ux4g-btn-md w-full mt-4 flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {loading ? (
                 <>
@@ -318,7 +337,7 @@ export default function LoginPage() {
 
         {/* RIGHT COLUMN: Statutory Advisories & Security Compliance (5 cols) */}
         <div className="md:col-span-5 space-y-4">
-          <div className="gov-card space-y-3 bg-amber-50/40 border-amber-200">
+          <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-5 space-y-3 bg-amber-50/40 border-amber-200">
             <h3 className="text-xs font-bold text-amber-900 uppercase tracking-wide flex items-center gap-1.5">
               <Shield className="w-4 h-4 text-amber-800" />
               <span>Official Warning & Statutory Notice</span>
@@ -333,7 +352,7 @@ export default function LoginPage() {
             </ul>
           </div>
 
-          <div className="gov-card space-y-3">
+          <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-4 space-y-3">
             <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
               <FileCheck className="w-4 h-4 text-[#0c3866]" />
               <span>Cryptographic Governance</span>
@@ -347,7 +366,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-700 space-y-3">
+          <div className="ux4g-card ux4g-card-outline p-4 text-xs text-slate-700 space-y-3">
             <div className="flex items-center justify-between">
               <span className="font-bold text-slate-900 block">Authorized Role Portals</span>
               <span className="text-[10px] text-slate-500 font-mono">Demo Accounts</span>
@@ -359,56 +378,60 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setUsername("personnel_unit_a_01");
+                  setUsername("rajesh_kumar");
                   setPassword("demo123");
                   setCaptchaInput(captchaCode);
                 }}
                 className="p-2 bg-white hover:bg-amber-50/60 border border-amber-300 rounded text-left transition-colors cursor-pointer"
               >
                 <div className="font-bold text-[#0c3866] text-[11px]">Trooper (Personnel)</div>
-                <div className="text-[10px] text-slate-500 font-mono">personnel_unit_a_01</div>
+                <div className="text-[10px] text-slate-500 font-mono">rajesh_kumar</div>
+                <div className="text-[9px] text-slate-400 font-mono">CRP-2019-45821</div>
                 <div className="text-[9px] text-emerald-700 font-semibold mt-0.5">→ Trooper Portal</div>
               </button>
 
               <button
                 type="button"
                 onClick={() => {
-                  setUsername("commander_unit_a");
+                  setUsername("cmd_vikram");
                   setPassword("demo123");
                   setCaptchaInput(captchaCode);
                 }}
                 className="p-2 bg-white hover:bg-blue-50/60 border border-blue-300 rounded text-left transition-colors cursor-pointer"
               >
                 <div className="font-bold text-[#0c3866] text-[11px]">Company Commander</div>
-                <div className="text-[10px] text-slate-500 font-mono">commander_unit_a</div>
+                <div className="text-[10px] text-slate-500 font-mono">cmd_vikram</div>
+                <div className="text-[9px] text-slate-400 font-mono">Alpha Company</div>
                 <div className="text-[9px] text-blue-700 font-semibold mt-0.5">→ Command Center</div>
               </button>
 
               <button
                 type="button"
                 onClick={() => {
-                  setUsername("welfare_officer_01");
+                  setUsername("wo_meera");
                   setPassword("demo123");
                   setCaptchaInput(captchaCode);
                 }}
                 className="p-2 bg-white hover:bg-emerald-50/60 border border-emerald-300 rounded text-left transition-colors cursor-pointer"
               >
                 <div className="font-bold text-[#0c3866] text-[11px]">Welfare Officer</div>
-                <div className="text-[10px] text-slate-500 font-mono">welfare_officer_01</div>
+                <div className="text-[10px] text-slate-500 font-mono">wo_meera</div>
+                <div className="text-[9px] text-slate-400 font-mono">Battalion Welfare</div>
                 <div className="text-[9px] text-emerald-700 font-semibold mt-0.5">→ Welfare Desk</div>
               </button>
 
               <button
                 type="button"
                 onClick={() => {
-                  setUsername("system_admin");
+                  setUsername("admin_sys");
                   setPassword("demo123");
                   setCaptchaInput(captchaCode);
                 }}
                 className="p-2 bg-white hover:bg-purple-50/60 border border-purple-300 rounded text-left transition-colors cursor-pointer"
               >
                 <div className="font-bold text-[#0c3866] text-[11px]">System Administrator</div>
-                <div className="text-[10px] text-slate-500 font-mono">system_admin</div>
+                <div className="text-[10px] text-slate-500 font-mono">admin_sys</div>
+                <div className="text-[9px] text-slate-400 font-mono">System & Audit</div>
                 <div className="text-[9px] text-purple-700 font-semibold mt-0.5">→ Audit & Health</div>
               </button>
             </div>

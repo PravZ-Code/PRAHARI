@@ -5,6 +5,7 @@ import "./globals.css";
 import { HeaderSwitch } from "@/components/HeaderSwitch";
 import { FooterSwitch } from "@/components/FooterSwitch";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { CookieConsentBanner } from "@/components/CookieConsentBanner";
 import { I18nProvider } from "@/lib/i18n";
 
 const notoSans = Noto_Sans({ subsets: ["latin"], display: "swap", variable: "--font-noto-sans", weight: ["400", "500", "600", "700"] });
@@ -100,6 +101,7 @@ export default function RootLayout({
             {children}
           </main>
           <FooterSwitch />
+          <CookieConsentBanner />
         </I18nProvider>
         <script
           dangerouslySetInnerHTML={{

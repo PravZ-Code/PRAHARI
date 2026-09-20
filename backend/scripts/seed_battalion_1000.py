@@ -16,10 +16,10 @@ if hasattr(sys.stdout, "reconfigure"):
 import numpy as np
 import pandas as pd
 from sqlalchemy.orm import Session
-from database import engine, Base, SessionLocal
+from database import engine, Base, SessionLocal, auth_engine, AuthBase, AuthSessionLocal
 from models import *
 from middleware.rbac import get_password_hash
-from middleware.audit import compute_audit_hash, format_iso_timestamp
+from middleware.audit import compute_audit_hash, format_iso_timestamp, sign_audit_hash
 from ml.feature_engineering import build_feature_vector, FEATURE_COLUMNS
 from ml.cohort_builder import build_cohort_templates, match_personnel_to_cohort, blend_baseline
 from ml.train import train_model
@@ -133,10 +133,12 @@ def seed_battalion():
     print("================================================================================")
 
     # 1. Reset Database Tables
-    print("\n[STEP 1/9] Resetting and re-initializing database tables...")
+    print("\n[STEP 1/9] Resetting and re-initializing database tables across Auth DB and Personnel DB...")
+    AuthBase.metadata.drop_all(bind=auth_engine)
+    AuthBase.metadata.create_all(bind=auth_engine)
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
-    print("  [OK] Clean defense-grade schema created in prahari.db.")
+    print("  [OK] Clean defense-grade schema created in prahari_auth.db (Auth) and prahari.db (Personnel).")
 
     db: Session = SessionLocal()
     random.seed(42)
@@ -574,19 +576,23 @@ def seed_battalion():
             ("admin_sys", "demo123", "admin", None, None),
         ]
 
-        for uname, pwd, role, pid, uid in core_users:
-            u = User(
-                id=str(uuid.uuid4()),
-                username=uname,
-                password_hash=get_password_hash(pwd),
-                role=role,
-                personnel_id=pid,
-                unit_id=uid,
-                is_active=True
-            )
-            db.add(u)
-        db.flush()
-        print("  [OK] Authentication accounts provisioned for all command and clinical roles.")
+        auth_db: Session = AuthSessionLocal()
+        try:
+            for uname, pwd, role, pid, uid in core_users:
+                u = User(
+                    id=str(uuid.uuid4()),
+                    username=uname,
+                    password_hash=get_password_hash(pwd),
+                    role=role,
+                    personnel_id=pid,
+                    unit_id=uid,
+                    is_active=True
+                )
+                auth_db.add(u)
+            auth_db.commit()
+            print("  [OK] Authentication accounts provisioned in dedicated prahari_auth.db.")
+        finally:
+            auth_db.close()
 
         # 9. Cold-Start K-Means Cohorts, Personal Baselines & Model Training
         print("\n[STEP 9/9] Executing Feature Engineering, Cohort Clustering & Batch Inference...")
@@ -947,6 +953,7 @@ def seed_battalion():
                 sequence_number=seq,
                 previous_hash=prev_hash,
                 current_hash=curr_hash,
+                signature=sign_audit_hash(curr_hash),
                 user_id=admin_id,
                 action=act,
                 resource_type=res_type,
@@ -962,6 +969,10 @@ def seed_battalion():
 
         db.commit()
         print(f"  [OK] Successfully chained {len(audit_events)} audit blocks with SHA-256 genesis pointer.")
+
+        # Realistically calibrate timestamps, grievances, welfare cases, and audit logs
+        from scripts.make_data_realistic import make_data_realistic
+        make_data_realistic()
 
         print("\n================================================================================")
         print(" [SUCCESS] BATTALION SEEDING COMPLETE -- 1,000 PERSONNEL PROVISIONED")

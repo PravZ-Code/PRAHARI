@@ -308,7 +308,7 @@ function FlagshipWhatIfContent() {
                 Defense Decision Support Engine
               </span>
               <span className="text-xs text-slate-300">
-                XGBoost 3.4 • TreeSHAP Exact Attribution • URO Hungarian Solver
+                AI-Assisted Risk Analysis • Factor Attribution • Duty Balance Optimization
               </span>
             </div>
             <h1 className="text-2xl font-bold font-heading tracking-tight flex items-center gap-2.5">
@@ -316,8 +316,8 @@ function FlagshipWhatIfContent() {
               Flagship What-If Welfare Simulator
             </h1>
             <p className="text-xs text-slate-200 max-w-2xl leading-relaxed">
-              Synthesize counterfactual operational interventions before committing to the live roster.
-              Evaluates calibrated strain relief, exact SHAP attribution deltas, and whole-squad cascade risk.
+              Simulate proposed operational interventions before committing to the live roster.
+              Evaluates anticipated strain relief, key contributing factor changes, and unit-wide workload impact.
             </p>
           </div>
 
@@ -338,7 +338,7 @@ function FlagshipWhatIfContent() {
       {committedSuccess && (
         <div role="status" className="p-4 bg-emerald-100 border border-emerald-300 text-emerald-900 rounded-lg text-xs font-bold flex items-center gap-2 animate-fadeIn">
           <CheckCircle2 className="w-5 h-5 text-emerald-700 flex-shrink-0" />
-          <span>Counterfactual Plan Committed to Command Docket! Redirecting to Approvals...</span>
+          <span>Simulated Plan Committed to Command Docket! Redirecting to Approvals...</span>
         </div>
       )}
 
@@ -417,7 +417,7 @@ function FlagshipWhatIfContent() {
                 <button
                   type="button"
                   onClick={() => applyPreset("48h")}
-                  className="p-2 text-center rounded-lg border border-slate-200 hover:border-[#0c3866] hover:bg-slate-50 text-[11px] font-bold text-slate-700 transition"
+                  className="p-2 text-center rounded-lg border border-slate-200 hover:border-[#0c3866] hover:bg-slate-50 text-[11px] font-bold text-slate-700 hover-scale active-press hover-lift transition-all"
                 >
                   <Zap className="w-4 h-4 mx-auto mb-1 text-amber-500" />
                   48h Reset
@@ -425,7 +425,7 @@ function FlagshipWhatIfContent() {
                 <button
                   type="button"
                   onClick={() => applyPreset("leave")}
-                  className="p-2 text-center rounded-lg border border-slate-200 hover:border-[#0c3866] hover:bg-slate-50 text-[11px] font-bold text-slate-700 transition"
+                  className="p-2 text-center rounded-lg border border-slate-200 hover:border-[#0c3866] hover:bg-slate-50 text-[11px] font-bold text-slate-700 hover-scale active-press hover-lift transition-all"
                 >
                   <Home className="w-4 h-4 mx-auto mb-1 text-blue-500" />
                   Home Leave
@@ -433,7 +433,7 @@ function FlagshipWhatIfContent() {
                 <button
                   type="button"
                   onClick={() => applyPreset("zero_loss")}
-                  className="p-2 text-center rounded-lg border border-slate-200 hover:border-[#0c3866] hover:bg-slate-50 text-[11px] font-bold text-slate-700 transition"
+                  className="p-2 text-center rounded-lg border border-slate-200 hover:border-[#0c3866] hover:bg-slate-50 text-[11px] font-bold text-slate-700 hover-scale active-press hover-lift transition-all"
                 >
                   <ShieldCheck className="w-4 h-4 mx-auto mb-1 text-emerald-500" />
                   Zero Loss
@@ -599,9 +599,9 @@ function FlagshipWhatIfContent() {
           {simulation ? (
             <>
               {/* Dual Metric Score Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 animate-fade-in-up">
                 {/* Baseline Card */}
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2 hover-lift transition-all">
                   <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider block">
                     Current Baseline
                   </span>
@@ -617,10 +617,10 @@ function FlagshipWhatIfContent() {
                 </div>
 
                 {/* Arrow / Reduction Delta */}
-                <div className="bg-gradient-to-br from-emerald-500 to-teal-700 text-white p-4 rounded-xl shadow-sm flex flex-col justify-between">
+                <div className="bg-gradient-to-br from-emerald-500 to-teal-700 text-white p-4 rounded-xl shadow-sm flex flex-col justify-between hover-lift transition-all">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-100 flex items-center gap-1">
-                    <TrendingDown className="w-3.5 h-3.5" />
-                    Calibrated Relief
+                    <TrendingDown className="w-3.5 h-3.5 animate-bounce" />
+                    Projected Relief
                   </span>
                   <div>
                     <span className="text-2xl font-black font-mono">
@@ -631,12 +631,12 @@ function FlagshipWhatIfContent() {
                     </span>
                   </div>
                   <span className="text-[10px] text-emerald-200">
-                    Validated via TreeSHAP
+                    Attribution Validated
                   </span>
                 </div>
 
                 {/* Counterfactual Projected Card */}
-                <div className="bg-white p-4 rounded-xl border-2 border-emerald-500 shadow-sm space-y-2">
+                <div className="bg-white p-4 rounded-xl border-2 border-emerald-500 shadow-sm space-y-2 hover-lift transition-all">
                   <span className="text-[10px] font-bold uppercase text-emerald-800 tracking-wider block">
                     Projected Scenario
                   </span>
@@ -652,17 +652,17 @@ function FlagshipWhatIfContent() {
                 </div>
               </div>
 
-              {/* TreeSHAP Factor Attribution Shifts */}
+              {/* Contributing Factor Attribution Shifts */}
               <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
                 <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
                   <div className="flex items-center gap-2">
                     <Activity className="w-4 h-4 text-[#0c3866]" />
                     <h3 className="text-xs font-bold text-slate-900 font-heading uppercase tracking-wider">
-                      TreeSHAP Factor Attribution Delta
+                      Key Contributing Factors Delta
                     </h3>
                   </div>
                   <span className="text-[10px] font-mono text-slate-500">
-                    Shapley Values (Log-Odds Shift)
+                    Risk Contribution Shift
                   </span>
                 </div>
 
@@ -829,7 +829,7 @@ function FlagshipWhatIfContent() {
             <div className="bg-white p-12 rounded-xl border border-slate-200 shadow-sm text-center text-slate-500 space-y-3">
               <Loader2 className="w-8 h-8 animate-spin text-[#0c3866] mx-auto" />
               <p className="text-xs font-semibold">
-                Initializing Calibrated XGBoost Counterfactual Studio...
+                Initializing Operational Impact Simulator...
               </p>
             </div>
           )}

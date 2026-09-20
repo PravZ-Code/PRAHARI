@@ -23,6 +23,10 @@ class Settings(BaseSettings):
         "DATABASE_URL", 
         f"sqlite:///{os.path.join(os.path.dirname(os.path.abspath(__file__)), 'prahari.db')}"
     )
+    AUTH_DATABASE_URL: str = os.getenv(
+        "AUTH_DATABASE_URL",
+        f"sqlite:///{os.path.join(os.path.dirname(os.path.abspath(__file__)), 'prahari_auth.db')}"
+    )
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "prahari-dev-secret-key-mha-defense-grid-2026-secure")
     JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
@@ -50,6 +54,12 @@ if settings.DATABASE_URL.startswith("sqlite:///./"):
     settings.DATABASE_URL = "sqlite:///" + os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         settings.DATABASE_URL.removeprefix("sqlite:///./"),
+    )
+
+if settings.AUTH_DATABASE_URL.startswith("sqlite:///./"):
+    settings.AUTH_DATABASE_URL = "sqlite:///" + os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        settings.AUTH_DATABASE_URL.removeprefix("sqlite:///./"),
     )
 
 if settings.APP_ENV == "production":

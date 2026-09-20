@@ -280,14 +280,14 @@ export const translations = {
     innovations: {
       tag: "INNOVATIVE PUBLIC SERVICE CAPABILITIES",
       title: "Next-Generation Welfare Architecture",
-      desc: "PRAHARI integrates clinical lexicon protections, algorithmic duty balancing, and cryptographic integrity.",
+      desc: "PRAHARI integrates clinical lexicon protections, operational duty balancing, and statutory record integrity.",
       guardrails: {
         title: "AI Clinical Lexicon Guardrails",
         desc: "Converts clinical terms to operational stress language, preventing career stigmatization under Section 21 of the Mental Healthcare Act 2017.",
       },
       uro: {
-        title: "Unit Resilience Optimizer (URO)",
-        desc: "Fair, trade-matched shift swapping algorithm with strict 8-hour circadian rest barrier and maximum 2 high-burden shifts per week.",
+        title: "Operational Duty Balance (Shift Swapper)",
+        desc: "Fair, trade-matched shift swapping capability with rest preservation and balanced shift distribution.",
       },
       ledger: {
         title: "Cryptographic SHA-256 Audit Ledger",
@@ -587,14 +587,14 @@ export const translations = {
     innovations: {
       tag: "नवाचारी लोक सेवा क्षमताएं",
       title: "अगली पीढ़ी की कल्याणकारी संरचना",
-      desc: "प्रहरी नैदानिक भाषा संरक्षण, एल्गोरिथम ड्यूटी संतुलन और क्रिप्टोग्राफिक सुरक्षा को एकीकृत करता है।",
+      desc: "प्रहरी नैदानिक भाषा संरक्षण, परिचालन ड्यूटी संतुलन और वैधानिक सुरक्षा को एकीकृत करता है।",
       guardrails: {
         title: "एआई नैदानिक भाषा सुरक्षा",
         desc: "नैदानिक शब्दों को परिचालन तनाव की भाषा में परिवर्तित करता है, जिससे मानसिक स्वास्थ्य अधिनियम 2017 की धारा 21 के तहत सेवा में कोई आंच नहीं आती।",
       },
       uro: {
-        title: "इकाई लचीलापन अनुकूलक (यूआरओ)",
-        desc: "सख्त 8 घंटे के विश्राम नियम और प्रति सप्ताह अधिकतम 2 कठिन शिफ्टों के साथ निष्पक्ष ट्रेड-आधारित ड्यूटी स्वैपिंग एल्गोरिदम।",
+        title: "परिचालन ड्यूटी संतुलन (शिफ्ट स्वैपर)",
+        desc: "सख्त विश्राम नियम और संतुलित ड्यूटी वितरण के साथ निष्पक्ष ट्रेड-आधारित ड्यूटी स्वैपिंग सुविधा।",
       },
       ledger: {
         title: "क्रिप्टोग्राफिक एसएचए-256 ऑडिट लेजर",

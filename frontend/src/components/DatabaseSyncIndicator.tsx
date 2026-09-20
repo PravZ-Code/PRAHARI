@@ -54,9 +54,12 @@ export const DatabaseSyncIndicator: React.FC<DatabaseSyncIndicatorProps> = ({ co
           <button
             onClick={() => setShowModal(true)}
             title="Real-time SSE database stream active. Click for metrics."
-            className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-700/60 text-emerald-300 font-mono text-[11px] hover:bg-emerald-900/80 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-700/60 text-emerald-300 font-mono text-[11px] hover:bg-emerald-900/80 transition-all active-press hover-scale cursor-pointer"
           >
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="relative flex h-2 w-2">
+              <span className="animate-radar-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+            </span>
             <span className="font-bold">
               {compact ? "SYNCED" : `DB SYNCED (${latencyMs.toFixed(1)}ms)`}
             </span>
@@ -64,7 +67,7 @@ export const DatabaseSyncIndicator: React.FC<DatabaseSyncIndicatorProps> = ({ co
         );
       case "syncing":
         return (
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-950/80 border border-blue-600/80 text-blue-300 font-mono text-[11px]">
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-950/80 border border-blue-600/80 text-blue-300 font-mono text-[11px] animate-pulse">
             <RefreshCw className="w-3 h-3 text-blue-400 animate-spin" />
             <span className="font-bold">SYNCING...</span>
           </div>
@@ -74,9 +77,12 @@ export const DatabaseSyncIndicator: React.FC<DatabaseSyncIndicatorProps> = ({ co
           <button
             onClick={() => setShowModal(true)}
             title="Active via high-speed delta polling. Click for details."
-            className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-700/60 text-cyan-300 font-mono text-[11px] hover:bg-cyan-900/80 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-700/60 text-cyan-300 font-mono text-[11px] hover:bg-cyan-900/80 transition-all active-press hover-scale cursor-pointer"
           >
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+            <span className="relative flex h-2 w-2">
+              <span className="animate-radar-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400" />
+            </span>
             <span className="font-bold">
               {compact ? "DELTA" : `DELTA SYNC (${latencyMs.toFixed(1)}ms)`}
             </span>
@@ -87,7 +93,7 @@ export const DatabaseSyncIndicator: React.FC<DatabaseSyncIndicatorProps> = ({ co
           <button
             onClick={() => setShowModal(true)}
             title="Network disconnected. Requests are buffered locally."
-            className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-800 border border-slate-600 text-slate-300 font-mono text-[11px] hover:bg-slate-700 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-800 border border-slate-600 text-slate-300 font-mono text-[11px] hover:bg-slate-700 transition-all active-press hover-scale cursor-pointer"
           >
             <WifiOff className="w-3 h-3 text-slate-400" />
             <span className="font-bold">OFFLINE</span>
@@ -98,11 +104,11 @@ export const DatabaseSyncIndicator: React.FC<DatabaseSyncIndicatorProps> = ({ co
         return (
           <button
             onClick={() => setShowModal(true)}
-            title="Connecting to database synchronization stream..."
-            className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-950/50 border border-amber-700/50 text-amber-300 font-mono text-[11px] cursor-pointer"
+            title="Establishing secure WebSocket / SSE tunnel..."
+            className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-800 border border-slate-600 text-slate-400 font-mono text-[11px] transition-all active-press hover-scale cursor-pointer"
           >
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            <span>CONNECTING DB...</span>
+            <span className="w-2 h-2 rounded-full bg-slate-500 animate-ping" />
+            <span className="font-bold">CONNECTING...</span>
           </button>
         );
     }
@@ -115,12 +121,12 @@ export const DatabaseSyncIndicator: React.FC<DatabaseSyncIndicatorProps> = ({ co
       {/* Tactical Database Synchronization Modal */}
       {showModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in"
           role="dialog"
           aria-modal="true"
           aria-labelledby="sync-modal-title"
         >
-          <div className="bg-[#051c36] text-white border-2 border-[#0c3866] rounded-lg shadow-2xl max-w-xl w-full p-6 relative space-y-5">
+          <div className="bg-[#051c36] text-white border-2 border-[#0c3866] rounded-lg shadow-2xl max-w-xl w-full p-6 relative space-y-5 animate-scale-in">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2.5">

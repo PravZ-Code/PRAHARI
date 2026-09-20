@@ -124,10 +124,11 @@ def approve_uro_result(
     run_id: str,
     req: Optional[UROApproveRequest] = None,
     single_sign: bool = False,
-    current_user: User = Depends(require_role("commander", "welfare", "admin", "personnel", "soldier")),
+    current_user: User = Depends(require_role("commander", "welfare", "admin")),
     db: Session = Depends(get_db)
 ):
-    run = db.query(URORun).filter(URORun.id == run_id).first()
+    base_run_id = run_id.rsplit("_", 1)[0] if ("_" in run_id and not run_id.startswith("uro_swap") and not run_id.startswith("swap_")) else run_id
+    run = db.query(URORun).filter((URORun.id == run_id) | (URORun.id == base_run_id)).first()
     if not run:
         if run_id.startswith("uro_swap_") or run_id.startswith("swap_"):
             now_iso = datetime.now(timezone.utc).isoformat()

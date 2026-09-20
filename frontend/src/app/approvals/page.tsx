@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { getStoredUser, isAuthenticated } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { useDataSync } from "@/lib/useDataSync";
+import { formatCategory } from "@/lib/formatters";
 import {
   Shield,
   CheckCircle2,
@@ -45,6 +46,11 @@ interface ApprovalItem {
     trade: string;
     restHours: string;
     impactSummary: string;
+  };
+  guardrails?: {
+    replacementRest: string;
+    overloadBarrier: string;
+    tradeMatch: string;
   };
   status: "Waiting for Decision" | "Approved" | "Rejected" | "Under Review";
 }
@@ -100,10 +106,10 @@ export default function HumanApprovalDocketPage() {
           serviceNo: g.rank ? `${g.rank} · ${trade}` : "CRPF-GD",
           rank: g.rank || "Constable (GD)",
           unit: g.unit_name || "Battalion Command",
-          requestType: g.category?.replace(/_/g, " ") || g.request_type || "Leave Application",
+          requestType: formatCategory(g.category || g.request_type, "Leave Application"),
           submittedDate: submitted,
           whyNeedsAttention: g.description || (g.is_fast_lane ? "Urgent emergency request flagged for immediate commander review." : "Standard leave application awaiting unit officer sanction."),
-          suggestedAction: `Sanction ${g.request_type || "leave"} and assign replacement sentry cover to ${coverName}.`,
+          suggestedAction: `Sanction ${formatCategory(g.request_type || "leave")} and assign replacement sentry cover to ${coverName}.`,
           operationalChecks: [
             { title: "Qualifications & Trade", status: "pass", explanation: `Both soldiers share compatible MOS (${trade}).` },
             { title: "Rest Between Shifts", status: "pass", explanation: `${coverName} has > 12 hours rest prior to duty.` },
@@ -116,6 +122,11 @@ export default function HumanApprovalDocketPage() {
             trade: `${trade}`,
             restHours: "> 12 hours rest prior to watch",
             impactSummary: "Safe: Replacement has verified rest buffer and compatible trade skills.",
+          },
+          guardrails: {
+            replacementRest: "> 12 hours rest prior to duty",
+            overloadBarrier: "Within safe weekly shift ceiling",
+            tradeMatch: `Compatible MOS (${trade})`,
           },
           status: g.status === "approved" ? "Approved" : g.status === "rejected" ? "Rejected" : "Waiting for Decision",
         };
@@ -282,7 +293,7 @@ export default function HumanApprovalDocketPage() {
 
       {/* Main Decision Workspace */}
       {activeItem && (
-        <div className="gov-card p-6 space-y-6 bg-white">
+        <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-6 space-y-6">
           {/* Question 1: Who needs attention? */}
           <div className="border-b border-slate-200 pb-4 space-y-1">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
@@ -319,63 +330,46 @@ export default function HumanApprovalDocketPage() {
             <span className="font-bold text-[#0c3866] uppercase tracking-wider block">
               What can I do? (Suggested Action)
             </span>
-            <div className="p-3.5 rounded-lg bg-blue-50 border border-blue-200 text-[#0c3866] font-semibold leading-relaxed">
-              {activeItem.suggestedAction}
-            </div>
-          </div>
+            <div className="p-4 rounded-lg bg-emerald-50/60 border border-emerald-300 space-y-3">
+              <div className="flex items-start gap-2 text-emerald-950 font-semibold text-xs leading-relaxed">
+                <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                <span>{activeItem.suggestedAction}</span>
+              </div>
 
-          {/* Question 4: Will this affect someone else? (Operational Checks) */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Will this affect someone else? (Operational Checks)
-              </h3>
-              <span className="text-[11px] text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                Safe &amp; Balanced
-              </span>
-            </div>
-
-            <div className="space-y-2 text-xs">
-              {activeItem.operationalChecks.map((chk) => (
-                <div
-                  key={chk.title}
-                  className="p-3 rounded-lg bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
-                >
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
-                    <strong className="text-slate-900">{chk.title}</strong>
-                  </div>
-                  <span className="text-slate-700 sm:text-right">{chk.explanation}</span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-emerald-200 text-[11px] text-emerald-900">
+                <div>
+                  <span className="text-emerald-700 block">Teammate Rest:</span>
+                  <strong>{activeItem.guardrails?.replacementRest || activeItem.teamImpact?.restHours || "> 12 hours rest"}</strong>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Replacement Soldier Summary */}
-          <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-xs space-y-2">
-            <span className="font-bold text-slate-800 block">Replacement Cover Summary:</span>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <span className="text-slate-500 block">Replacement Soldier:</span>
-                <strong className="text-slate-900">{activeItem.teamImpact.replacementPerson}</strong>
-              </div>
-              <div>
-                <span className="text-slate-500 block">Rest Status:</span>
-                <strong className="text-emerald-700">{activeItem.teamImpact.restHours}</strong>
-              </div>
-              <div>
-                <span className="text-slate-500 block">Team Impact:</span>
-                <strong className="text-slate-900">{activeItem.teamImpact.impactSummary}</strong>
+                <div>
+                  <span className="text-emerald-700 block">Duty Hours Check:</span>
+                  <strong>{activeItem.guardrails?.overloadBarrier || "Safe limit maintained"}</strong>
+                </div>
+                <div>
+                  <span className="text-emerald-700 block">Trade Compatibility:</span>
+                  <strong>{activeItem.guardrails?.tradeMatch || activeItem.teamImpact?.trade || "General Duty"}</strong>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Decision Controls */}
+          {/* Question 4: How will we know it worked? */}
+          <div className="space-y-1.5 text-xs">
+            <span className="font-bold text-slate-700 uppercase tracking-wider block">
+              How will we know it worked? (Follow-up Check)
+            </span>
+            <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 flex items-start gap-2 text-slate-700">
+              <Clock className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
+              <span>{activeItem.followUpTimeline}</span>
+            </div>
+          </div>
+
+          {/* Decision Actions Bar */}
           <div className="pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Link
                 href="/what-if"
-                className="ux4g-btn ux4g-btn-outline-primary ux4g-btn-sm flex items-center gap-1.5"
+                className="ux4g-btn ux4g-btn-outline-primary ux4g-btn-sm inline-flex items-center gap-1.5"
               >
                 <Scale className="w-3.5 h-3.5" />
                 <span>Try Another Plan</span>
@@ -403,7 +397,7 @@ export default function HumanApprovalDocketPage() {
                 type="button"
                 disabled={actionLoading}
                 onClick={() => handleAction("Rejected")}
-                className="ux4g-btn ux4g-btn-danger ux4g-btn-sm bg-rose-600 hover:bg-rose-700 text-white"
+                className="ux4g-btn ux4g-btn-danger ux4g-btn-sm"
               >
                 <XCircle className="w-3.5 h-3.5 mr-1" />
                 <span>Reject</span>
@@ -413,7 +407,7 @@ export default function HumanApprovalDocketPage() {
                 type="button"
                 disabled={actionLoading}
                 onClick={() => handleAction("Approved")}
-                className="ux4g-btn ux4g-btn-primary ux4g-btn-md bg-[#138808] hover:bg-[#0d6506] text-white font-bold"
+                className="ux4g-btn ux4g-btn-primary ux4g-btn-md flex items-center"
               >
                 <CheckCircle2 className="w-4 h-4 mr-1.5" />
                 <span>Approve</span>

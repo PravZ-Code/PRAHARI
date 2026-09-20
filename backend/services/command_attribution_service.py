@@ -5,8 +5,8 @@ peer units under similar operational conditions. Designed as a private, non-puni
 self-correction insight for Company Commanders.
 """
 
-from datetime import datetime, date, timedelta, timezone
-from typing import Dict, Any, List
+from datetime import datetime, timedelta, timezone
+from typing import Dict, Any
 import numpy as np
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -14,7 +14,6 @@ from sqlalchemy import func
 from models.personnel import Unit, Personnel
 from models.leave import LeaveRecord
 from models.duty_roster import DutyRoster
-from models.prediction import RiskPrediction
 from models.grievance import GrievanceRequest
 
 

@@ -121,13 +121,37 @@ export default function SupportOutcomeRecoveryPage() {
         </div>
       </div>
 
+      {/* 6-Stage Lifecycle Stepper Direct Banner */}
+      <div className="bg-gradient-to-r from-slate-900 via-[#072648] to-[#0c3866] text-white p-4 rounded-xl shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 border border-slate-700">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-400 shrink-0">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-white">
+              Dedicated 6-Stage Recovery Timeline
+            </h2>
+            <p className="text-xs text-slate-300">
+              Audit trail: Baseline → Risk detected → Human review → Intervention → Follow-up → Recovery verified.
+            </p>
+          </div>
+        </div>
+        <Link
+          href="/portal/recovery-timeline"
+          className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-md shadow-xs flex items-center gap-1.5 transition-colors shrink-0"
+        >
+          <span>Open 6-Stage Timeline</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
+      </div>
+
       {loading ? (
         <div className="flex flex-col items-center justify-center p-12 space-y-3">
           <Loader2 className="w-8 h-8 animate-spin text-[#0c3866]" />
           <p className="text-xs font-semibold text-slate-600">Loading recovery cases from live database...</p>
         </div>
       ) : cases.length === 0 ? (
-        <div className="gov-card p-8 text-center text-slate-500 text-xs">
+        <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-8 text-center text-slate-500 text-xs">
           No active recovery cases requiring follow-up.
         </div>
       ) : (
@@ -144,11 +168,7 @@ export default function SupportOutcomeRecoveryPage() {
                   setFeedbackOption("");
                   setComments("");
                 }}
-                className={`px-3 py-1.5 rounded text-xs font-semibold border transition-colors flex items-center gap-1.5 ${
-                  selectedCaseRef === c.ref
-                    ? "bg-[#0c3866] text-white border-[#0c3866]"
-                    : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
-                }`}
+                className={`ux4g-filter-chip-md ${selectedCaseRef === c.ref ? "active" : ""}`}
               >
                 <span>{c.ref}</span>
                 <span className="text-[10px] opacity-80">({c.trooperName})</span>
@@ -157,7 +177,7 @@ export default function SupportOutcomeRecoveryPage() {
           </div>
 
           {activeCase && (
-            <div className="gov-card p-6 space-y-6 bg-white">
+            <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-6 space-y-6 bg-white">
               {/* Summary of what support was given */}
               <div className="border-b border-slate-200 pb-4 space-y-1">
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
@@ -258,7 +278,7 @@ export default function SupportOutcomeRecoveryPage() {
                       value={comments}
                       onChange={(e) => setComments(e.target.value)}
                       placeholder="Share any other thoughts with your welfare team..."
-                      className="gov-input"
+                      className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-xs focus:ring-2 focus:ring-primary-500"
                     />
                   </div>
 
@@ -290,14 +310,14 @@ export default function SupportOutcomeRecoveryPage() {
           )}
 
           {/* Section 28: Intervention Effectiveness Registry */}
-          <div className="gov-card p-6 space-y-4 bg-white border border-slate-200 shadow-sm mt-6">
+          <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-6 space-y-4 bg-white border border-slate-200 shadow-sm mt-6">
             <div className="border-b border-slate-200 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-base font-bold text-slate-900 font-heading">
                     Intervention Effectiveness Registry (Section 28)
                   </h2>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-[#0c3866] border border-blue-200 uppercase">
+                  <span className="ux4g-tag-tonal-brand ux4g-tag-s font-bold uppercase">
                     Institutional Learning
                   </span>
                 </div>

@@ -6,16 +6,12 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  FileText,
   AlertTriangle,
   CheckCircle2,
   Clock,
   Printer,
-  Shield,
   ArrowLeft,
-  Calendar,
   HeartHandshake,
-  HelpCircle,
   Search,
 } from "lucide-react";
 import { api } from "@/lib/api";
@@ -87,8 +83,9 @@ function RequestWelfareContent() {
     const refNo = `PRH-2026-${Math.floor(100000 + Math.random() * 900000)}`;
     const submissionDate = new Date().toISOString();
 
+    const isLeave = requestType.toLowerCase().includes("leave") || requestType.toLowerCase().includes("emergency");
     const requestBody = {
-      request_type: requestType.toLowerCase().includes("leave") ? "leave" : requestType.toLowerCase().includes("emergency") ? "leave" : "grievance",
+      request_type: isLeave ? "leave" : "grievance",
       category: requestType.toLowerCase().replace(/\s+/g, "_"),
       description: `${reason}${additionalDetails ? ` - ${additionalDetails}` : ""}`,
       filing_channel: "pwa",
@@ -202,7 +199,7 @@ function RequestWelfareContent() {
 
       {submittedReceipt ? (
         /* Acknowledgement Receipt View */
-        <div className="gov-card p-6 sm:p-8 space-y-6 bg-white border-2 border-slate-300">
+        <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-6 sm:p-8 space-y-6 bg-white border-2 border-slate-300">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b-2 border-slate-200 pb-4 gap-4">
             <div className="flex items-center gap-3.5">
               <div className="w-10 h-12 flex items-center justify-center flex-shrink-0">
@@ -337,7 +334,7 @@ function RequestWelfareContent() {
         </div>
       ) : (
         /* Form View */
-        <form onSubmit={handleSubmit} className="gov-card space-y-6 bg-white p-6">
+        <form onSubmit={handleSubmit} className="ux4g-card ux4g-card-solid ux4g-card-vertical space-y-6 bg-white p-6">
           {/* Soldier Particulars Banner */}
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
             <div>
@@ -358,14 +355,14 @@ function RequestWelfareContent() {
           <div className="space-y-4">
             {/* Request Type */}
             <div>
-              <label htmlFor="req-type" className="gov-label">
+              <label htmlFor="req-type" className="block text-xs font-bold text-slate-700 mb-1">
                 What kind of help do you need? <span className="text-red-600">*</span>
               </label>
               <select
                 id="req-type"
                 value={requestType}
                 onChange={(e) => setRequestType(e.target.value)}
-                className="gov-input font-medium"
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary-500"
                 required
               >
                 <option value="Leave">Leave (Rest, Family Visit, Planned Time Off)</option>
@@ -378,7 +375,7 @@ function RequestWelfareContent() {
 
             {/* Urgency */}
             <div>
-              <label className="gov-label">
+              <label className="block text-xs font-bold text-slate-700 mb-1">
                 How urgent is this? <span className="text-red-600">*</span>
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
@@ -434,7 +431,7 @@ function RequestWelfareContent() {
 
             {/* Reason */}
             <div>
-              <label htmlFor="reason" className="gov-label">
+              <label htmlFor="reason" className="block text-xs font-bold text-slate-700 mb-1">
                 Please explain what happened or why you need help <span className="text-red-600">*</span>
               </label>
               <textarea
@@ -443,7 +440,7 @@ function RequestWelfareContent() {
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="Write in simple words. For example: My mother is in the hospital and I need 10 days leave to care for her..."
-                className="gov-input"
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-xs focus:ring-2 focus:ring-primary-500"
                 required
               />
               <p className="text-[11px] text-slate-500 mt-1">
@@ -453,7 +450,7 @@ function RequestWelfareContent() {
 
             {/* Additional Details */}
             <div>
-              <label htmlFor="additional" className="gov-label">
+              <label htmlFor="additional" className="block text-xs font-bold text-slate-700 mb-1">
                 Additional Details (Optional)
               </label>
               <input
@@ -462,7 +459,7 @@ function RequestWelfareContent() {
                 value={additionalDetails}
                 onChange={(e) => setAdditionalDetails(e.target.value)}
                 placeholder="For example: hospital name, city, or flight date"
-                className="gov-input"
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-xs focus:ring-2 focus:ring-primary-500"
               />
             </div>
 
@@ -476,10 +473,11 @@ function RequestWelfareContent() {
                   className="mt-0.5 rounded text-[#0c3866] focus:ring-[#0c3866]"
                 />
                 <span>
-                  <strong>Confirmation:</strong> I confirm that the information provided is correct. I understand that a human officer will review and decide on my request.
+                  <strong>Confirmation & Confidentiality:</strong> I confirm that the information provided is factual and submitted voluntarily. I understand this request is completely confidential, protected under welfare regulations, and will be promptly evaluated by an authorized officer.
                 </span>
               </label>
             </div>
+
           </div>
 
           {/* Form Submit Actions */}

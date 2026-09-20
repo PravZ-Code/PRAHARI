@@ -1,7 +1,10 @@
 import asyncio
+import logging
 from datetime import datetime, timezone
 from database import SessionLocal
 from models.welfare_case import WelfareCase, SLAEscalation
+
+logger = logging.getLogger(__name__)
 
 def to_naive(dt):
     if dt is None:
@@ -13,7 +16,7 @@ async def start_sla_worker():
     Continuous background monitor checking SLA timers every 60 seconds.
     Escalates cases that breach acknowledgment (24h/4h) or action plan (72h/24h) limits.
     """
-    print("[SLA] Welfare SLA Monitor Service initialized.")
+    logger.info("[SLA] Welfare SLA Monitor Service initialized.")
     while True:
         db = SessionLocal()
         try:
@@ -56,7 +59,7 @@ async def start_sla_worker():
                         breached_ack.append(case)
                     except Exception as err:
                         db.rollback()
-                        print(f"[SLA Worker] Error updating ack SLA for case {case.id}: {err}")
+                        logger.error(f"[SLA Worker] Error updating ack SLA for case {case.id}: {err}")
 
             # 2. Check Action Plan SLA breaches
             acked_cases = db.query(WelfareCase).filter(
@@ -94,19 +97,19 @@ async def start_sla_worker():
                         breached_plan.append(case)
                     except Exception as err:
                         db.rollback()
-                        print(f"[SLA Worker] Error updating plan SLA for case {case.id}: {err}")
+                        logger.error(f"[SLA Worker] Error updating plan SLA for case {case.id}: {err}")
 
             # 3. Check Grievance / Leave SLA breaches & auto-escalate
             try:
                 from services.grievance_service import auto_scan_and_escalate
                 auto_scan_and_escalate(db)
             except Exception as ge:
-                print(f"[SLA Worker Error] Error scanning grievance SLAs: {ge}")
+                logger.error(f"[SLA Worker Error] Error scanning grievance SLAs: {ge}")
 
 
         except Exception as e:
             db.rollback()
-            print(f"[SLA Worker Error] Error scanning welfare SLAs: {e}")
+            logger.error(f"[SLA Worker Error] Error scanning welfare SLAs: {e}")
         finally:
             db.close()
 

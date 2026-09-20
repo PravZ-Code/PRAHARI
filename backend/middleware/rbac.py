@@ -6,7 +6,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
 from config import settings
-from database import get_db
+from database import get_db, get_auth_db
 from models.user import User
 
 security = HTTPBearer(auto_error=False)
@@ -36,14 +36,16 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 async def get_current_user(
     request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db)
+    auth_db: Session = Depends(get_auth_db)
 ) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    token = credentials.credentials if credentials else request.cookies.get("prahari_session")
+    token = credentials.credentials if credentials else (
+        request.cookies.get("prahari_session") or request.query_params.get("token")
+    )
     if not token:
         raise credentials_exception
     try:
@@ -58,10 +60,36 @@ async def get_current_user(
     except JWTError:
         raise credentials_exception
 
-    user = db.query(User).filter(User.id == user_id).first()
+    user = auth_db.query(User).filter(User.id == user_id).first()
     if user is None or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User inactive or not found")
     return user
+
+async def get_optional_current_user(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    auth_db: Session = Depends(get_auth_db)
+) -> Optional[User]:
+    token = credentials.credentials if credentials else (
+        request.cookies.get("prahari_session") or request.query_params.get("token")
+    )
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(
+            token,
+            settings.JWT_SECRET_KEY,
+            algorithms=[settings.JWT_ALGORITHM]
+        )
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            return None
+        user = auth_db.query(User).filter(User.id == user_id).first()
+        if user is None or not user.is_active:
+            return None
+        return user
+    except Exception:
+        return None
 
 ROLE_ALIASES = {
     "welfare_officer": "welfare",

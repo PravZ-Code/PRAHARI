@@ -19,10 +19,10 @@ def test_sync_status_endpoint():
     assert "grievances" in data["record_counts"]
     assert data["wal_checkpoint"] == "healthy"
 
-def test_sync_delta_endpoint_and_etag():
+def test_sync_delta_endpoint_and_etag(admin_headers):
     """Verify /api/sync/delta returns incremental records and respects HTTP 304 Not Modified."""
     since_fixed = "2026-09-01T00:00:00Z"
-    response = client.get(f"/api/sync/delta?since={since_fixed}")
+    response = client.get(f"/api/sync/delta?since={since_fixed}", headers=admin_headers)
     assert response.status_code == 200
     data = response.json()
     assert "cursor" in data
@@ -34,10 +34,11 @@ def test_sync_delta_endpoint_and_etag():
     assert etag is not None
 
     # Test conditional request with If-None-Match
-    cached_response = client.get(f"/api/sync/delta?since={since_fixed}", headers={"If-None-Match": etag})
+    cond_headers = {**admin_headers, "If-None-Match": etag}
+    cached_response = client.get(f"/api/sync/delta?since={since_fixed}", headers=cond_headers)
     assert cached_response.status_code == 304
 
-def test_sync_push_batch_offline():
+def test_sync_push_batch_offline(personnel_headers):
     """Verify /api/sync/push atomically ingests offline-buffered mutations."""
     unique_assess_id = f"offline-assess-{uuid.uuid4()}"
     unique_grv_id = f"offline-grv-{uuid.uuid4()}"
@@ -69,7 +70,7 @@ def test_sync_push_batch_offline():
             }
         ]
     }
-    response = client.post("/api/sync/push", json=batch_payload)
+    response = client.post("/api/sync/push", json=batch_payload, headers=personnel_headers)
     assert response.status_code == 200
     data = response.json()
     assert data["synced_count"] >= 2
@@ -78,7 +79,7 @@ def test_sync_push_batch_offline():
     assert data["results"][1]["status"] == "synced"
 
     # Idempotent push of the exact same queue IDs
-    re_response = client.post("/api/sync/push", json=batch_payload)
+    re_response = client.post("/api/sync/push", json=batch_payload, headers=personnel_headers)
     assert re_response.status_code == 200
     re_data = re_response.json()
     assert re_data["results"][0]["status"] == "already_synced"
@@ -96,9 +97,9 @@ def test_sync_broadcaster_pub_sub():
     finally:
         sync_broadcaster.unsubscribe(queue)
 
-def test_sync_sse_stream_initial_handshake():
+def test_sync_sse_stream_initial_handshake(admin_headers):
     """Verify /api/sync/stream yields initial sync_connected SSE event."""
-    response = client.get("/api/sync/stream?max_events=1")
+    response = client.get("/api/sync/stream?max_events=1", headers=admin_headers)
     assert response.status_code == 200
     assert "text/event-stream" in response.headers.get("content-type", "")
     content = response.text

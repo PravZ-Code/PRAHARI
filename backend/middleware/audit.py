@@ -105,7 +105,7 @@ def format_details_json(details) -> str:
 
 def compute_audit_hash(
     prev_hash: str,
-    user_id: str,
+    user_id: Optional[str],
     action: str,
     resource_type: str,
     resource_id: Optional[str],
@@ -113,8 +113,9 @@ def compute_audit_hash(
     timestamp_iso: str,
     details_json: str
 ) -> str:
-    res_id = str(resource_id) if resource_id is not None else ""
-    raw = f"{prev_hash}|{user_id}|{action}|{resource_type}|{res_id}|{endpoint}|{timestamp_iso}|{details_json}"
+    uid = str(user_id) if user_id is not None and str(user_id) != "None" else ""
+    res_id = str(resource_id) if resource_id is not None and str(resource_id) != "None" else ""
+    raw = f"{prev_hash}|{uid}|{action}|{resource_type}|{res_id}|{endpoint}|{timestamp_iso}|{details_json}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 def log_audit(
@@ -155,20 +156,7 @@ def log_audit(
                     if not db:
                         lookup_db.close()
 
-        if not user_id:
-            lookup_db = db or SessionLocal()
-            try:
-                sys_u = lookup_db.query(User.id).filter(
-                    (User.username == "admin_sys") | 
-                    (User.role == "admin") | 
-                    (User.username == "system")
-                ).first()
-                if sys_u:
-                    user_id = sys_u[0]
-            finally:
-                if not db:
-                    lookup_db.close()
-
+        # Keep user_id as None if unauthenticated, ensuring accurate non-repudiation under BSA 2023 §63
         res_type = str(resource_type)
         res_id = str(resource_id) if resource_id is not None else ""
         details_obj = details if isinstance(details, dict) else {}
@@ -199,9 +187,16 @@ def log_audit(
                         prev_hash = genesis_hash
                         next_seq = 1
 
-                    current_hash = hashlib.sha256(
-                        f"{prev_hash}|{user_id or ''}|{act}|{res_type}|{res_id}|{ep}|{timestamp_iso}|{details_json}".encode("utf-8")
-                    ).hexdigest()
+                    current_hash = compute_audit_hash(
+                        prev_hash=prev_hash,
+                        user_id=user_id,
+                        action=act,
+                        resource_type=res_type,
+                        resource_id=res_id,
+                        endpoint=ep,
+                        timestamp_iso=timestamp_iso,
+                        details_json=details_json
+                    )
 
                     # Generate asymmetric / KMS key signature
                     signature = sign_audit_hash(current_hash)

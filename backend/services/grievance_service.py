@@ -1,8 +1,11 @@
 import uuid
+import logging
 from datetime import datetime, timezone, timedelta, date
 from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+
+logger = logging.getLogger(__name__)
 
 from models.personnel import Personnel, Unit
 from models.leave import LeaveRecord
@@ -167,7 +170,7 @@ def file_grievance_or_leave(
             }
         )
     except Exception as e:
-        print(f"[Audit Log Warning] Failed to log grievance filing: {e}")
+        logger.warning(f"[Audit Log Warning] Failed to log grievance filing: {e}")
 
     return req
 
@@ -267,7 +270,7 @@ def auto_scan_and_escalate(db: Session) -> List[Dict[str, Any]]:
                     }
                 )
             except Exception as e:
-                print(f"[Audit Warning] {e}")
+                logger.warning(f"[Audit Warning] {e}")
 
     if escalated:
         db.commit()
@@ -334,7 +337,7 @@ def dual_approve_grievance(
                 )
                 db.add(leave_row)
             except Exception as e:
-                print(f"[LeaveRecord Warning] {e}")
+                logger.warning(f"[LeaveRecord Warning] {e}")
 
         # If replacement assigned, swap duties on start_date
         if req.suggested_replacement_id and req.start_date:
@@ -349,7 +352,7 @@ def dual_approve_grievance(
                     roster_a.shift_type = "off"
                     roster_a.hours = 0
             except Exception as e:
-                print(f"[Duty Swap Warning] {e}")
+                logger.warning(f"[Duty Swap Warning] {e}")
 
         msg = "Dual-approval complete. Leave/Grievance resolved and roster updated."
     else:
@@ -404,7 +407,7 @@ def reject_grievance(
         )
         db.add(leave_row)
     except Exception as e:
-        print(f"[Leave Denial Warning] {e}")
+        logger.warning(f"[Leave Denial Warning] {e}")
 
     # Audit logging with Cost of Inaction activation flag
     try:
@@ -426,7 +429,7 @@ def reject_grievance(
             }
         )
     except Exception as e:
-        print(f"[Audit Warning] {e}")
+        logger.warning(f"[Audit Warning] {e}")
 
     db.commit()
     db.refresh(req)

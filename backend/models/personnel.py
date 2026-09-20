@@ -17,10 +17,20 @@ class Unit(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     personnel = relationship("Personnel", back_populates="unit", cascade="all, delete-orphan")
-    users = relationship("User", back_populates="unit")
     buddy_signals = relationship("BuddySignal", back_populates="unit")
     duty_rosters = relationship("DutyRoster", back_populates="unit")
     uro_runs = relationship("URORun", back_populates="unit")
+
+    @property
+    def users(self):
+        """Dynamically resolve linked user accounts from the Authentication Database."""
+        from database import AuthSessionLocal
+        from models.user import User
+        auth_db = AuthSessionLocal()
+        try:
+            return auth_db.query(User).filter(User.unit_id == self.id).all()
+        finally:
+            auth_db.close()
 
 
 class Personnel(Base):
@@ -41,7 +51,6 @@ class Personnel(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     unit = relationship("Unit", back_populates="personnel")
-    user = relationship("User", back_populates="personnel", uselist=False)
     deployments = relationship("DeploymentHistory", back_populates="personnel", cascade="all, delete-orphan")
     leaves = relationship("LeaveRecord", back_populates="personnel", cascade="all, delete-orphan")
     duty_rosters = relationship("DutyRoster", back_populates="personnel", cascade="all, delete-orphan")
@@ -49,3 +58,14 @@ class Personnel(Base):
     predictions = relationship("RiskPrediction", back_populates="personnel", cascade="all, delete-orphan")
     welfare_cases = relationship("WelfareCase", back_populates="personnel", cascade="all, delete-orphan")
     baselines = relationship("PersonalBaseline", back_populates="personnel", cascade="all, delete-orphan")
+
+    @property
+    def user(self):
+        """Dynamically resolve linked user account from the Authentication Database."""
+        from database import AuthSessionLocal
+        from models.user import User
+        auth_db = AuthSessionLocal()
+        try:
+            return auth_db.query(User).filter(User.personnel_id == self.id).first()
+        finally:
+            auth_db.close()

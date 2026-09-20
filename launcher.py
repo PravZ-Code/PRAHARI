@@ -391,13 +391,14 @@ _cached_launcher_db_metrics = None
 _cached_launcher_db_metrics_time = 0.0
 
 def get_db_metrics():
-    """Retrieve database health and record counts from prahari.db with caching and read-only non-blocking access."""
+    """Retrieve database health and record counts from prahari.db and prahari_auth.db with caching and read-only non-blocking access."""
     global _cached_launcher_db_metrics, _cached_launcher_db_metrics_time
     now = time.time()
     if _cached_launcher_db_metrics and (now - _cached_launcher_db_metrics_time < 15.0):
         return _cached_launcher_db_metrics
 
     db_file = get_db_path()
+    auth_db_file = db_file.parent / "prahari_auth.db"
     if not db_file.exists():
         return {
             "status": "MISSING",
@@ -410,11 +411,15 @@ def get_db_metrics():
         }
 
     size_mb = round(db_file.stat().st_size / (1024 * 1024), 2)
+    users = 0
+    personnel = 0
+    units = 0
+    grievances = 0
+
     try:
         # Connect in read-only mode to prevent lock contention with active writers
-        conn = sqlite3.connect(f"file:{str(db_file.resolve())}?mode=ro", uri=True, timeout=10.0)
+        conn = sqlite3.connect(f"file:{str(db_file.resolve())}?mode=ro", uri=True, timeout=5.0)
         cur = conn.cursor()
-        users = cur.execute("SELECT COUNT(*) FROM users").fetchone()[0]
         personnel = cur.execute("SELECT COUNT(*) FROM personnel").fetchone()[0]
         units = cur.execute("SELECT COUNT(*) FROM units").fetchone()[0]
         try:
@@ -422,6 +427,13 @@ def get_db_metrics():
         except Exception:
             grievances = 0
         conn.close()
+
+        if auth_db_file.exists():
+            conn_auth = sqlite3.connect(f"file:{str(auth_db_file.resolve())}?mode=ro", uri=True, timeout=5.0)
+            cur_auth = conn_auth.cursor()
+            users = cur_auth.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+            conn_auth.close()
+
         res = {
             "status": "HEALTHY",
             "path": str(db_file),
@@ -441,10 +453,10 @@ def get_db_metrics():
             "status": f"BUSY: {str(e)[:25]}",
             "path": str(db_file),
             "size_mb": size_mb,
-            "users": 0,
-            "personnel": 0,
-            "units": 0,
-            "grievances": 0
+            "users": users,
+            "personnel": personnel,
+            "units": units,
+            "grievances": grievances
         }
 
 def probe_service_health(service_key: str):
@@ -900,7 +912,33 @@ class ServiceManager:
 
 
 def run_gui():
-    """Launch the Advanced Tkinter GUI Orchestration Console."""
+    """Launch the flagship PySide6 C4ISR GUI Orchestration Console with Tkinter fallback."""
+    icon_candidates = [
+        Path(getattr(sys, "_MEIPASS", "")) / "prahari_icon.ico",
+        PRAHARI_DIR / "prahari_icon.ico",
+        ROOT_DIR / "prahari" / "prahari_icon.ico",
+        ROOT_DIR / "prahari_icon.ico",
+        Path(__file__).resolve().parent / "prahari_icon.ico",
+        Path(sys.executable).resolve().parent / "prahari_icon.ico",
+    ]
+    icon_path = next((c for c in icon_candidates if c.exists()), None)
+
+    try:
+        import gui_qt
+        return gui_qt.run_pyside6_gui(
+            service_mgr_cls=ServiceManager,
+            root_dir=ROOT_DIR,
+            prahari_dir=PRAHARI_DIR,
+            log_dir=LOG_DIR,
+            icon_path=icon_path
+        )
+    except Exception as e:
+        safe_print(f"Notice: PySide6 GUI unavailable or encountered exception ({e}), falling back to standard interface.")
+        return run_tkinter_fallback_gui()
+
+
+def run_tkinter_fallback_gui():
+    """Launch the fallback Tkinter GUI Orchestration Console."""
     import tkinter as tk
     from tkinter import ttk, messagebox, filedialog
 

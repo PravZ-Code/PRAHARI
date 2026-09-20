@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Any
 from sqlalchemy.orm import Session
@@ -14,6 +15,8 @@ from schemas.gateway import (
     SMSIncomingRequest,
     SMSIncomingResponse
 )
+
+logger = logging.getLogger(__name__)
 
 # In-memory session tracking for USSD
 USSD_SESSIONS: Dict[str, Dict[str, Any]] = {}
@@ -187,7 +190,7 @@ def process_ivr_dtmf(db: Session, req: IVRDTMFRequest) -> IVRDTMFResponse:
                 filing_channel="ivr"
             )
         except Exception as ge:
-            print(f"[IVR Grievance Filing Warning] {ge}")
+            logger.warning(f"[IVR Grievance Filing Warning] {ge}")
 
         db.commit()
 
@@ -286,7 +289,7 @@ def process_ussd(db: Session, req: USSDRequest) -> USSDResponse:
             return USSDResponse(session_id=sess_id, message=msg, continue_session=False)
         elif user_input == "4":
             if p_id:
-                case_id = _get_or_create_welfare_case(
+                _get_or_create_welfare_case(
                     db=db,
                     personnel_id=p_id,
                     triggered_by="ussd_sos",

@@ -5,8 +5,16 @@ a = Analysis(
     ['launcher.py'],
     pathex=[],
     binaries=[],
-    datas=[('prahari_icon.ico', '.'), ('mobile_server.py', '.')],
-    hiddenimports=['psutil', 'requests', 'pystray', 'PIL', 'PIL.Image', 'sqlite3'],
+    datas=[
+        ('prahari_icon.ico', '.'),
+        ('mobile_server.py', '.'),
+        ('gui_qt.py', '.'),
+        ('assets', 'assets'),
+    ],
+    hiddenimports=[
+        'psutil', 'requests', 'pystray', 'PIL', 'PIL.Image', 'sqlite3',
+        'PySide6', 'PySide6.QtCore', 'PySide6.QtGui', 'PySide6.QtWidgets', 'PySide6.QtSvg'
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

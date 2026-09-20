@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { getStoredUser, logout, UserProfile } from "@/lib/auth";
@@ -26,6 +26,9 @@ import {
   AlertTriangle,
   Radio,
   FileCheck,
+  Award,
+  HelpCircle,
+  ArrowRight,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { DatabaseSyncIndicator } from "@/components/DatabaseSyncIndicator";
@@ -70,6 +73,31 @@ export const PortalHeader: React.FC = () => {
       clearInterval(clockInterval);
     };
   }, []);
+
+  // Navigation Dropdown State (for Trooper Telemetry & Parity Links)
+  const [openNavDropdown, setOpenNavDropdown] = useState<string | null>(null);
+  const navDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (navDropdownRef.current && !navDropdownRef.current.contains(event.target as Node)) {
+        setOpenNavDropdown(null);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpenNavDropdown(null);
+      }
+    };
+    if (openNavDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [openNavDropdown]);
 
   const handleLogout = async () => {
     await logout();
@@ -125,6 +153,15 @@ export const PortalHeader: React.FC = () => {
           badgeColor: "bg-amber-600 text-white",
           nav: [
             { label: "My Dashboard", href: "/portal", icon: LayoutDashboard },
+            {
+              label: "Schedule & Recovery",
+              icon: Sliders,
+              children: [
+                { label: "What Changed? (Schedule & Rest)", href: "/portal/what-changed", icon: Activity, badge: "Baseline vs Recent" },
+                { label: "Why is My Risk Changing?", href: "/portal/why-risk-changing", icon: HelpCircle, badge: "Factor Insights" },
+                { label: "Dedicated Recovery Timeline", href: "/portal/recovery-timeline", icon: Award, badge: "6-Stage Journey" },
+              ],
+            },
             { label: "Apply for Leave / Support", href: "/request", icon: FileText },
             { label: "Track Application", href: "/track", icon: Clock },
             { label: "Emergency SOS (12h)", href: "/emergency", icon: AlertTriangle },
@@ -152,8 +189,7 @@ export const PortalHeader: React.FC = () => {
               MHA / CRPF INTRANET
             </span>
             <span className="text-slate-500">|</span>
-            <DatabaseSyncIndicator />
-            <span className="text-cyan-300 ml-2 font-mono text-[11px] font-bold">{currentTime || "00:00:00"} IST</span>
+            <span className="text-cyan-300 font-mono text-[11px] font-bold">{currentTime || "00:00:00"} IST</span>
           </div>
 
           {/* Right: User Profile & Public Website Switch */}
@@ -208,7 +244,7 @@ export const PortalHeader: React.FC = () => {
 
             <Link
               href="/"
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white text-[11px] transition-colors"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white text-[11px] transition-all hover-scale active-press"
               title="Return to Public Website"
             >
               <ExternalLink className="w-3 h-3" />
@@ -218,21 +254,19 @@ export const PortalHeader: React.FC = () => {
             <button
               type="button"
               onClick={handleLogout}
-              aria-label="Sign out of PRAHARI portal"
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-red-600/80 hover:bg-red-600 text-white text-[11px] font-bold transition-colors cursor-pointer"
-              title="Sign Out of Portal"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-red-600/80 hover:bg-red-600 text-white text-[11px] font-bold transition-all hover-scale active-press cursor-pointer"
+              title="Sign out of portal"
             >
               <LogOut className="w-3 h-3" />
-              <span>Sign Out</span>
+              <span className="hidden sm:inline">Sign Out</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Main Portal Bar */}
-      <div className="px-4 sm:px-6 lg:px-8 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          {/* Logo & Portal Title */}
+      {/* Main Tactical Title Strip */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+        <div className="flex items-center justify-between gap-4">
           <Link
             href={
               role === "commander"
@@ -243,18 +277,18 @@ export const PortalHeader: React.FC = () => {
                 ? "/admin"
                 : "/portal"
             }
-            className="flex items-center gap-3 hover:opacity-90 transition-opacity"
+            className="flex items-center gap-3 hover:opacity-95 transition-all group"
             title="Go to Portal Home"
           >
             <img
               src="/images/emblem_of_india.svg"
               alt="National Emblem"
-              className="w-7 h-9 object-contain filter brightness-200"
+              className="w-7 h-9 object-contain filter brightness-200 group-hover:scale-105 transition-transform duration-200"
             />
             <img
               src="/images/prahari_logo_trans.png"
               alt="PRAHARI Crest"
-              className="w-8 h-8 object-contain"
+              className="w-8 h-8 object-contain group-hover:scale-105 transition-transform duration-200"
             />
             <div>
               <div className="flex items-center gap-2">
@@ -274,22 +308,92 @@ export const PortalHeader: React.FC = () => {
       </div>
 
       {/* Portal Navigation Tabs */}
-      <nav className="bg-[#051c36] border-t border-white/10 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto flex items-center gap-1 overflow-x-auto py-1">
-          {portalInfo.nav.map((item) => {
+      <nav className="bg-[#051c36] border-t border-white/10 px-4 sm:px-6 lg:px-8 overflow-visible relative z-30">
+        <div className="max-w-7xl mx-auto flex items-center gap-1 overflow-visible py-1 relative flex-wrap sm:flex-nowrap">
+          {portalInfo.nav.map((item: any) => {
             const Icon = item.icon;
+            if (item.children) {
+              const isChildActive = item.children.some((c: any) => pathname === c.href);
+              const isOpen = openNavDropdown === item.label;
+              return (
+                <div key={item.label} className="relative" ref={navDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setOpenNavDropdown(isOpen ? null : item.label)}
+                    aria-expanded={isOpen}
+                    aria-haspopup="true"
+                    className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md text-xs font-semibold whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                      isChildActive || isOpen
+                        ? "bg-[#0c3866] text-[#ff9933] border-b-2 border-[#ff9933] font-bold shadow-inner"
+                        : "text-slate-300 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    <Icon className={`w-3.5 h-3.5 transition-transform duration-200 ${isChildActive || isOpen ? "text-[#ff9933] scale-110" : "text-slate-400"}`} />
+                    <span>{item.label}</span>
+                    <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+                  </button>
+
+                  {isOpen && (
+                    <div
+                      role="menu"
+                      aria-orientation="vertical"
+                      className="absolute left-0 top-full mt-1.5 w-72 sm:w-80 bg-white rounded-xl shadow-2xl border border-slate-200 py-1.5 z-50 animate-fade-in text-slate-800 divide-y divide-slate-100"
+                    >
+                      <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                          Telemetry & Recovery
+                        </span>
+                        <span className="text-[10px] font-semibold text-[#0c3866] bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+                          3 Modules
+                        </span>
+                      </div>
+                      <div className="p-1 space-y-0.5">
+                        {item.children.map((child: any) => {
+                          const ChildIcon = child.icon;
+                          const isChildItemActive = pathname === child.href;
+                          return (
+                            <Link
+                              key={child.href}
+                              href={child.href}
+                              onClick={() => setOpenNavDropdown(null)}
+                              role="menuitem"
+                              className={`flex items-center justify-between gap-2.5 px-3 py-2 rounded-lg text-xs transition-colors group cursor-pointer ${
+                                isChildItemActive
+                                  ? "bg-blue-50 text-[#0c3866] font-bold"
+                                  : "text-slate-700 hover:bg-slate-50 hover:text-[#0c3866]"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <ChildIcon className={`w-4 h-4 shrink-0 ${isChildItemActive ? "text-[#0c3866]" : "text-slate-400 group-hover:text-[#0c3866]"}`} />
+                                <span className="truncate">{child.label}</span>
+                              </div>
+                              {child.badge && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200 shrink-0 group-hover:bg-blue-50 group-hover:text-[#0c3866]">
+                                  {child.badge}
+                                </span>
+                              )}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
             const isActive = pathname === item.href;
             return (
               <Link
                 key={item.label}
                 href={item.href}
-                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
+                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-md text-xs font-semibold whitespace-nowrap transition-all duration-200 hover:scale-105 active:scale-95 ${
                   isActive
-                    ? "bg-[#0c3866] text-[#ff9933] border-b-2 border-[#ff9933] font-bold"
+                    ? "bg-[#0c3866] text-[#ff9933] border-b-2 border-[#ff9933] font-bold shadow-inner"
                     : "text-slate-300 hover:bg-white/10 hover:text-white"
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? "text-[#ff9933]" : "text-slate-400"}`} />
+                <Icon className={`w-3.5 h-3.5 transition-transform duration-200 ${isActive ? "text-[#ff9933] scale-110" : "text-slate-400"}`} />
                 <span>{item.label}</span>
               </Link>
             );

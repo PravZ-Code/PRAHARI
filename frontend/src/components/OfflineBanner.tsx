@@ -34,6 +34,8 @@ export const OfflineBanner: React.FC = () => {
   };
 
   useEffect(() => {
+    const isDismissed = sessionStorage.getItem("prahari_offline_banner_dismissed") === "true";
+    if (isDismissed) setDismissed(true);
     setAuthed(isAuthenticated());
     setIsOffline(!navigator.onLine);
     checkQueue();
@@ -70,6 +72,19 @@ export const OfflineBanner: React.FC = () => {
     };
   }, []);
 
+  const handleClearQueue = () => {
+    try {
+      localStorage.removeItem("prahari_offline_queue");
+      setQueuedCount(0);
+      setSyncError(null);
+      setDismissed(true);
+      sessionStorage.setItem("prahari_offline_banner_dismissed", "true");
+      window.dispatchEvent(new Event("prahari_offline_update"));
+    } catch {
+      setQueuedCount(0);
+    }
+  };
+
   const syncQueue = async () => {
     if (!navigator.onLine || syncing) return;
     setSyncing(true);
@@ -77,61 +92,108 @@ export const OfflineBanner: React.FC = () => {
     try {
       const currentUser = getStoredUser();
       const stored = JSON.parse(localStorage.getItem("prahari_offline_queue") || "[]");
-      const queue: QueuedRequest[] = Array.isArray(stored) ? stored : [];
-      const remaining: QueuedRequest[] = [];
+      const queue: any[] = Array.isArray(stored) ? stored : [];
+      if (queue.length === 0) {
+        setQueuedCount(0);
+        return;
+      }
+
+      // Step 1: Attempt Atomic Batch Push via /sync/push
+      try {
+        const batchRes = await api.post("/sync/push", { items: queue }, {
+          headers: { "X-Prahari-Sync": "true" },
+        });
+        if (batchRes.data && Array.isArray(batchRes.data.results)) {
+          const syncedIds = new Set(
+            batchRes.data.results
+              .filter((r: any) => r.status === "synced" || r.status === "already_synced")
+              .map((r: any) => r.queue_id)
+          );
+          if (syncedIds.size > 0) {
+            const afterBatch = queue.filter((item) => !syncedIds.has(item.queue_id || item.id));
+            localStorage.setItem("prahari_offline_queue", JSON.stringify(afterBatch));
+            setQueuedCount(afterBatch.length);
+            if (afterBatch.length === 0) {
+              setSyncSuccess(true);
+              setTimeout(() => setSyncSuccess(false), 4000);
+              return;
+            }
+          }
+        }
+      } catch {
+        // Fall through to individual item transmission
+      }
+
+      // Step 2: Individual Endpoint Transmission Fallback
+      const currentStored = JSON.parse(localStorage.getItem("prahari_offline_queue") || "[]");
+      const currentQueue: any[] = Array.isArray(currentStored) ? currentStored : [];
+      const remaining: any[] = [];
       let transmitted = 0;
-      for (let index = 0; index < queue.length; index += 1) {
-        const item = queue[index];
-        if (!item?.endpoint || !item?.body || !item.queue_id) {
-          remaining.push(item);
-          continue;
+
+      for (let index = 0; index < currentQueue.length; index += 1) {
+        const item = currentQueue[index];
+        if (!item?.endpoint && !item?.action) {
+          continue; // Discard malformed items without endpoints
         }
-        if (item.queued_by && currentUser?.username && item.queued_by !== currentUser.username) {
-          remaining.push(item);
-          setSyncError(`Sign in as ${item.queued_by} to transmit this saved request.`);
-          remaining.push(...queue.slice(index + 1));
-          break;
+
+        const endpoint = item.endpoint || (item.action ? `/${item.action.replace(/^\//, '')}` : "/grievance/file");
+        const body = { ...(item.body || item.payload || {}) };
+
+        // Normalize payload fields
+        if (!body.category) {
+          body.category = body.request_type || "General Request";
         }
+        if (!body.personnel_id && currentUser?.personnel_id) {
+          body.personnel_id = currentUser.personnel_id;
+        }
+
         try {
-          await api.post(item.endpoint, item.body, {
+          await api.post(endpoint, body, {
             headers: {
-              "Idempotency-Key": item.queue_id,
+              "Idempotency-Key": item.queue_id || item.id || `sync-${Date.now()}`,
               "X-Prahari-Sync": "true",
             },
           });
           transmitted += 1;
         } catch (error: any) {
+          const status = error.response?.status;
+          // 409 Conflict = already recorded on server, so treat as transmitted
+          if (status === 409) {
+            transmitted += 1;
+            continue;
+          }
+          // 400 / 422 Unprocessable = invalid client data, discard to prevent wedging
+          if (status === 400 || status === 422) {
+            transmitted += 1; // Dropped bad item
+            continue;
+          }
           remaining.push(item);
-          if (error.response?.status === 401) {
-            setSyncError("Sign in again to transmit the saved request.");
-            remaining.push(...queue.slice(index + 1));
+          if (status === 401) {
+            setSyncError("Sign in again to complete transmission.");
+            remaining.push(...currentQueue.slice(index + 1));
             break;
           }
-          if (error.response?.status === 403) {
-            setSyncError("Your account is not authorised to transmit this request.");
-            remaining.push(...queue.slice(index + 1));
+          if (status === 403) {
+            setSyncError("Current account not authorized for this record.");
+            remaining.push(...currentQueue.slice(index + 1));
             break;
           }
           if (!error.response) {
-            setSyncError("The PRAHARI backend is unavailable. The request remains saved and will retry.");
-            remaining.push(...queue.slice(index + 1));
+            setSyncError("Backend server temporarily unreachable. Will retry.");
+            remaining.push(...currentQueue.slice(index + 1));
             break;
           }
-          setSyncError(
-            error.response?.data?.detail
-              ? `Sync failed: ${error.response.data.detail}`
-              : `Sync failed (HTTP ${error.response.status}). The request remains saved.`
-          );
-          remaining.push(...queue.slice(index + 1));
+          setSyncError(`Sync paused (HTTP ${status}).`);
+          remaining.push(...currentQueue.slice(index + 1));
           break;
         }
       }
+
       localStorage.setItem("prahari_offline_queue", JSON.stringify(remaining));
       setQueuedCount(remaining.length);
-      if (transmitted > 0 && remaining.length === 0) {
-        setSyncSuccess(true);
-        setTimeout(() => setSyncSuccess(false), 4000);
-      } else if (transmitted === 0 && remaining.length === 0) {
+      window.dispatchEvent(new Event("prahari_offline_update"));
+
+      if (remaining.length === 0) {
         setSyncSuccess(true);
         setTimeout(() => setSyncSuccess(false), 4000);
       }
@@ -196,21 +258,34 @@ export const OfflineBanner: React.FC = () => {
 
         <div className="flex items-center gap-2">
           {queuedCount > 0 && (
-            <button
-              type="button"
-              onClick={handleSyncNow}
-              aria-label={`Sync ${queuedCount} queued welfare request${queuedCount === 1 ? "" : "s"}`}
-              disabled={syncing || isOffline}
-              className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-300 rounded text-xs font-bold text-slate-800 shadow-2xs inline-flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
-            >
-              <RefreshCw className={`w-3 h-3 ${syncing ? "animate-spin" : ""}`} />
-              <span>{syncing ? "Syncing..." : `Sync (${queuedCount})`}</span>
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={handleSyncNow}
+                aria-label={`Sync ${queuedCount} queued welfare request${queuedCount === 1 ? "" : "s"}`}
+                disabled={syncing || isOffline}
+                className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-300 rounded text-xs font-bold text-slate-800 shadow-2xs inline-flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+              >
+                <RefreshCw className={`w-3 h-3 ${syncing ? "animate-spin" : ""}`} />
+                <span>{syncing ? "Syncing..." : `Sync (${queuedCount})`}</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleClearQueue}
+                title="Discard unsynced offline queue"
+                className="px-2 py-1 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded text-xs font-semibold text-slate-600 transition-colors cursor-pointer"
+              >
+                Discard
+              </button>
+            </>
           )}
           <button
             type="button"
-            onClick={() => setDismissed(true)}
-            className="p-1 text-slate-500 hover:text-slate-800 rounded transition-colors"
+            onClick={() => {
+              setDismissed(true);
+              sessionStorage.setItem("prahari_offline_banner_dismissed", "true");
+            }}
+            className="p-1 text-slate-500 hover:text-slate-800 rounded transition-colors cursor-pointer"
             title="Dismiss notice"
             aria-label="Dismiss banner"
           >

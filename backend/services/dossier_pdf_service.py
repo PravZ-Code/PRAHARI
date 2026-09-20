@@ -3,10 +3,9 @@ import os
 import json
 import hashlib
 from datetime import datetime, timezone
-from typing import Optional, Dict, Any, List
+from typing import Optional
 
 import qrcode
-from PIL import Image as PILImage
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
@@ -18,9 +17,7 @@ from reportlab.platypus import (
     Table,
     TableStyle,
     PageBreak,
-    Image,
-    KeepTogether,
-    HRFlowable
+    Image
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
@@ -228,8 +225,6 @@ def generate_dossier_pdf(db: Session, case_id: str, output_path: Optional[str] =
     leaves = db.query(LeaveRecord).filter(
         LeaveRecord.personnel_id == personnel.id
     ).order_by(LeaveRecord.applied_date.desc()).all()
-
-    denied_leaves = [l for l in leaves if l.status == "denied"]
 
     duties = db.query(DutyRoster).filter(
         DutyRoster.personnel_id == personnel.id

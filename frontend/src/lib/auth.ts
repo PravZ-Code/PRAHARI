@@ -39,6 +39,7 @@ export const setAuthData = (token: string, user: User): void => {
   }
   localStorage.setItem("prahari_token", token);
   localStorage.setItem("prahari_user", JSON.stringify(user));
+  document.cookie = `prahari_session=${token}; path=/; max-age=86400; SameSite=Lax`;
 
   window.dispatchEvent(new CustomEvent("prahari_auth_change", { detail: { user } }));
 };
@@ -49,6 +50,7 @@ export const clearAuthData = (): void => {
   localStorage.removeItem("prahari_user");
   localStorage.removeItem(TOKEN_EXPIRY_KEY);
   localStorage.removeItem(LAST_ACTIVITY_KEY);
+  document.cookie = "prahari_session=; path=/; max-age=0; SameSite=Lax";
 
   window.dispatchEvent(new CustomEvent("prahari_auth_change", { detail: { user: null } }));
 };
@@ -73,12 +75,7 @@ export const logout = async (): Promise<void> => {
 
   // 3. Delete the FastAPI HttpOnly prahari_session cookie (best-effort)
   try {
-    let host = window.location.hostname;
-    if (host === "localhost" || host === "::1" || host === "[::1]") {
-      host = "127.0.0.1";
-    }
-    const proto = window.location.protocol;
-    void fetch(`${proto}//${host}:8000/api/auth/logout`, {
+    void fetch("/backend/api/auth/logout", {
       method: "POST",
       credentials: "include",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -97,6 +94,11 @@ export const isAuthenticated = (): boolean => {
   if (expiry && Date.now() > expiry) {
     clearAuthData();
     return false;
+  }
+  // Ensure Next.js edge cookie is synchronized with active client session
+  const token = localStorage.getItem("prahari_token");
+  if (token && !document.cookie.includes("prahari_session=")) {
+    document.cookie = `prahari_session=${token}; path=/; max-age=86400; SameSite=Lax`;
   }
   return true;
 };

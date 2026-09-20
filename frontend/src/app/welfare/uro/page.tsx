@@ -110,7 +110,7 @@ export default function UROPage() {
           {currentUser?.role === "commander" ? "Readiness Workspace" : "Welfare Case Management"}
         </Link>
         <span>/</span>
-        <span className="text-slate-800 font-semibold" aria-current="page">Unit Resilience Optimizer</span>
+        <span className="text-slate-800 font-semibold" aria-current="page">Duty Balance Optimization</span>
       </nav>
 
       {/* Header */}
@@ -125,10 +125,10 @@ export default function UROPage() {
             </span>
           </div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight mt-1.5">
-            Unit Resilience Optimizer (URO Shift Swapper)
+            Operational Duty Balance & Shift Exchange
           </h1>
           <p className="text-xs text-slate-600 mt-1">
-            Algorithmic fatigue-mitigation roster generator maintaining Military Occupational Specialty (MOS) trade compatibility and 8-hour circadian rest barriers.
+            Operational roster balancing system that recommends shift adjustments to support personnel recovery while maintaining trade compatibility and mandatory rest periods.
           </p>
         </div>
 
@@ -163,7 +163,7 @@ export default function UROPage() {
       </div>
 
       {/* Control Configuration Card */}
-      <div className="gov-card grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end text-xs">
+      <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end text-xs">
         <div>
           <label className="text-slate-800 font-bold block mb-1">
             Formation / Company Unit
@@ -226,7 +226,7 @@ export default function UROPage() {
           <button
             onClick={handleOptimize}
             disabled={loading}
-            className="w-full py-2.5 px-4 bg-[#0c3866] hover:bg-[#0a2f55] text-white font-bold text-xs rounded shadow transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            className="ux4g-btn ux4g-btn-primary ux4g-btn-md w-full flex items-center justify-center gap-2"
           >
             {loading ? (
               <>
@@ -236,7 +236,7 @@ export default function UROPage() {
             ) : (
               <>
                 <RefreshCw className="w-4 h-4 text-amber-300" />
-                <span>Generate Fatigue-Relief Swaps</span>
+                <span>Generate Recommended Shift Swaps</span>
               </>
             )}
           </button>

@@ -157,7 +157,7 @@ export default function AdminPage() {
         </div>
         <h2 className="text-xl font-bold text-slate-900">Restricted Administration Gateway</h2>
         <p className="text-xs text-slate-600 mt-2 leading-relaxed">
-          System settings, algorithmic monitoring, and cryptographic audit records can only be inspected by authorized <strong>System Administrators</strong>. Your account ({user.username}) is authenticated with the role <strong>{user.role}</strong>.
+          System settings, analytical monitoring, and audit ledger records can only be inspected by authorized <strong>System Administrators</strong>. Your account ({user.username}) is authenticated with the role <strong>{user.role}</strong>.
         </p>
         <Link
           href="/"
@@ -201,7 +201,7 @@ export default function AdminPage() {
           <button
             onClick={handleAnchorHead}
             disabled={anchoringHead}
-            className="px-3 py-1.5 rounded bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-colors"
+            className="ux4g-btn ux4g-btn-outline-primary ux4g-btn-sm flex items-center gap-1.5"
             title="Create external Merkle checkpoint anchor"
           >
             {anchoringHead ? (
@@ -215,7 +215,7 @@ export default function AdminPage() {
           <button
             onClick={handleVerifyChain}
             disabled={verifyingChain}
-            className="px-3 py-1.5 rounded bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-colors"
+            className="ux4g-btn ux4g-btn-outline-primary ux4g-btn-sm flex items-center gap-1.5"
           >
             {verifyingChain ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin text-[#0c3866]" />
@@ -228,7 +228,7 @@ export default function AdminPage() {
           <button
             onClick={handleRunBatch}
             disabled={runningBatch}
-            className="px-3.5 py-1.5 rounded bg-[#0c3866] hover:bg-[#0a2f55] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors disabled:opacity-50"
+            className="ux4g-btn ux4g-btn-primary ux4g-btn-sm flex items-center gap-1.5 disabled:opacity-50"
           >
             {runningBatch ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -243,11 +243,11 @@ export default function AdminPage() {
       {/* Cryptographic Ledger Verification Status Banner */}
       {verificationResult && (
         <div
-          className={`p-4 rounded border flex items-start gap-3 shadow-sm ${
+          className={`ux4g-alert ${
             verificationResult.chain_status === "INTACT"
-              ? "bg-emerald-50 border-emerald-300 text-emerald-950"
-              : "bg-red-50 border-red-300 text-red-950"
-          }`}
+              ? "ux4g-alert-success"
+              : "ux4g-alert-error"
+          } flex items-start gap-3`}
         >
           {verificationResult.chain_status === "INTACT" ? (
             <ShieldCheck className="w-5 h-5 text-emerald-700 flex-shrink-0 mt-0.5" />
@@ -263,18 +263,16 @@ export default function AdminPage() {
                   : `Security Alert: Tamper Detected at Ledger Block #${verificationResult.tampered_index ?? "UNKNOWN"}`}
               </strong>
               <span className="font-mono text-[11px] font-semibold bg-white/70 px-2 py-0.5 rounded border border-current">
-                Total Blocks: {verificationResult.total_blocks}
+                {verificationResult.total_blocks_verified} Blocks Audited
               </span>
             </div>
             <p className="leading-relaxed">
-              {verificationResult.chain_status === "INTACT"
-                ? "Every consecutive SHA-256 block hash matches the cryptographic sequence. Isolated KMS signatures match all recorded transactions, rendering unauthorized database administrator recomputation mathematically impossible. Admissible under Section 63(4) of the Bharatiya Sakshya Adhiniyam, 2023."
-                : `Cryptographic hash mismatch or forged signature identified at block #${verificationResult.tampered_index}. Reason: ${verificationResult.tamper_reason || "Adversarial recomputation detected"}. The ledger sequence has been flagged for statutory Court of Inquiry.`}
+              {verificationResult.message}
             </p>
 
             {/* Cryptographic Verification Details */}
             {verificationResult.chain_status === "INTACT" && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 border-t border-emerald-200/60 font-mono text-[11px]">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-emerald-200/60 text-[11px]">
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
                   <span>KMS Signatures: <strong>VERIFIED</strong></span>
@@ -294,7 +292,7 @@ export default function AdminPage() {
       )}
 
       {batchResult && (
-        <div className="p-3 bg-blue-50 border border-blue-200 text-slate-800 text-xs rounded flex items-center gap-2 shadow-sm font-medium">
+        <div className="ux4g-alert ux4g-alert-info flex items-center gap-2">
           <Database className="w-4 h-4 text-[#0c3866] flex-shrink-0" />
           <span>{batchResult}</span>
         </div>
@@ -302,7 +300,7 @@ export default function AdminPage() {
 
       {/* Model Health / AI Engine Status */}
       {health && (
-        <div className="gov-card space-y-4">
+        <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-6 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-200 pb-3">
             <div className="flex items-center gap-2">
               <Cpu className="w-4 h-4 text-[#0c3866]" />
@@ -317,27 +315,27 @@ export default function AdminPage() {
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
             <div className="p-3 bg-slate-50 border border-slate-200 rounded">
-              <span className="text-slate-500 block">Production Model</span>
+              <span className="text-slate-500 block">Decision Support Engine</span>
               <strong className="text-slate-900 text-sm block mt-0.5 font-mono">
-                {health.model_version || "LightGBM v1.0"}
+                Active Production
               </strong>
-              <span className="text-[10px] text-slate-400">Calibrated Multi-Class</span>
+              <span className="text-[10px] text-slate-400">Multi-Factor Assessment</span>
             </div>
 
             <div className="p-3 bg-slate-50 border border-slate-200 rounded">
-              <span className="text-slate-500 block">Cross-Entropy Log Loss</span>
+              <span className="text-slate-500 block">Assessment Reliability</span>
               <strong className="text-slate-900 text-sm block mt-0.5 font-mono">
                 {health.brier_score !== undefined ? health.brier_score.toFixed(3) : "0.082"}
               </strong>
-              <span className="text-[10px] text-emerald-700 font-semibold">Well-Calibrated</span>
+              <span className="text-[10px] text-emerald-700 font-semibold">High Confidence</span>
             </div>
 
             <div className="p-3 bg-slate-50 border border-slate-200 rounded">
-              <span className="text-slate-500 block">SHAP Feature Explanations</span>
+              <span className="text-slate-500 block">Explainability Service</span>
               <strong className="text-emerald-700 text-sm block mt-0.5 font-semibold">
-                TreeExplainer Active
+                Attribution Active
               </strong>
-              <span className="text-[10px] text-slate-400">Local Linear Additive</span>
+              <span className="text-[10px] text-slate-400">Key Factor Analysis</span>
             </div>
 
             <div className="p-3 bg-slate-50 border border-slate-200 rounded">
@@ -352,7 +350,7 @@ export default function AdminPage() {
       )}
 
       {/* Audit Log Table */}
-      <div className="gov-card space-y-4">
+      <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
           <div className="flex items-center gap-2">
             <ScrollText className="w-4 h-4 text-[#0c3866]" />
@@ -366,7 +364,7 @@ export default function AdminPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
+          <table className="ux4g-table ux4g-table-m ux4g-table-column-dividers w-full text-left text-xs">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold">
                 <th className="py-2.5 px-3">Timestamp (IST)</th>

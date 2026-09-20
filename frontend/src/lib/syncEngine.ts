@@ -198,10 +198,15 @@ class PrahariSyncEngine {
     this.cleanupStream();
     this.setSyncState("connecting");
 
-    const streamUrl = `${getApiBaseUrl()}/sync/stream`;
+    const token = typeof window !== "undefined" ? localStorage.getItem("prahari_token") : null;
+    let streamUrl = `${getApiBaseUrl()}/sync/stream`;
+    if (token) {
+      const sep = streamUrl.includes("?") ? "&" : "?";
+      streamUrl = `${streamUrl}${sep}token=${encodeURIComponent(token)}`;
+    }
 
     try {
-      this.eventSource = new EventSource(streamUrl);
+      this.eventSource = new EventSource(streamUrl, { withCredentials: true });
 
       this.eventSource.onopen = () => {
         this.reconnectAttempts = 0;
@@ -294,8 +299,12 @@ class PrahariSyncEngine {
       if (this.lastEtag) {
         headers["If-None-Match"] = this.lastEtag;
       }
+      const token = typeof window !== "undefined" ? localStorage.getItem("prahari_token") : null;
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
 
-      const res = await fetch(url.toString(), { headers, cache: "no-store" });
+      const res = await fetch(url.toString(), { headers, credentials: "include", cache: "no-store" });
       this.latencyMs = Math.round((performance.now() - t0) * 10) / 10;
 
       if (res.status === 304) {
@@ -341,10 +350,17 @@ class PrahariSyncEngine {
         return true;
       }
 
+      const token = typeof window !== "undefined" ? localStorage.getItem("prahari_token") : null;
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const pushPayload = { items: queue };
       const res = await fetch(`${getApiBaseUrl()}/sync/push`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
+        credentials: "include",
         body: JSON.stringify(pushPayload),
       });
 

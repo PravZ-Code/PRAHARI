@@ -6,19 +6,11 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
+import { formatCategory } from "@/lib/formatters";
 import {
   Search,
   CheckCircle2,
-  Clock,
-  AlertTriangle,
-  XCircle,
-  Shield,
   ArrowLeft,
-  FileText,
-  Calendar,
-  Layers,
-  ChevronRight,
-  Info,
   Loader2,
 } from "lucide-react";
 
@@ -88,7 +80,7 @@ function buildTrackRecord(g: any): TrackRecord {
       description: "Being reviewed by Company Commander and Welfare Officer",
       completed: isApproved || isRejected || isEscalated,
       current: !isApproved && !isRejected && !isEscalated && g.status !== "filed",
-      timestamp: g.hours_remaining !== undefined ? `${g.hours_remaining}h SLA remaining` : undefined,
+      timestamp: g.hours_remaining !== undefined ? `${g.hours_remaining}h remaining` : undefined,
     },
     {
       name: "Decision",
@@ -113,7 +105,7 @@ function buildTrackRecord(g: any): TrackRecord {
   return {
     ref: refCode,
     id: g.id,
-    request: g.category?.replace(/_/g, " ") || g.request_type || "Leave / Grievance Application",
+    request: formatCategory(g.category || g.request_type, "Leave / Grievance Application"),
     applicant: g.personnel_name || "Constable",
     serviceNo: g.rank ? `${g.rank} · ${g.trade || "GD"}` : "CRPF-GD",
     unit: g.unit_name || "Battalion Command",
@@ -221,7 +213,7 @@ function TrackContent() {
       </div>
 
       {/* Search Bar */}
-      <form onSubmit={handleSearch} className="gov-card p-4 bg-white flex flex-col sm:flex-row gap-2">
+      <form onSubmit={handleSearch} className="ux4g-card ux4g-card-solid ux4g-card-vertical p-4 bg-white flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
           <input
@@ -229,7 +221,7 @@ function TrackContent() {
             placeholder="Enter reference number (e.g. PRH-2026-000184)"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="gov-input pl-9 text-xs w-full py-2 font-mono uppercase"
+            className="w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 py-2 text-xs font-mono uppercase focus:ring-2 focus:ring-primary-500"
           />
         </div>
         <button type="submit" className="ux4g-btn ux4g-btn-primary ux4g-btn-sm whitespace-nowrap">
@@ -253,11 +245,7 @@ function TrackContent() {
               <button
                 key={refCode}
                 onClick={() => setActiveRef(refCode)}
-                className={`px-3 py-1.5 rounded text-xs font-semibold border transition-colors flex items-center gap-1.5 ${
-                  activeRef === refCode
-                    ? "bg-[#0c3866] text-white border-[#0c3866]"
-                    : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
-                }`}
+                className={`ux4g-filter-chip-md ${activeRef === refCode ? "active" : ""}`}
               >
                 <span>{refCode}</span>
                 <span className="text-[10px] opacity-80">({rec.status})</span>
@@ -273,7 +261,7 @@ function TrackContent() {
           <span className="text-xs text-slate-500">Checking live status with database...</span>
         </div>
       ) : !activeRecord ? (
-        <div className="gov-card p-8 text-center text-slate-500 text-xs space-y-3">
+        <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-8 text-center text-slate-500 text-xs space-y-3">
           <p>No grievance or leave requests filed yet for this account.</p>
           <Link href="/request" className="ux4g-btn ux4g-btn-primary ux4g-btn-sm inline-block">
             Submit a Request
@@ -282,7 +270,7 @@ function TrackContent() {
       ) : (
         <div className="space-y-6">
           {/* Main Status Card */}
-          <div className="gov-card p-6 space-y-4 bg-white">
+          <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-6 space-y-4 bg-white">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-4">
               <div>
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
@@ -296,14 +284,14 @@ function TrackContent() {
 
               <div className="flex items-center gap-2">
                 <span
-                  className={`text-xs px-2.5 py-1 rounded font-bold ${
+                  className={`ux4g-tag-s font-bold ${
                     activeRecord.status === "Support Given" || activeRecord.status === "Approved"
-                      ? "bg-emerald-100 text-emerald-900 border border-emerald-300"
+                      ? "ux4g-tag-filled-success"
                       : activeRecord.status === "Rejected"
-                      ? "bg-rose-100 text-rose-900 border border-rose-300"
+                      ? "ux4g-tag-outline-error"
                       : activeRecord.status === "Needs Review"
-                      ? "bg-amber-100 text-amber-900 border border-amber-300"
-                      : "bg-blue-100 text-blue-900 border border-blue-300"
+                      ? "ux4g-tag-tonal-warning"
+                      : "ux4g-tag-tonal-brand"
                   }`}
                 >
                   {activeRecord.status}
@@ -327,7 +315,7 @@ function TrackContent() {
           </div>
 
           {/* Stepper Timeline */}
-          <div className="gov-card p-6 space-y-4 bg-white">
+          <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-6 space-y-4 bg-white">
             <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
               Request Journey (Real-Time Progress)
             </h3>

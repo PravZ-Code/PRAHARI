@@ -10,7 +10,7 @@ class URORun(Base):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     unit_id = Column(String(36), ForeignKey("units.id", ondelete="CASCADE"), nullable=False, index=True)
     run_at = Column(DateTime(timezone=True), server_default=func.now())
-    run_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    run_by = Column(String(36), nullable=True, index=True)
     roster_date_start = Column(String(10), nullable=False)
     roster_date_end = Column(String(10), nullable=False)
     before_risk_summary = Column(JSON, nullable=False)
@@ -22,15 +22,15 @@ class URORun(Base):
 
     commander_approved = Column(Boolean, default=False, nullable=False)
     commander_approved_at = Column(DateTime(timezone=True), nullable=True)
-    commander_user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    commander_user_id = Column(String(36), nullable=True, index=True)
     welfare_approved = Column(Boolean, default=False, nullable=False)
     welfare_approved_at = Column(DateTime(timezone=True), nullable=True)
-    welfare_user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    welfare_user_id = Column(String(36), nullable=True, index=True)
     roster_committed = Column(Boolean, default=False, nullable=False)
 
     declined_by_role = Column(String(20), nullable=True)
     declined_at = Column(DateTime(timezone=True), nullable=True)
-    declined_user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    declined_user_id = Column(String(36), nullable=True, index=True)
     decline_reason = Column(String(255), nullable=True)
 
     unit = relationship("Unit", back_populates="uro_runs")

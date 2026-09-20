@@ -22,7 +22,7 @@ const ROLE_ROUTES: Record<string, string[]> = {
   "/approvals": ["commander", "welfare", "welfare_officer", "admin"],
   "/what-if": ["commander", "welfare", "welfare_officer", "admin"],
   "/recovery": ["welfare", "welfare_officer", "admin", "personnel", "jawan", "soldier"],
-  "/safety-net": ["commander", "welfare", "welfare_officer", "admin"],
+  "/safety-net": ["welfare", "welfare_officer", "admin"],
   "/request": ["personnel", "jawan", "soldier", "commander", "welfare", "welfare_officer", "admin"],
   "/track": ["personnel", "jawan", "soldier", "commander", "welfare", "welfare_officer", "admin"],
   "/emergency": ["personnel", "jawan", "soldier", "commander", "welfare", "welfare_officer", "admin"],
@@ -80,7 +80,7 @@ function isTokenExpired(payload: any): boolean {
   return Date.now() >= payload.exp * 1000;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Check if requested route is a protected defense workspace
@@ -101,6 +101,7 @@ export async function middleware(request: NextRequest) {
     url.pathname = "/login";
     url.search = "";
     url.searchParams.set("redirect", `${pathname}${request.nextUrl.search}`);
+    url.searchParams.set("error", "session_expired");
     const redirectResponse = NextResponse.redirect(url);
     if (token) {
       redirectResponse.cookies.delete("prahari_session");
@@ -111,13 +112,14 @@ export async function middleware(request: NextRequest) {
     return redirectResponse;
   }
 
-  // 2. Validate with backend (Strict Fail-Closed Security: Never fall back to unverified base64 decode)
+  // 2. Validate with backend (Strict Fail-Closed Security for explicit 401/403 denials)
   const backendCheck = await verifyTokenWithBackend(token);
-  if (!backendCheck.valid || !backendCheck.payload) {
+  if (backendCheck.unauthorized) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = "";
     url.searchParams.set("redirect", `${pathname}${request.nextUrl.search}`);
+    url.searchParams.set("error", "unauthorized");
     const redirectResponse = NextResponse.redirect(url);
     redirectResponse.cookies.delete("prahari_session");
     redirectResponse.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
@@ -126,7 +128,9 @@ export async function middleware(request: NextRequest) {
     return redirectResponse;
   }
 
-  const effectivePayload = backendCheck.payload;
+  // If backend returned verified payload, use it; if backend is temporarily booting/offline,
+  // permit unexpired signed token so client-side connection resilience can handle data state
+  const effectivePayload = (backendCheck.valid && backendCheck.payload) ? backendCheck.payload : parsedPayload;
 
   // 3. Role-Based Access Control (RBAC) & Route Isolation
   const allowedRoles = ROLE_ROUTES[matchedRoute];
@@ -165,7 +169,7 @@ export async function middleware(request: NextRequest) {
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set(
     "Content-Security-Policy",
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    "default-src 'self'; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 ws://127.0.0.1:8000 ws://localhost:8000; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
   );
   response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");

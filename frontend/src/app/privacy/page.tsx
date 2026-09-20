@@ -44,7 +44,7 @@ export default function PrivacyPolicyPage() {
         </div>
       </div>
 
-      <div className="gov-card space-y-6 text-xs text-slate-700 leading-relaxed">
+      <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-6 sm:p-8 space-y-6 text-xs text-slate-700 leading-relaxed">
         {/* Core Principles Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
@@ -114,7 +114,103 @@ export default function PrivacyPolicyPage() {
             </div>
           </div>
           <p className="text-[11px] text-slate-600">
-            Troopers retain their statutory rights as Data Principals, including access to their own grievance history, correction of administrative particulars, and transparent SLA tracking without fear of reprisal.
+            Troopers retain their statutory rights as Data Principals under Section 12 of the DPDP Act 2023:
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 text-[11px]">
+            <div className="p-2.5 rounded bg-slate-50 border border-slate-200">
+              <strong className="text-[#0c3866] block font-bold">Right to Access (§11)</strong>
+              <p className="text-slate-600 mt-0.5">Inspect every access event via the transparent Personal Access Log.</p>
+            </div>
+            <div className="p-2.5 rounded bg-slate-50 border border-slate-200">
+              <strong className="text-[#0c3866] block font-bold">Right to Correction (§12.1)</strong>
+              <p className="text-slate-600 mt-0.5">Dispute incorrect duty roster entries with guaranteed 48-hour SLA review.</p>
+            </div>
+            <div className="p-2.5 rounded bg-slate-50 border border-slate-200">
+              <strong className="text-[#0c3866] block font-bold">Right to Erasure (§12.3)</strong>
+              <p className="text-slate-600 mt-0.5">Request statutory redaction/deletion of voluntary pulse logs under 72-hour SLA.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Section: Data Minimization Principle */}
+        <div className="space-y-3 pt-2">
+          <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+            <Shield className="w-4 h-4 text-[#0c3866]" />
+            <h2 className="text-sm font-bold text-[#0c3866] uppercase tracking-wider">
+              Data Minimization & Sovereign Scope (No Unnecessary Data)
+            </h2>
+          </div>
+          <p>
+            PRAHARI adheres strictly to the principle of purpose limitation and data minimization under Section 6 of the DPDP Act 2023:
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px]">
+            <div className="p-3 rounded bg-emerald-50/70 border border-emerald-200 text-emerald-950 space-y-1">
+              <strong className="font-bold block text-emerald-900">What PRAHARI Collects (Strictly Necessary):</strong>
+              <ul className="list-disc pl-4 space-y-0.5 text-emerald-800">
+                <li>Operational shift allocations (hours on duty, night shifts, continuous deployment).</li>
+                <li>Voluntary daily wellbeing pulse (sleep hours, subjective rest quality - optional).</li>
+                <li>Administrative leave requests and official grievance tracking IDs.</li>
+              </ul>
+            </div>
+            <div className="p-3 rounded bg-rose-50/70 border border-rose-200 text-rose-950 space-y-1">
+              <strong className="font-bold block text-rose-900">What PRAHARI NEVER Collects (Strictly Prohibited):</strong>
+              <ul className="list-disc pl-4 space-y-0.5 text-rose-800">
+                <li>No monitoring of personal phone calls, SMS, WhatsApp, or private communications.</li>
+                <li>No browsing history, personal social media harvesting, or external telemetry.</li>
+                <li>No unauthorized off-duty geolocation tracking or biometric surveillance.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Section: Third-Party SDK Audit Verification */}
+        <div className="space-y-3 pt-2">
+          <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+            <Lock className="w-4 h-4 text-[#0c3866]" />
+            <h2 className="text-sm font-bold text-[#0c3866] uppercase tracking-wider">
+              Third-Party SDK Audit & Sovereign Air-Gap Verification
+            </h2>
+          </div>
+          <p className="text-[11px] text-slate-600 leading-relaxed">
+            PRAHARI is engineered as a zero-telemetry, defense-grade sovereign application. In rigorous compliance with CAPF IT Security Directives and GIGW 3.0:
+          </p>
+          <div className="p-3 rounded bg-slate-50 border border-slate-200 space-y-1.5 text-[11px]">
+            <div className="flex items-center gap-1.5 text-emerald-700 font-bold">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span>Audit Passed: 0% External Tracking / Analytics SDKs</span>
+            </div>
+            <p className="text-slate-600">
+              The platform contains <strong>zero third-party analytics, behavioral tracking, or advertising scripts</strong> (no Google Analytics, Meta Pixel, Mixpanel, Datadog, Sentry, or third-party CDNs). All application scripts, fonts (Google Noto Sans under SIL OFL), and UX4G components are compiled and served directly from sovereign defense servers. No personnel metadata ever leaves the controlled military network perimeter.
+            </p>
+          </div>
+        </div>
+
+        {/* Section: Cookies and Local Storage Transparency */}
+        <div className="space-y-3 pt-2" id="cookies">
+          <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+            <Fingerprint className="w-4 h-4 text-[#0c3866]" />
+            <h2 className="text-sm font-bold text-[#0c3866] uppercase tracking-wider">
+              Essential Session Storage & Cookie Policy
+            </h2>
+          </div>
+          <p className="text-[11px] text-slate-600 leading-relaxed">
+            PRAHARI deploys <strong>exclusively strictly necessary session cookies and local storage tokens</strong> required for authentication, cryptographic nonces, and offline operational continuity:
+          </p>
+          <ul className="list-disc pl-4 space-y-1 text-[11px] text-slate-600">
+            <li><strong>prahari_session (HttpOnly, SameSite=Strict):</strong> Cryptographically signed session token ensuring secure role-based access.</li>
+            <li><strong>prahari_token & prahari_user (Local Storage):</strong> Client-side tactical cache enabling offline check-ins and emergency SOS dispatch when forward outposts lose network connectivity.</li>
+            <li><strong>Zero Tracking Cookies:</strong> No persistent marketing, profiling, or cross-site tracking cookies are ever utilized.</li>
+          </ul>
+        </div>
+
+        {/* Section: Non-Clinical Decision Support Disclaimer */}
+        <div className="p-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-950 space-y-2">
+          <div className="flex items-center gap-2 text-amber-900 font-bold text-sm">
+            <AlertCircle className="w-4 h-4 text-amber-700" />
+            <span>Non-Clinical Decision Support System Disclaimer</span>
+          </div>
+          <p className="text-[11px] leading-relaxed">
+            PRAHARI is an administrative operational stress-monitoring, fatigue-rebalancing, and welfare decision-support system. It does <strong>not</strong> provide psychiatric diagnoses, medical outcome guarantees, or clinical psychotherapy. Statistical risk scores reflect duty roster fatigue and operational strain patterns to assist commanding officers in preventative rest scheduling. Emergency clinical psychological support is routed directly to certified clinicians via National Tele-MANAS (14416).
           </p>
         </div>
 
@@ -187,14 +283,18 @@ export default function PrivacyPolicyPage() {
           </div>
         </div>
 
-        {/* Return Button */}
-        <div className="pt-4 border-t border-slate-200">
-          <Link href="/" className="gov-btn-secondary text-xs inline-flex items-center">
+        {/* Return Button & Terms Link */}
+        <div className="pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+          <Link href="/" className="ux4g-btn ux4g-btn-outline-primary ux4g-btn-sm inline-flex items-center">
             <ArrowLeft className="w-3.5 h-3.5 mr-1" />
             Return to Service Directory
+          </Link>
+          <Link href="/terms" className="text-xs font-semibold text-[#0c3866] hover:underline">
+            View Terms of Service & System Usage Charter →
           </Link>
         </div>
       </div>
     </div>
   );
 }
+

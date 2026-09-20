@@ -26,8 +26,8 @@ export const ModelHealthCard: React.FC<ModelHealthCardProps> = ({ health }) => {
             <Cpu className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="font-bold text-m3-on-surface text-sm">AI System Accuracy & Health</h4>
-            <span className="text-[11px] text-m3-on-surface-variant font-mono font-medium">Model Version: {health.model_version}</span>
+            <h4 className="font-bold text-m3-on-surface text-sm">Operational ML Model Health & Drift</h4>
+            <span className="text-[11px] text-m3-on-surface-variant font-mono font-medium">Strain Forecasting Engine: Operational</span>
           </div>
         </div>
 
@@ -39,38 +39,42 @@ export const ModelHealthCard: React.FC<ModelHealthCardProps> = ({ health }) => {
         ) : (
           <span className="bg-risk-green-container text-risk-on-green-container border border-risk-green/40 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
             <CheckCircle className="w-3.5 h-3.5 text-risk-green" />
-            Working Accurately & Normal
+            Calibrated & Normal
           </span>
         )}
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 text-xs">
         <div className="bg-m3-surface-container-low border border-m3-outline-variant/50 rounded-m3-xl p-4">
-          <span className="text-m3-on-surface-variant text-[10px] font-semibold uppercase tracking-wider block">Total Soldiers Checked</span>
+          <span className="text-m3-on-surface-variant text-[10px] font-semibold uppercase tracking-wider block">Total Troopers Evaluated</span>
           <span className="text-2xl font-black text-m3-on-surface mt-1.5 block">{snap.total_predictions}</span>
         </div>
 
         <div className="bg-m3-surface-container-low border border-m3-outline-variant/50 rounded-m3-xl p-4">
-          <span className="text-m3-on-surface-variant text-[10px] font-semibold uppercase tracking-wider block">Average Accuracy Score</span>
+          <span className="text-m3-on-surface-variant text-[10px] font-semibold uppercase tracking-wider block">Model Confidence Score</span>
           <span className="text-2xl font-black text-risk-green mt-1.5 block">
             {(snap.avg_confidence * 100).toFixed(1)}%
           </span>
         </div>
 
         <div className="bg-m3-surface-container-low border border-m3-outline-variant/50 rounded-m3-xl p-4">
-          <span className="text-m3-on-surface-variant text-[10px] font-semibold uppercase tracking-wider block">Record Data Quality</span>
+          <span className="text-m3-on-surface-variant text-[10px] font-semibold uppercase tracking-wider block">Roster Data Completeness</span>
           <span className="text-2xl font-black text-m3-primary mt-1.5 block">
             {(snap.avg_data_quality * 100).toFixed(1)}%
           </span>
         </div>
 
         <div className="bg-m3-surface-container-low border border-m3-outline-variant/50 rounded-m3-xl p-4">
-          <span className="text-m3-on-surface-variant text-[10px] font-semibold uppercase tracking-wider block">Prediction Error Rate (ECE)</span>
+          <span className="text-m3-on-surface-variant text-[10px] font-semibold uppercase tracking-wider block">Expected Calibration Error</span>
           <span className="text-2xl font-black text-m3-on-surface mt-1.5 block">
             {snap.calibration_error !== undefined && snap.calibration_error !== null ? snap.calibration_error.toFixed(3) : "N/A"}
           </span>
         </div>
       </div>
+      <p className="text-[10px] text-slate-500 italic pt-1">
+        Decision Support System Only: Statistical models evaluate operational fatigue and duty load patterns to assist human commanders. System does not provide medical or psychiatric diagnoses.
+      </p>
     </div>
+
   );
 };

@@ -137,7 +137,7 @@ export default function FamilyEmergencyPage() {
       )}
 
       {submittedRef ? (
-        <div className="gov-card p-6 sm:p-8 space-y-6 bg-white border-2 border-amber-400">
+        <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-6 sm:p-8 space-y-6 bg-white border-2 border-amber-400">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-200 pb-4 gap-4">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 flex-shrink-0">
@@ -158,7 +158,7 @@ export default function FamilyEmergencyPage() {
                 />
               </div>
               <div>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                <span className="ux4g-tag-tonal-warning ux4g-tag-s font-bold">
                   {lang === "hi" ? "आपातकालीन अनुरोध प्रेषित" : lang === "ta" ? "அவசர கோரிக்கை அனுப்பப்பட்டது" : "Emergency Request Sent"}
                 </span>
                 <h2 className="text-xl font-bold text-[#0c3866] mt-1.5 font-heading">
@@ -214,17 +214,17 @@ export default function FamilyEmergencyPage() {
           </div>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="gov-card p-6 space-y-5 bg-white">
+        <form onSubmit={handleSubmit} className="ux4g-card ux4g-card-solid ux4g-card-vertical p-6 space-y-5">
           {/* Who needs help? */}
           <div>
-            <label htmlFor="relationship" className="gov-label">
+            <label htmlFor="relationship" className="block text-xs font-bold text-slate-700 mb-1">
               Who needs help? <span className="text-red-600">*</span>
             </label>
             <select
               id="relationship"
               value={relationship}
               onChange={(e) => setRelationship(e.target.value)}
-              className="gov-input font-medium"
+              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary-500"
               required
             >
               <option value="Parent (Father / Mother)">Parent (Father / Mother)</option>
@@ -237,7 +237,7 @@ export default function FamilyEmergencyPage() {
 
           {/* What happened? */}
           <div>
-            <label htmlFor="emergency-details" className="gov-label">
+            <label htmlFor="emergency-details" className="block text-xs font-bold text-slate-700 mb-1">
               What happened? <span className="text-red-600">*</span>
             </label>
             <textarea
@@ -246,14 +246,14 @@ export default function FamilyEmergencyPage() {
               value={details}
               onChange={(e) => setDetails(e.target.value)}
               placeholder="Tell us what happened in simple words (e.g. Hospital admission, urgent medical treatment needed)..."
-              className="gov-input"
+              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-xs focus:ring-2 focus:ring-primary-500"
               required
             />
           </div>
 
           {/* Where is the emergency? */}
           <div>
-            <label htmlFor="destination" className="gov-label">
+            <label htmlFor="destination" className="block text-xs font-bold text-slate-700 mb-1">
               Where do you need to go? (City / State / Hospital)
             </label>
             <input
@@ -262,13 +262,13 @@ export default function FamilyEmergencyPage() {
               value={destination}
               onChange={(e) => setDestination(e.target.value)}
               placeholder="e.g. District Hospital, Varanasi, Uttar Pradesh"
-              className="gov-input"
+              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-xs focus:ring-2 focus:ring-primary-500"
             />
           </div>
 
           {/* Contact number */}
           <div>
-            <label htmlFor="contact" className="gov-label">
+            <label htmlFor="contact" className="block text-xs font-bold text-slate-700 mb-1">
               Phone number to reach you or your family
             </label>
             <input
@@ -277,7 +277,7 @@ export default function FamilyEmergencyPage() {
               value={contactNumber}
               onChange={(e) => setContactNumber(e.target.value)}
               placeholder="e.g. +91 98765 43210"
-              className="gov-input"
+              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-xs focus:ring-2 focus:ring-primary-500"
             />
           </div>
 
@@ -309,7 +309,7 @@ export default function FamilyEmergencyPage() {
             <button
               type="submit"
               disabled={!confirmed || submitting}
-              className="ux4g-btn ux4g-btn-danger ux4g-btn-md bg-red-600 hover:bg-red-700 text-white font-bold"
+              className="ux4g-btn ux4g-btn-danger ux4g-btn-md flex items-center justify-center gap-1.5"
             >
               {submitting ? (
                 <span>Submitting Emergency Notice...</span>

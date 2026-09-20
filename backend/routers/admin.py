@@ -69,7 +69,7 @@ def verify_audit_chain(
 
         computed_hash = compute_audit_hash(
             prev_hash=expected_prev_hash,
-            user_id=str(log.user_id),
+            user_id=log.user_id,
             action=log.action,
             resource_type=log.resource_type,
             resource_id=res_id_str,

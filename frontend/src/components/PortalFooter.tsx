@@ -15,9 +15,13 @@ export const PortalFooter: React.FC = () => {
           <span className="text-slate-400 font-mono">CRPF / MHA</span>
         </div>
         <div className="flex items-center gap-4 text-slate-400">
-          <span>Section 21 Mental Healthcare Act 2017</span>
+          <span className="hidden md:inline text-amber-400/90 font-medium">Decision Support Only (Non-Clinical)</span>
+          <span>Section 21 MHCA 2017</span>
           <Link href="/privacy" className="hover:text-white underline">
-            Statutory Charter
+            Privacy Charter
+          </Link>
+          <Link href="/terms" className="hover:text-white underline">
+            Terms of Service
           </Link>
           <Link href="/" className="hover:text-white underline">
             Public Website
@@ -25,5 +29,6 @@ export const PortalFooter: React.FC = () => {
         </div>
       </div>
     </footer>
+
   );
 };

@@ -11,6 +11,8 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from database import get_db
+from models.user import User
+from middleware.rbac import get_current_user, ROLE_ALIASES
 from services.sync_service import (
     sync_broadcaster,
     format_sse,
@@ -38,13 +40,16 @@ def sync_delta_endpoint(
     since: Optional[str] = Query(None, description="ISO timestamp or unix epoch to query delta from"),
     unit_id: Optional[str] = Query(None, description="Optional unit filter"),
     if_none_match: Optional[str] = Header(None, alias="If-None-Match"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Returns only records modified or created since the provided cursor/timestamp.
+    Requires authentication. Frontline jawans only receive their own records; commanders
+    are protected by the Mental Healthcare Act §21 firewall from viewing individual self-assessments.
     Supports HTTP ETag and 304 Not Modified to eliminate unnecessary payload transfers.
     """
-    delta_result = compute_sync_delta(db, since=since, unit_id=unit_id)
+    delta_result = compute_sync_delta(db, since=since, unit_id=unit_id, current_user=current_user)
     etag = delta_result.get("etag")
 
     if if_none_match and etag:
@@ -65,12 +70,19 @@ async def sync_stream_endpoint(
     request: Request,
     unit_id: Optional[str] = Query(None, description="Optional unit filter"),
     max_events: Optional[int] = Query(None, description="Optional limit of events before stream completion"),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Real-time SSE event stream delivering live database mutation events
     (grievance created/approved, assessment submitted, emergency SOS) to frontend clients.
+    Enforces authentication and real-time subscriber authorization filtering.
     """
     queue = sync_broadcaster.subscribe()
+
+    raw_role = getattr(current_user, "role", "") or ""
+    role = ROLE_ALIASES.get(raw_role.lower(), raw_role.lower())
+    user_pid = getattr(current_user, "personnel_id", None)
+    user_unit = getattr(current_user, "unit_id", None)
 
     async def event_generator():
         sent_count = 0
@@ -93,11 +105,35 @@ async def sync_stream_endpoint(
                     # Wait up to 15 seconds for a published database event
                     packet = await asyncio.wait_for(queue.get(), timeout=15.0)
 
-                    # Optional unit filtering
-                    if unit_id and packet.get("unit_id") and packet.get("unit_id") != unit_id:
+                    # Optional unit filtering: non-admin/welfare users cannot listen across units
+                    packet_unit = packet.get("unit_id")
+                    if user_unit and role not in ("admin", "welfare"):
+                        if packet_unit and packet_unit != user_unit:
+                            continue
+                    elif unit_id and packet_unit and packet_unit != unit_id:
                         continue
 
+                    # Role-based event confidentiality & MHCA §21 firewall filtering
                     event_type = packet.get("event", "database_mutation")
+                    event_data = packet.get("data", {})
+                    event_pid = event_data.get("personnel_id")
+
+                    if event_type == "assessment_submitted":
+                        if role == "personnel":
+                            if not user_pid or event_pid != user_pid:
+                                continue
+                        elif role == "commander":
+                            # MHCA §21 Firewall: Company commanders must NEVER receive individual psychological self-assessments
+                            continue
+                    elif event_type in ("grievance_created", "grievance_approved", "grievance_rejected"):
+                        if role == "personnel":
+                            if not user_pid or event_pid != user_pid:
+                                continue
+                    elif event_type == "emergency_sos":
+                        if role == "personnel":
+                            if not user_pid or event_pid != user_pid:
+                                continue
+
                     yield format_sse(event_type, packet)
                     sent_count += 1
                     if max_events and sent_count >= max_events:
@@ -127,13 +163,15 @@ async def sync_stream_endpoint(
 def sync_push_endpoint(
     request_data: Dict[str, Any],
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Ingests an array of offline mutations buffered on client devices.
     Executes in an atomic SQLite transaction and publishes real-time sync events.
+    Strictly enforces authentication and trooper self-identity constraints.
     """
     items = request_data.get("items", [])
     if not isinstance(items, list):
         raise HTTPException(status_code=400, detail="Invalid request format: 'items' must be a list")
 
-    return process_batch_push(db, items=items)
+    return process_batch_push(db, items=items, current_user=current_user)

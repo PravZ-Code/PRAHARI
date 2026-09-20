@@ -361,15 +361,15 @@ export const PrahariVaniSimulator: React.FC<PrahariVaniSimulatorProps> = ({
             <button
               onClick={handleStartCall}
               disabled={callState !== "idle"}
-              className="bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white py-2 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold shadow disabled:opacity-40 transition-colors"
+              className="bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white py-2 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold shadow disabled:opacity-40 transition-all hover-scale active-press"
             >
-              <Phone className="w-3.5 h-3.5" />
+              <Phone className="w-3.5 h-3.5 animate-bounce" />
               <span>CALL</span>
             </button>
             <button
               onClick={handleEndCall}
               disabled={callState === "idle"}
-              className="bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white py-2 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold shadow disabled:opacity-40 transition-colors"
+              className="bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white py-2 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold shadow disabled:opacity-40 transition-all hover-scale active-press"
             >
               <PhoneOff className="w-3.5 h-3.5" />
               <span>END</span>
@@ -395,10 +395,10 @@ export const PrahariVaniSimulator: React.FC<PrahariVaniSimulatorProps> = ({
               <button
                 key={key}
                 onClick={() => handleKeyPress(key)}
-                className={`h-11 rounded-xl font-bold flex flex-col items-center justify-center transition-all active:scale-95 border ${
+                className={`h-11 rounded-xl font-bold flex flex-col items-center justify-center transition-all active:scale-90 hover:scale-105 border cursor-pointer ${
                   lastKeyPressed === key
                     ? "bg-emerald-500 text-black border-emerald-300 shadow-lg scale-95"
-                    : "bg-slate-900 hover:bg-slate-850 text-slate-100 border-slate-800 shadow"
+                    : "bg-slate-900 hover:bg-slate-800 text-slate-100 border-slate-800 shadow"
                 }`}
               >
                 <span className="text-sm leading-none font-black">{key}</span>
@@ -519,8 +519,8 @@ export const PrahariVaniSimulator: React.FC<PrahariVaniSimulatorProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-4xl">{content}</div>
+      <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm animate-fade-in" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-4xl animate-scale-in">{content}</div>
     </div>
   );
 };

@@ -132,7 +132,7 @@ def test_mobile_buddy_and_copilot(client: TestClient, personnel_headers: dict):
     assert "reply" in chat_data
 
 
-def test_mobile_uro_roster_and_swaps(client: TestClient, personnel_headers: dict):
+def test_mobile_uro_roster_and_swaps(client: TestClient, personnel_headers: dict, commander_alpha_headers: dict):
     """Verifies URO duty roster, pending swaps, and approval from mobile client"""
     headers = personnel_headers
 
@@ -163,11 +163,15 @@ def test_mobile_uro_roster_and_swaps(client: TestClient, personnel_headers: dict
     assert "person_b" in first_swap
     assert "risk_reduction_pct" in first_swap
 
-    # 3. PUT /api/uro/result/{swap_id}/approve
+    # 3. Frontline personnel cannot approve URO swap (RBAC: requires commander/welfare)
     swap_id = first_swap["id"]
-    approve_resp = client.put(f"/api/uro/result/{swap_id}/approve", json={"single_sign": True}, headers=headers)
+    forbidden_resp = client.put(f"/api/uro/result/{swap_id}/approve", json={"role": "commander"}, headers=headers)
+    assert forbidden_resp.status_code == 403
+
+    # 4. Authorized Commander approves the swap
+    approve_resp = client.put(f"/api/uro/result/{swap_id}/approve", json={"role": "commander"}, headers=commander_alpha_headers)
     assert approve_resp.status_code == 200
-    assert approve_resp.json()["status"] == "approved"
+    assert approve_resp.json()["commander_approved"] is True
 
 
 def test_mobile_admin_audit_endpoints(client: TestClient, admin_headers: dict):

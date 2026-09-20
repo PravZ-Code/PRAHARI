@@ -134,3 +134,18 @@ def test_uro_clinical_redaction_for_commander(client: TestClient, commander_alph
         assert swap["person_b"]["risk_level"] in ("green", "yellow")
         assert swap["projected_risk_change_a"]["from"] > 0.0
 
+
+def test_commander_blocked_from_safety_patterns(client: TestClient, commander_alpha_headers):
+    """MHA Privacy Directive: Commanders cannot access proactive welfare safety patterns."""
+    resp = client.get("/api/welfare/safety-patterns", headers=commander_alpha_headers)
+    assert resp.status_code == 403
+    assert "Access forbidden" in resp.json()["detail"]
+
+
+def test_commander_blocked_from_recovery_cases(client: TestClient, commander_alpha_headers):
+    """MHCA 2017 §21: Commanders cannot access soldier recovery cases and counseling notes."""
+    resp = client.get("/api/welfare/recovery-cases", headers=commander_alpha_headers)
+    assert resp.status_code == 403
+    assert "Access forbidden" in resp.json()["detail"]
+
+

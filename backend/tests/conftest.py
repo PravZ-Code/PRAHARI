@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from main import app
-from database import SessionLocal, Base, engine
+from database import SessionLocal, Base, engine, AuthSessionLocal, AuthBase, auth_engine, create_all_tables
 import models  # noqa: F401 - registers all model metadata before table creation
 from models.user import User
 from models.personnel import Unit, Personnel
@@ -15,15 +15,15 @@ settings.ALLOW_INSECURE_LOCAL_GATEWAY = True
 @pytest.fixture(scope="session", autouse=True)
 def ensure_database_seeded():
     """Guarantees a clean, reproducible test suite on fresh clone even without manual seeding."""
-    Base.metadata.create_all(bind=engine)
-    db = SessionLocal()
+    create_all_tables()
+    auth_db = AuthSessionLocal()
     try:
-        user_count = db.query(User).count()
+        user_count = auth_db.query(User).count()
         if user_count == 0:
             from scripts.seed_db import seed_database
             seed_database()
     finally:
-        db.close()
+        auth_db.close()
 
 @pytest.fixture(scope="function")
 def client():
@@ -33,6 +33,14 @@ def client():
 @pytest.fixture(scope="function")
 def db():
     session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
+
+@pytest.fixture(scope="function")
+def auth_db():
+    session = AuthSessionLocal()
     try:
         yield session
     finally:

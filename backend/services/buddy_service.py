@@ -1,6 +1,5 @@
 from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 from models.buddy_signal import BuddySignal
 from models.welfare_case import WelfareCase
 from models.personnel import Unit

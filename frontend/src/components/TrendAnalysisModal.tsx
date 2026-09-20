@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/lib/api";
 import { TrendAnalysisReport } from "@/lib/types";
 import { playTacticalClick } from "@/lib/sound";
+import { formatTrajectory, formatStatus, formatHumanReadable } from "@/lib/formatters";
 import {
   X,
   TrendingUp,
@@ -253,9 +254,7 @@ export const TrendAnalysisModal: React.FC<TrendAnalysisModalProps> = ({
                       Current Trend
                     </span>
                     <span className="text-sm font-bold text-white block mt-1">
-                      {data.trajectory_classification === "ACCELERATING_STRAIN"
-                        ? "Rapidly Rising Fatigue"
-                        : data.trajectory_classification.replace(/_/g, " ")}
+                      {formatTrajectory(data.trajectory_classification)}
                     </span>
                     <span className="text-[10px] text-rose-300 font-mono block mt-1">
                       Needs Attention Within 72 Hours
@@ -376,7 +375,7 @@ export const TrendAnalysisModal: React.FC<TrendAnalysisModalProps> = ({
                                     : "bg-amber-500/20 text-amber-300 border border-amber-500/40"
                                 }`}
                               >
-                                {item.status === "CRITICAL_DEVIATION" ? "HIGH" : item.status.replace(/_/g, " ")}
+                                {item.status === "CRITICAL_DEVIATION" ? "HIGH SHIFT" : formatStatus(item.status)}
                               </span>
                             </td>
                           </tr>

@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from sqlalchemy.orm import Session
-from database import get_db
+from database import get_db, get_auth_db
 from models.user import User
+from models.personnel import Personnel, Unit
 from schemas.auth import LoginRequest, TokenResponse, UserProfile
 from middleware.rbac import verify_password, create_access_token, get_current_user
 from middleware.audit import log_audit
@@ -9,8 +10,21 @@ from config import settings
 
 router = APIRouter()
 
+USERNAME_ALIASES = {
+    "personnel_unit_a_01": "rajesh_kumar",
+    "commander_unit_a": "cmd_vikram",
+    "welfare_officer_01": "wo_meera",
+    "system_admin": "admin_sys",
+}
+
 @router.post("/login", response_model=TokenResponse)
-def login(login_req: LoginRequest, request: Request, response: Response, db: Session = Depends(get_db)):
+def login(
+    login_req: LoginRequest,
+    request: Request,
+    response: Response,
+    auth_db: Session = Depends(get_auth_db),
+    db: Session = Depends(get_db)
+):
     identifier = (login_req.service_number or login_req.username or "").strip()
     secret = (login_req.pin or login_req.password or "").strip()
     if not identifier or not secret:
@@ -19,16 +33,34 @@ def login(login_req: LoginRequest, request: Request, response: Response, db: Ses
             detail="Service number/username and PIN/password are required"
         )
 
-    user = db.query(User).filter(User.username == identifier).first()
+    # Resolve demo/display aliases
+    resolved_identifier = USERNAME_ALIASES.get(identifier.lower(), identifier)
+
+    # 1. Look up user login credentials in the dedicated Authentication Database
+    user = auth_db.query(User).filter(
+        (User.username == resolved_identifier) | (User.username == identifier)
+    ).first()
+
     if not user:
-        # Check if identifier matches a Personnel service_number with an existing user account
-        from models.personnel import Personnel
-        personnel = db.query(Personnel).filter(Personnel.service_number == identifier).first()
+        # 2. Check if identifier matches a Personnel service_number in the Operational Database
+        clean_id = identifier.upper().strip()
+        personnel = db.query(Personnel).filter(
+            (Personnel.service_number == clean_id) | (Personnel.service_number == identifier)
+        ).first()
+        if not personnel:
+            # Fallback matching with stripped punctuation
+            raw_clean = clean_id.replace("-", "").replace(" ", "")
+            all_p = db.query(Personnel).filter(Personnel.service_number.isnot(None)).all()
+            for p in all_p:
+                if p.service_number and p.service_number.replace("-", "").replace(" ", "").upper() == raw_clean:
+                    personnel = p
+                    break
+
         if personnel:
-            user = db.query(User).filter(User.personnel_id == personnel.id).first()
+            user = auth_db.query(User).filter(User.personnel_id == personnel.id).first()
             if not user:
                 safe_username = personnel.service_number.lower().replace("-", "_").replace(" ", "_")
-                user = db.query(User).filter(User.username == safe_username).first()
+                user = auth_db.query(User).filter(User.username == safe_username).first()
 
     if not user or not verify_password(secret, user.password_hash):
         log_audit(
@@ -105,7 +137,7 @@ def login(login_req: LoginRequest, request: Request, response: Response, db: Ses
         details={"username": user.username, "role": user.role}
     )
 
-    profile = _build_user_profile(user)
+    profile = _build_user_profile(user, db=db)
     return TokenResponse(access_token=token, token_type="bearer", user=profile)
 
 @router.post("/refresh", response_model=TokenResponse)
@@ -136,18 +168,30 @@ def refresh_token(
         samesite="lax",
         path="/",
     )
-    profile = _build_user_profile(current_user)
+    profile = _build_user_profile(current_user, db=db)
     return TokenResponse(access_token=token, token_type="bearer", user=profile)
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 def logout(response: Response):
     response.delete_cookie("prahari_session", path="/")
 
-def _build_user_profile(user: User) -> UserProfile:
-    service_number = user.personnel.service_number if user.personnel else None
-    name = user.personnel.name if user.personnel else None
-    rank = user.personnel.rank if user.personnel else None
-    unit_name = user.unit.name if user.unit else (user.personnel.unit.name if user.personnel and user.personnel.unit else None)
+def _build_user_profile(user: User, db: Session = None) -> UserProfile:
+    """Build rich UserProfile by resolving people information from the Operational/Personnel DB."""
+    personnel = None
+    unit = None
+    if db is not None:
+        if user.personnel_id:
+            personnel = db.query(Personnel).filter(Personnel.id == user.personnel_id).first()
+        if user.unit_id:
+            unit = db.query(Unit).filter(Unit.id == user.unit_id).first()
+    else:
+        personnel = user.personnel
+        unit = user.unit
+
+    service_number = personnel.service_number if personnel else None
+    name = personnel.name if personnel else None
+    rank = personnel.rank if personnel else None
+    unit_name = unit.name if unit else (personnel.unit.name if personnel and personnel.unit else None)
     return UserProfile(
         id=user.id,
         username=user.username,
@@ -161,5 +205,5 @@ def _build_user_profile(user: User) -> UserProfile:
     )
 
 @router.get("/me", response_model=UserProfile)
-def get_me(current_user: User = Depends(get_current_user)):
-    return _build_user_profile(current_user)
+def get_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return _build_user_profile(current_user, db=db)

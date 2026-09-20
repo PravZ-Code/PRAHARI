@@ -145,6 +145,31 @@ module.exports = {
           "0%": { opacity: "0", transform: "translateY(4px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
+        "fade-in-up": {
+          "0%": { opacity: "0", transform: "translateY(12px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "fade-in-down": {
+          "0%": { opacity: "0", transform: "translateY(-12px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "fade-in-left": {
+          "0%": { opacity: "0", transform: "translateX(-12px)" },
+          "100%": { opacity: "1", transform: "translateX(0)" },
+        },
+        "fade-in-right": {
+          "0%": { opacity: "0", transform: "translateX(12px)" },
+          "100%": { opacity: "1", transform: "translateX(0)" },
+        },
+        "scale-in": {
+          "0%": { opacity: "0", transform: "scale(0.95)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        "scale-pop": {
+          "0%": { opacity: "0", transform: "scale(0.92)" },
+          "60%": { opacity: "1", transform: "scale(1.03)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
         "slide-down": {
           "0%": { opacity: "0", transform: "translateY(-8px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
@@ -157,16 +182,32 @@ module.exports = {
           "0%, 100%": { transform: "scale(1)" },
           "50%": { transform: "scale(1.05)" },
         },
+        "radar-ping": {
+          "0%": { transform: "scale(1)", opacity: "0.85" },
+          "100%": { transform: "scale(2.4)", opacity: "0" },
+        },
+        float: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-5px)" },
+        },
         shimmer: {
           "0%": { backgroundPosition: "-200% 0" },
           "100%": { backgroundPosition: "200% 0" },
         },
       },
       animation: {
-        "fade-in": "fade-in 0.3s ease-out forwards",
-        "slide-down": "slide-down 0.25s ease-out forwards",
+        "fade-in": "fade-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        "fade-in-up": "fade-in-up 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        "fade-in-down": "fade-in-down 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        "fade-in-left": "fade-in-left 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        "fade-in-right": "fade-in-right 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        "scale-in": "scale-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        "scale-pop": "scale-pop 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        "slide-down": "slide-down 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards",
         "pulse-subtle": "pulse-subtle 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite",
         "badge-pulse": "badge-pulse 2s ease-in-out infinite",
+        "radar-ping": "radar-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite",
+        float: "float 3.5s ease-in-out infinite",
         shimmer: "shimmer 2s infinite linear",
       },
     },
