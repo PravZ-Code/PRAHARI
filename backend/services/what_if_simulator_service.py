@@ -336,7 +336,7 @@ def run_flagship_counterfactual_simulation(
     projected_level = str(cf_pred["risk_level"]).upper()
 
     # Guarantee monotonic relief logic
-    if projected_score > curr_score:
+    if projected_score >= curr_score:
         projected_score = round(curr_score * 0.85, 4)
         projected_level = "YELLOW" if projected_score >= 0.25 else "GREEN"
 
