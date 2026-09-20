@@ -39,6 +39,14 @@ def test_login_invalid_password(client: TestClient):
     assert resp.status_code == 401
     assert "Invalid username or password" in resp.json()["detail"]
 
+def test_login_username_is_case_insensitive(client: TestClient):
+    resp = client.post("/api/auth/login", json={
+        "username": "RAJESH_KUMAR",
+        "password": "demo123"
+    })
+    assert resp.status_code == 200
+    assert resp.json()["user"]["username"] == "rajesh_kumar"
+
 def test_login_nonexistent_user(client: TestClient):
     resp = client.post("/api/auth/login", json={
         "username": "ghost_trooper_9999",

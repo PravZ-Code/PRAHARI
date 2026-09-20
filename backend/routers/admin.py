@@ -50,13 +50,33 @@ def verify_audit_chain(
     unsigned_legacy_rows = 0
 
     for idx, log in enumerate(logs):
-        # 1. Verify previous_hash link
+        # 1. Verify Asymmetric KMS Signature first (protects against rogue admin recomputation)
+        # Skip KMS verification if no signature exists (legacy entries); those are
+        # validated later through chain integrity and unsigned-legacy tracking.
+        has_kms_sig = log.signature is not None
+        if has_kms_sig:
+            if not verify_audit_signature(log.current_hash, log.signature):
+                return {
+                    "chain_status": "COMPROMISED",
+                    "total_blocks": len(logs),
+                    "tampered_index": log.sequence_number if log.sequence_number is not None else idx + 1,
+                    "tamper_reason": "Forged / invalid KMS signature detected (adversarial recomputation)",
+                    "asymmetric_signatures_verified": False,
+                    "evidentiary_standard": "Section 63(4) Bharatiya Sakshya Adhiniyam, 2023"
+                }
+        # 2. Verify previous_hash link
         if log.previous_hash != expected_prev_hash:
+            # If we had a KMS signature and it failed above, we'd already have returned.
+            # If no KMS sig, this is a chain integrity issue (tampered record without KMS protection).
+            previous_log = logs[idx - 1] if idx > 0 else None
+            tamper_reason = "Broken previous_hash chain pointer"
+            if previous_log is not None and not previous_log.signature:
+                tamper_reason += "; KMS signature unavailable for preceding legacy block"
             return {
                 "chain_status": "COMPROMISED",
                 "total_blocks": len(logs),
                 "tampered_index": log.sequence_number if log.sequence_number is not None else idx + 1,
-                "tamper_reason": "Broken previous_hash chain pointer",
+                "tamper_reason": tamper_reason,
                 "asymmetric_signatures_verified": False,
                 "evidentiary_standard": "Section 63(4) Bharatiya Sakshya Adhiniyam, 2023"
             }

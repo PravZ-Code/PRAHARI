@@ -27,14 +27,15 @@ class Ux4gCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeLocale = context.watch<ThemeLocaleProvider>();
     final isDark = themeLocale.isDark;
+    final colors = Theme.of(context).colorScheme;
 
     return Container(
       margin: margin,
       decoration: BoxDecoration(
-        color: isDark ? Ux4gDefenseTheme.surfaceDark : Ux4gDefenseTheme.surfaceLight,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(8.0),
         border: Border.all(
-          color: isDark ? Ux4gDefenseTheme.borderDark : Ux4gDefenseTheme.borderLight,
+          color: colors.outline,
           width: 1.0,
         ),
         boxShadow: Ux4gDefenseTheme.elevationLevel1(isDark),
@@ -173,8 +174,8 @@ class Ux4gButton extends StatelessWidget {
 
     switch (type) {
       case Ux4gButtonType.primary:
-        bg = Ux4gDefenseTheme.mhaNavy;
-        fg = Colors.white;
+        bg = Theme.of(context).colorScheme.primary;
+        fg = Theme.of(context).colorScheme.onPrimary;
         break;
       case Ux4gButtonType.secondary:
         bg = Ux4gDefenseTheme.indiaSaffron;
@@ -182,8 +183,8 @@ class Ux4gButton extends StatelessWidget {
         break;
       case Ux4gButtonType.outline:
         bg = Colors.transparent;
-        fg = Ux4gDefenseTheme.mhaNavy;
-        border = const BorderSide(color: Ux4gDefenseTheme.mhaNavy, width: 1.5);
+        fg = Theme.of(context).colorScheme.primary;
+        border = BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.5);
         break;
       case Ux4gButtonType.crisis:
         bg = Ux4gDefenseTheme.crisisRed;
