@@ -333,3 +333,119 @@ export function formatWellbeingStatus(status?: string | null, riskLevel?: string
   };
 }
 
+/**
+ * Formats "Recent Changes" factor comparisons into plain, short, soldier-friendly English.
+ * Strips clinical terminology (e.g. deep sleep architecture, cortisol, physiological recovery)
+ * and presents clear, actionable insights for personnel self-service.
+ */
+export function formatRecentChange(factor: any): { title: string; detail: string } {
+  if (!factor) {
+    return { title: "Duty load normal", detail: "Regular shift rotation and recovery schedule." };
+  }
+
+  const id = String(factor.id || "").toLowerCase();
+  const name = String(factor.name || "").toLowerCase();
+  const isWorsening = factor.impact_direction === "worsening";
+  const curr = String(factor.current_value || "");
+  const base = String(factor.baseline_value || "");
+
+  // 1. Night Patrol Density / Shifts
+  if (id.includes("night") || name.includes("night")) {
+    const numCurr = parseFloat(curr) || 0;
+    const numBase = parseFloat(base) || 0;
+    const diff = Math.round(Math.abs(numCurr - numBase) * 10) / 10;
+
+    if (isWorsening || numCurr > numBase) {
+      return {
+        title: `Night duties: ${diff > 0 ? `${diff} more shifts than usual in last 2 weeks` : `${numCurr} night shifts logged`}`,
+        detail: "More night duties than usual. Rest rotation is recommended.",
+      };
+    }
+    return {
+      title: `Night duties: ${numCurr} shifts in 2 weeks (normal range)`,
+      detail: "Night duty rhythm is balanced.",
+    };
+  }
+
+  // 2. Average Sleep Duration
+  if (id.includes("sleep") || name.includes("sleep")) {
+    const numCurr = parseFloat(curr) || 0;
+    const numBase = parseFloat(base) || 0;
+    const diff = Math.round(Math.abs(numCurr - numBase) * 10) / 10;
+
+    if (isWorsening || numCurr < numBase) {
+      return {
+        title: `Sleep time: ${numCurr} hours/night (${diff > 0 ? `${diff} hrs less than usual` : "below target"})`,
+        detail: "Less sleep recorded recently. Catching up on rest off duty will help.",
+      };
+    }
+    return {
+      title: `Sleep time: ${numCurr} hours per night (healthy rest)`,
+      detail: "Sleep hours are within your healthy baseline.",
+    };
+  }
+
+  // 3. Consecutive Duty Streak
+  if (id.includes("consecutive") || name.includes("consecutive") || id.includes("duty_streak")) {
+    const numCurr = parseInt(curr, 10) || 0;
+    const numBase = parseInt(base, 10) || 0;
+
+    if (isWorsening || numCurr > numBase) {
+      return {
+        title: `Duty streak: ${numCurr} continuous days on duty`,
+        detail: `You have worked ${numCurr} days in a row. A full rest day is due soon.`,
+      };
+    }
+    return {
+      title: `Duty streak: ${numCurr} days (normal rotation)`,
+      detail: "Regular shift rhythm with rest days scheduled.",
+    };
+  }
+
+  // 4. Rest Gap Between Shifts
+  if (id.includes("rest") || name.includes("gap") || name.includes("circadian")) {
+    const numCurr = parseFloat(curr) || 0;
+    if (isWorsening || (numCurr > 0 && numCurr < 8)) {
+      return {
+        title: `Break between shifts: ${curr || "Shorter break"}`,
+        detail: "Breaks between duties are shorter than normal. Aim for a full 8-hour rest.",
+      };
+    }
+    return {
+      title: `Break between shifts: ${curr || "Adequate"}`,
+      detail: "Healthy rest break between scheduled duties.",
+    };
+  }
+
+  // 5. Leave Backlog / Petitions
+  if (id.includes("leave") || name.includes("leave")) {
+    return {
+      title: "Leave requests: Pending company review",
+      detail: "Your leave application is awaiting company commander review.",
+    };
+  }
+
+  // Fallback cleaner for any arbitrary backend string:
+  let cleanTitle = factor.name || "Duty adjustment";
+  if (cleanTitle.includes("(")) {
+    cleanTitle = cleanTitle.split("(")[0].trim();
+  }
+  if (factor.delta_display) {
+    cleanTitle = `${cleanTitle}: ${factor.delta_display}`;
+  }
+
+  let cleanDetail = factor.explanation || "Schedule adjustment recorded.";
+  cleanDetail = cleanDetail
+    .replace(/reduce deep sleep architecture and drive fatigue escalation/gi, "may cause tiredness")
+    .replace(/elevates cortisol and slows physiological recovery/gi, "reduces recovery time")
+    .replace(/without a 24-hour stand-down breaches recovery barriers/gi, "exceeds recommended continuous duty")
+    .replace(/violate the mandatory Section \d+ CRPF Rest Barrier standard/gi, "is less than the standard 8-hour rest")
+    .replace(/generate acute psychological stress due to domestic separation/gi, "is pending review");
+
+  return {
+    title: cleanTitle,
+    detail: cleanDetail,
+  };
+}
+
+

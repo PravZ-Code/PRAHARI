@@ -499,7 +499,7 @@ def get_what_changed(
             "pct_change": f"{((curr_night_shifts - baseline_night_shifts) / baseline_night_shifts) * 100:+.0f}%",
             "impact_direction": "worsening" if curr_night_shifts > baseline_night_shifts else "improving",
             "severity": "HIGH" if abs(curr_night_shifts - baseline_night_shifts) >= 2.0 else "MODERATE",
-            "explanation": "Night shifts clustered within 48h reduce deep sleep architecture and drive fatigue escalation."
+            "explanation": "More night shifts than usual. Rest rotation is recommended."
         },
         {
             "id": "sleep_duration",
@@ -512,7 +512,7 @@ def get_what_changed(
             "pct_change": f"{((curr_sleep_hours - baseline_sleep_hours) / baseline_sleep_hours) * 100:+.0f}%",
             "impact_direction": "worsening" if curr_sleep_hours < baseline_sleep_hours else "improving",
             "severity": "HIGH" if curr_sleep_hours < 5.5 else "LOW",
-            "explanation": "Sleep duration reported below 6 hours elevates cortisol and slows physiological recovery."
+            "explanation": "Less than 6 hours of sleep recorded. Try to catch up on rest off duty."
         },
         {
             "id": "consecutive_duty",
@@ -525,7 +525,7 @@ def get_what_changed(
             "pct_change": f"{((curr_consecutive_duty - baseline_consecutive_duty) / baseline_consecutive_duty) * 100:+.0f}%",
             "impact_direction": "worsening" if curr_consecutive_duty > baseline_consecutive_duty else "improving",
             "severity": "HIGH" if curr_consecutive_duty >= 7 else "MODERATE",
-            "explanation": "Continuous operational presence without a 24-hour stand-down breaches recovery barriers."
+            "explanation": "Working several days in a row without a full day off. Rest day recommended."
         },
         {
             "id": "rest_barrier",
@@ -538,7 +538,7 @@ def get_what_changed(
             "pct_change": f"{((curr_rest_gap - baseline_rest_gap) / baseline_rest_gap) * 100:+.0f}%",
             "impact_direction": "worsening" if curr_rest_gap < baseline_rest_gap else "improving",
             "severity": "HIGH" if curr_rest_gap < 9.0 else "MODERATE",
-            "explanation": "Gaps under 8 hours violate the mandatory Section 14 CRPF Rest Barrier standard."
+            "explanation": "Break between shifts is shorter than the standard 8-hour rest interval."
         },
         {
             "id": "leave_petition_backlog",
@@ -551,7 +551,7 @@ def get_what_changed(
             "pct_change": "+100%" if curr_leave_denial > baseline_leave_denial else "0%",
             "impact_direction": "worsening" if curr_leave_denial > baseline_leave_denial else "improving",
             "severity": "MODERATE" if curr_leave_denial > 0 else "LOW",
-            "explanation": "Administrative leave delays generate acute psychological stress due to domestic separation."
+            "explanation": "Leave request pending review with company leadership."
         }
     ]
 
@@ -633,7 +633,7 @@ def get_why_risk_changing(
             "baseline_value": "2 night shifts / fortnight",
             "contribution_score": 0.22,
             "impact_direction": "increases_risk",
-            "description": "Dense night patrols disrupt natural melatonin release and inhibit neuro-cognitive recuperation."
+            "description": "Frequent night patrols reduce rest opportunities between shifts."
         },
         {
             "id": "factor_2",

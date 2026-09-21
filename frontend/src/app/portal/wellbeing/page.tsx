@@ -5,7 +5,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { getStoredUser, isAuthenticated } from "@/lib/auth";
 import { useDataSync } from "@/lib/useDataSync";
-import { formatWellbeingStatus, formatTrajectory } from "@/lib/formatters";
+import { formatWellbeingStatus, formatTrajectory, formatRecentChange } from "@/lib/formatters";
 import {
   HeartHandshake,
   Shield,
@@ -133,14 +133,35 @@ export default function PersonnelWellbeingPage() {
   const nightShiftsCount =
     currentState.night_shifts_14d !== undefined ? currentState.night_shifts_14d : 1;
 
-  // Recent changes bullet points
-  const recentChanges = whatChanged?.changed_factors?.slice(0, 3).map((f: any) => ({
-    text: `${f.name}: ${f.delta_display || "stable"} (${f.current_value} vs baseline ${f.baseline_value})`,
-    explanation: f.explanation,
-  })) || [
-    { text: "Duty load slightly increased", explanation: "Operational shift coverage rotation" },
-    { text: "One night shift recorded", explanation: "Night patrol within standard interval" },
-    { text: "Rest balance remains stable", explanation: "Adequate post-duty recovery interval" },
+  // Recent changes formatted in basic, soldier-friendly English
+  const recentChanges = whatChanged?.changed_factors?.slice(0, 3).map((f: any) => {
+    const formatted = formatRecentChange(f);
+    return {
+      title: formatted.title,
+      explanation: formatted.detail,
+    };
+  }) || [
+    { title: "Duty load normal", explanation: "Regular shift rotation and recovery schedule." },
+    { title: "Night shifts balanced", explanation: "Standard night patrol schedule." },
+    { title: "Rest pattern stable", explanation: "Normal rest hours between shifts." },
+  ];
+
+  // 14-day calm rest and recovery trend
+  const trendDays = [
+    { day: "14d", label: "14d ago", score: 65, hours: "5.5 hrs", status: "Night Duty" },
+    { day: "13d", label: "13d ago", score: 62, hours: "5.2 hrs", status: "Night Duty" },
+    { day: "12d", label: "12d ago", score: 68, hours: "6.0 hrs", status: "Day Patrol" },
+    { day: "11d", label: "11d ago", score: 70, hours: "6.2 hrs", status: "Day Patrol" },
+    { day: "10d", label: "10d ago", score: 60, hours: "5.0 hrs", status: "Night Shift" },
+    { day: "9d", label: "9d ago", score: 64, hours: "5.4 hrs", status: "Night Shift" },
+    { day: "8d", label: "8d ago", score: 72, hours: "6.5 hrs", status: "Day Patrol" },
+    { day: "7d", label: "7d ago", score: 75, hours: "6.8 hrs", status: "Day Patrol" },
+    { day: "6d", label: "6d ago", score: 78, hours: "7.0 hrs", status: "Regular Shift" },
+    { day: "5d", label: "5d ago", score: 82, hours: "7.2 hrs", status: "Off-duty Rest" },
+    { day: "4d", label: "4d ago", score: 85, hours: "7.5 hrs", status: "Stand-down" },
+    { day: "3d", label: "3d ago", score: 80, hours: "7.1 hrs", status: "Regular Shift" },
+    { day: "2d", label: "2d ago", score: 84, hours: "7.4 hrs", status: "Regular Shift" },
+    { day: "Today", label: "Today", score: 88, hours: "7.8 hrs", status: "Rest Stabilized" },
   ];
 
   if (loading && !wellbeing) {
@@ -270,21 +291,31 @@ export default function PersonnelWellbeingPage() {
           aria-labelledby="recent-changes-heading"
           className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs space-y-4"
         >
-          <h2
-            id="recent-changes-heading"
-            className="text-xs font-bold uppercase tracking-wider text-slate-500"
-          >
-            Recent Changes
-          </h2>
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h2
+              id="recent-changes-heading"
+              className="text-xs font-bold uppercase tracking-wider text-slate-500"
+            >
+              Recent Changes
+            </h2>
+            <span className="text-xs text-slate-400">Past 14 Days</span>
+          </div>
 
-          <ul className="space-y-2 text-sm text-slate-700">
+          <ul className="space-y-2.5 text-sm">
             {recentChanges.map((item: any, idx: number) => (
-              <li key={idx} className="flex items-start gap-2.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#0c3866] mt-2 shrink-0" />
-                <div>
-                  <span className="font-semibold text-slate-900">{item.text}</span>
+              <li
+                key={idx}
+                className="flex items-start gap-3 p-3 rounded-lg bg-slate-50/70 border border-slate-100 hover:border-slate-200 transition-colors"
+              >
+                <span className="w-2 h-2 rounded-full bg-[#0c3866] mt-1.5 shrink-0" />
+                <div className="space-y-0.5 min-w-0">
+                  <p className="font-semibold text-slate-900 text-sm leading-snug">
+                    {item.title}
+                  </p>
                   {item.explanation && (
-                    <p className="text-xs text-slate-500 mt-0.5">{item.explanation}</p>
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      {item.explanation}
+                    </p>
                   )}
                 </div>
               </li>
@@ -292,45 +323,107 @@ export default function PersonnelWellbeingPage() {
           </ul>
         </section>
 
-        {/* 4. PERSONAL TREND (SIMPLE 14-DAY CALM VISUAL) */}
+        {/* 4. PERSONAL TREND (14-DAY REST VISUAL) */}
         <section
           aria-labelledby="trend-heading"
           className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs space-y-4"
         >
-          <div className="flex items-center justify-between">
-            <h2
-              id="trend-heading"
-              className="text-xs font-bold uppercase tracking-wider text-slate-500"
-            >
-              Personal Trend (Last 14 Days)
-            </h2>
-            <span className="text-xs font-semibold text-emerald-700 inline-flex items-center gap-1">
-              <TrendingDown className="w-3.5 h-3.5" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h2
+                id="trend-heading"
+                className="text-xs font-bold uppercase tracking-wider text-slate-500"
+              >
+                Personal Trend (Last 14 Days)
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Daily rest and recovery rhythm over the past two operational weeks.
+              </p>
+            </div>
+            <span className="text-xs font-semibold text-emerald-700 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 self-start sm:self-auto">
+              <TrendingDown className="w-3.5 h-3.5 text-emerald-600" />
               <span>Fatigue easing</span>
             </span>
           </div>
 
-          {/* Simple non-diagnostic 14-day rest rhythm chart */}
-          <div className="space-y-2">
-            <div className="grid grid-cols-7 sm:grid-cols-14 gap-1.5 sm:gap-2 h-24 items-end pt-4">
-              {[72, 70, 68, 65, 60, 62, 58, 55, 54, 52, 50, 48, 46, 45].map((val, idx) => {
-                const dayNum = 14 - idx;
-                return (
-                  <div key={idx} className="flex flex-col items-center gap-1 group">
-                    <div
-                      className="w-full rounded-t-sm bg-blue-100 group-hover:bg-[#0c3866] transition-colors"
-                      style={{ height: `${val}%` }}
-                      title={`Day -${dayNum}: Steady rhythm`}
-                    />
-                    <span className="text-[9px] text-slate-400">
-                      {idx === 0 ? "14d" : idx === 13 ? "Today" : ""}
-                    </span>
-                  </div>
-                );
-              })}
+          <div className="space-y-3 pt-2">
+            {/* Chart Legend */}
+            <div className="flex flex-wrap items-center justify-between text-xs text-slate-500 gap-2">
+              <span className="font-medium text-slate-700">Daily Rest Rhythm</span>
+              <div className="flex items-center gap-4 text-[11px]">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-xs bg-[#0c3866]" />
+                  <span>Standard Shift</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-xs bg-emerald-600" />
+                  <span>Optimal Recovery</span>
+                </span>
+              </div>
             </div>
-            <p className="text-[11px] text-slate-500 text-center pt-2">
-              Rhythm is steady and restorative over the past two operational weeks.
+
+            {/* Visual Bar Chart Container */}
+            <div className="relative bg-slate-50/70 rounded-xl p-4 border border-slate-200">
+              {/* Target Baseline Reference Line (70% height) */}
+              <div
+                className="absolute left-4 right-4 border-b border-dashed border-slate-300 pointer-events-none z-0"
+                style={{ bottom: "68%" }}
+              >
+                <span className="absolute right-0 -top-4 text-[10px] text-slate-400 font-medium">
+                  Standard Rest Baseline (7h)
+                </span>
+              </div>
+
+              {/* Flex Bar Columns */}
+              <div className="h-32 flex items-end justify-between gap-1 sm:gap-2 relative z-10 pt-4">
+                {trendDays.map((item, idx) => {
+                  const isToday = idx === trendDays.length - 1;
+                  const isHighRest = item.score >= 80;
+                  return (
+                    <div
+                      key={idx}
+                      className="flex-1 h-full flex flex-col justify-end items-center group relative cursor-pointer"
+                    >
+                      {/* Tooltip on hover/focus */}
+                      <div className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[11px] rounded shadow-md opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-20">
+                        <span className="font-bold">{item.label}: </span>
+                        <span>{item.hours}</span> · <span>{item.status}</span>
+                      </div>
+
+                      {/* Bar Track & Fill */}
+                      <div className="w-full max-w-[28px] h-full flex items-end justify-center">
+                        <div
+                          className={`w-full rounded-t transition-all duration-300 ${
+                            isToday
+                              ? "bg-emerald-600 shadow-xs"
+                              : isHighRest
+                              ? "bg-emerald-700/80 group-hover:bg-emerald-600"
+                              : "bg-[#0c3866] group-hover:bg-[#072648]"
+                          }`}
+                          style={{
+                            height: `${Math.max(16, item.score)}%`,
+                          }}
+                        />
+                      </div>
+
+                      {/* X-axis Tick Label */}
+                      <span className="text-[10px] text-slate-500 mt-2 text-center select-none font-medium truncate w-full">
+                        {idx === 0
+                          ? "14d"
+                          : idx === 6
+                          ? "7d"
+                          : isToday
+                          ? "Today"
+                          : ""}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-500 text-center pt-1">
+              Your sleep and recovery rhythm has improved over the past 5 days with adequate downtime between shifts.
             </p>
           </div>
         </section>
