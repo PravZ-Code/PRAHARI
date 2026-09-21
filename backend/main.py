@@ -31,6 +31,7 @@ from middleware.security import SecurityMiddleware
 from middleware.prometheus import generate_prometheus_metrics
 from ml.diagnostics import generate_model_registry_metadata
 from services.sla_worker import start_sla_worker
+from services.sync_service import sync_broadcaster
 from config import configured_origins, settings
 
 @asynccontextmanager
@@ -38,10 +39,13 @@ async def lifespan(app: FastAPI):
     # Ensure database tables exist across both Auth DB and Personnel DB
     create_all_tables()
     ensure_schema_compatibility()
+    # Initialize distributed sync broadcaster (Redis cluster if configured, memory bus otherwise)
+    await sync_broadcaster.start_redis_listener()
     # Launch background SLA tracking worker
     sla_task = asyncio.create_task(start_sla_worker())
     yield
     sla_task.cancel()
+    await sync_broadcaster.stop_redis_listener()
 
 app = FastAPI(
     title="PRAHARI Defense & Paramilitary Welfare Platform",
@@ -75,6 +79,7 @@ app.include_router(resilience_router, tags=["Resilience & Team Safety"])
 app.include_router(grievance_router, prefix="/api/grievance", tags=["Grievance & Leave SLA Engine"])
 app.include_router(personnel_router, prefix="/api/personnel", tags=["Personnel Welfare & Transparency"])
 app.include_router(sync_router, prefix="/api/sync", tags=["Real-Time Database Synchronization"])
+app.include_router(sync_router, prefix="/sync", include_in_schema=False)
 app.include_router(notifications_router, prefix="/api/notifications", tags=["Notifications & Alerts"])
 
 

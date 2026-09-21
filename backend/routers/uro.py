@@ -96,6 +96,13 @@ def optimize_unit_roster(
             max_swaps=req.max_swaps,
             protect_minimum_manning=req.protect_minimum_manning
         )
+        from services.sync_service import sync_broadcaster
+        sync_broadcaster.publish("uro_proposed", {
+            "run_id": uro_run.id,
+            "unit_id": unit_id,
+            "swaps_count": uro_run.swaps_proposed,
+            "risk_reduction_pct": float(uro_run.risk_reduction_pct),
+        }, unit_id=unit_id)
         return _format_run_response(uro_run, db=db, current_user=current_user)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -199,6 +206,14 @@ def approve_uro_result(
             as_role=as_role,
             single_sign=is_single_sign
         )
+        from services.sync_service import sync_broadcaster
+        sync_broadcaster.publish("uro_roster_updated", {
+            "run_id": run.id,
+            "unit_id": run.unit_id,
+            "status": res.get("status"),
+            "roster_committed": res.get("roster_committed", False),
+            "approved_by": current_user.username
+        }, unit_id=run.unit_id)
         return UROApprovalResponse(**res)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -231,6 +246,13 @@ def reject_uro_result(
             user_role=current_user.role,
             reason=reason
         )
+        from services.sync_service import sync_broadcaster
+        sync_broadcaster.publish("uro_rejected", {
+            "run_id": run.id,
+            "unit_id": run.unit_id,
+            "reason": reason,
+            "rejected_by": current_user.username
+        }, unit_id=run.unit_id)
         return URORejectResponse(**res)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

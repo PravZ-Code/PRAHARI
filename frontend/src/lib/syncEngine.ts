@@ -158,6 +158,12 @@ class PrahariSyncEngine {
       window.dispatchEvent(new CustomEvent("prahari_assessment_sync", { detail: data }));
     } else if (event.includes("emergency") || event.includes("sos")) {
       window.dispatchEvent(new CustomEvent("prahari_emergency_sync", { detail: data }));
+    } else if (event.includes("uro") || event.includes("roster")) {
+      window.dispatchEvent(new CustomEvent("prahari_roster_sync", { detail: data }));
+    } else if (event.includes("buddy")) {
+      window.dispatchEvent(new CustomEvent("prahari_buddy_sync", { detail: data }));
+    } else if (event.includes("resilience") || event.includes("plan")) {
+      window.dispatchEvent(new CustomEvent("prahari_resilience_sync", { detail: data }));
     }
   }
 
@@ -242,6 +248,26 @@ class PrahariSyncEngine {
 
       this.eventSource.addEventListener("emergency_sos", (e: MessageEvent) => {
         this.handleServerEvent("emergency_sos", e.data);
+      });
+
+      this.eventSource.addEventListener("uro_proposed", (e: MessageEvent) => {
+        this.handleServerEvent("uro_proposed", e.data);
+      });
+
+      this.eventSource.addEventListener("uro_roster_updated", (e: MessageEvent) => {
+        this.handleServerEvent("uro_roster_updated", e.data);
+      });
+
+      this.eventSource.addEventListener("uro_rejected", (e: MessageEvent) => {
+        this.handleServerEvent("uro_rejected", e.data);
+      });
+
+      this.eventSource.addEventListener("buddy_signal_submitted", (e: MessageEvent) => {
+        this.handleServerEvent("buddy_signal_submitted", e.data);
+      });
+
+      this.eventSource.addEventListener("resilience_plan_committed", (e: MessageEvent) => {
+        this.handleServerEvent("resilience_plan_committed", e.data);
       });
 
       this.eventSource.onerror = () => {

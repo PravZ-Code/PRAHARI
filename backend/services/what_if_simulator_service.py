@@ -96,11 +96,18 @@ def synthesize_counterfactual_features(
     if rest_days_added > 0:
         cf["consecutive_duty_days"] = 0.0
         # Circadian restoration and sleep duration expansion
-        cf["sleep_quality_avg_7d"] = min(4.8, float(cf.get("sleep_quality_avg_7d", 2.5)) + 0.32 * rest_days_added)
-        cf["sleep_hours_avg_7d"] = min(8.5, float(cf.get("sleep_hours_avg_7d", 5.5)) + 0.38 * rest_days_added)
+        cf["sleep_quality_avg_7d"] = min(4.8, float(cf.get("sleep_quality_avg_7d", 2.5)) + 0.35 * rest_days_added)
+        cf["sleep_quality_avg_14d"] = min(4.8, float(cf.get("sleep_quality_avg_14d", 2.5)) + 0.20 * rest_days_added)
+        cf["sleep_quality_trend"] = max(0.0, float(cf.get("sleep_quality_trend", -0.1)) + 0.15 * rest_days_added)
+        cf["sleep_hours_avg_7d"] = min(8.5, float(cf.get("sleep_hours_avg_7d", 5.5)) + 0.40 * rest_days_added)
         cf["energy_level_avg_7d"] = min(4.8, float(cf.get("energy_level_avg_7d", 2.2)) + 0.35 * rest_days_added)
-        cf["stress_level_avg_7d"] = max(1.1, float(cf.get("stress_level_avg_7d", 3.5)) - 0.28 * rest_days_added)
-        cf["stress_level_trend"] = min(0.0, float(cf.get("stress_level_trend", 0.05)) - 0.12 * rest_days_added)
+        cf["stress_level_avg_7d"] = max(1.1, float(cf.get("stress_level_avg_7d", 3.5)) - 0.35 * rest_days_added)
+        cf["stress_level_avg_14d"] = max(1.2, float(cf.get("stress_level_avg_14d", 3.5)) - 0.20 * rest_days_added)
+        cf["stress_level_trend"] = min(0.0, float(cf.get("stress_level_trend", 0.05)) - 0.15 * rest_days_added)
+        cf["mood_score_avg_7d"] = min(4.9, float(cf.get("mood_score_avg_7d", 2.5)) + 0.30 * rest_days_added)
+        cf["mood_score_avg_14d"] = min(4.8, float(cf.get("mood_score_avg_14d", 2.5)) + 0.18 * rest_days_added)
+        cf["mood_score_trend"] = max(0.0, float(cf.get("mood_score_trend", -0.1)) + 0.15 * rest_days_added)
+        cf["appetite_score_avg_7d"] = min(4.8, float(cf.get("appetite_score_avg_7d", 2.5)) + 0.30 * rest_days_added)
         # Average hours per day drops due to non-working rest days
         current_avg_hrs = float(cf.get("avg_hours_per_day_14d", 9.0))
         cf["avg_hours_per_day_14d"] = max(4.0, current_avg_hrs - (rest_days_added * 8.0 / 14.0))
@@ -109,12 +116,20 @@ def synthesize_counterfactual_features(
     if grant_leave_days > 0:
         cf["leave_denial_rate_6m"] = 0.0
         cf["leave_applications_30d"] = 0.0
-        leave_factor = min(grant_leave_days, 10)
-        cf["stress_level_avg_14d"] = max(1.2, float(cf.get("stress_level_avg_14d", 3.5)) - 0.22 * leave_factor)
-        cf["stress_level_avg_7d"] = max(1.0, float(cf.get("stress_level_avg_7d", 3.5)) - 0.25 * leave_factor)
-        cf["sleep_quality_avg_14d"] = min(4.8, float(cf.get("sleep_quality_avg_14d", 2.5)) + 0.20 * leave_factor)
-        cf["mood_score_avg_7d"] = min(4.9, float(cf.get("mood_score_avg_7d", 2.5)) + 0.24 * leave_factor)
+        leave_factor = min(grant_leave_days, 14)
+        cf["night_shift_density_14d"] = max(0.0, float(cf.get("night_shift_density_14d", 4.0)) - (leave_factor * 0.5))
+        cf["stress_level_avg_14d"] = max(1.1, float(cf.get("stress_level_avg_14d", 3.5)) - 0.28 * leave_factor)
+        cf["stress_level_avg_7d"] = max(1.0, float(cf.get("stress_level_avg_7d", 3.5)) - 0.32 * leave_factor)
+        cf["sleep_quality_avg_14d"] = min(4.8, float(cf.get("sleep_quality_avg_14d", 2.5)) + 0.22 * leave_factor)
+        cf["sleep_quality_avg_7d"] = min(4.9, float(cf.get("sleep_quality_avg_7d", 2.5)) + 0.28 * leave_factor)
+        cf["sleep_hours_avg_7d"] = min(8.5, float(cf.get("sleep_hours_avg_7d", 5.5)) + 0.30 * leave_factor)
+        cf["mood_score_avg_7d"] = min(4.9, float(cf.get("mood_score_avg_7d", 2.5)) + 0.30 * leave_factor)
+        cf["mood_score_avg_14d"] = min(4.8, float(cf.get("mood_score_avg_14d", 2.5)) + 0.22 * leave_factor)
+        cf["energy_level_avg_7d"] = min(4.8, float(cf.get("energy_level_avg_7d", 2.2)) + 0.25 * leave_factor)
+        cf["appetite_score_avg_7d"] = min(4.8, float(cf.get("appetite_score_avg_7d", 2.5)) + 0.25 * leave_factor)
         cf["consecutive_duty_days"] = 0.0
+        current_avg_hrs = float(cf.get("avg_hours_per_day_14d", 9.0))
+        cf["avg_hours_per_day_14d"] = max(2.0, current_avg_hrs - (leave_factor * 8.0 / 14.0))
 
     # 4. Weekly duty hours reduction
     if duty_hours_reduction > 0:

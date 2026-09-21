@@ -74,9 +74,9 @@ def make_data_realistic():
     auth_db: Session = AuthSessionLocal()
 
     try:
-        today = date(2026, 9, 19)
-        now_dt = datetime(2026, 9, 19, 14, 30, 0, tzinfo=timezone.utc)
-        now_naive = now_dt.replace(tzinfo=None)
+        today = date.today()
+        now_dt = datetime.now(timezone.utc)
+        now_naive = datetime.now()
 
         # 1. Fetch Core Users and Personnel
         rajesh = db.query(Personnel).filter(Personnel.name == "Rajesh Kumar").first()
@@ -122,8 +122,8 @@ def make_data_realistic():
                 "request_type": "family_crisis",
                 "category": "medical_emergency",
                 "description": "Urgent emergency leave: Mother admitted to ICU in Bareilly District Hospital following acute myocardial infarction. Primary caregiver attendance and critical surgical consent required.",
-                "start_date": "2026-09-20",
-                "end_date": "2026-10-04",
+                "start_date": (today + timedelta(days=1)).isoformat(),
+                "end_date": (today + timedelta(days=15)).isoformat(),
                 "filing_channel": "pwa",
                 "is_fast_lane": True,
                 "status": "fast_tracked",
@@ -145,8 +145,8 @@ def make_data_realistic():
                 "request_type": "leave",
                 "category": "child_education",
                 "description": "Annual casual leave: Elder daughter's Class 10 CBSE Board Examination enrollment and fee settlement at Kendriya Vidyalaya, Lucknow. Required for 10 days.",
-                "start_date": "2026-10-05",
-                "end_date": "2026-10-15",
+                "start_date": (today + timedelta(days=16)).isoformat(),
+                "end_date": (today + timedelta(days=26)).isoformat(),
                 "filing_channel": "pwa",
                 "is_fast_lane": False,
                 "status": "filed",
@@ -172,8 +172,8 @@ def make_data_realistic():
                 "request_type": "grievance",
                 "category": "administrative_delay",
                 "description": "Request for circadian rotation relief following 5 consecutive night cordons and high-altitude convoy escort in Srinagar CI grid. Submitted for trade-matched URO swap.",
-                "start_date": "2026-09-05",
-                "end_date": "2026-09-12",
+                "start_date": (today - timedelta(days=14)).isoformat(),
+                "end_date": (today - timedelta(days=7)).isoformat(),
                 "filing_channel": "pwa",
                 "is_fast_lane": False,
                 "status": "in_review",
@@ -195,8 +195,8 @@ def make_data_realistic():
                 "request_type": "grievance",
                 "category": "pay_and_allowances",
                 "description": "Claim for uncredited Risk & Hardship Allowance (RHA - Level 3) for 45-day tactical detachment to Kupwara operational sector.",
-                "start_date": "2026-08-01",
-                "end_date": "2026-08-31",
+                "start_date": (today - timedelta(days=50)).isoformat(),
+                "end_date": (today - timedelta(days=20)).isoformat(),
                 "filing_channel": "pwa",
                 "is_fast_lane": False,
                 "status": "approved",
@@ -219,8 +219,8 @@ def make_data_realistic():
                 "request_type": "leave",
                 "category": "annual_leave",
                 "description": "Biannual agricultural leave: Kharif paddy harvest and ancestral land irrigation in village, Bareilly, UP.",
-                "start_date": "2026-07-20",
-                "end_date": "2026-08-05",
+                "start_date": (today - timedelta(days=65)).isoformat(),
+                "end_date": (today - timedelta(days=50)).isoformat(),
                 "filing_channel": "pwa",
                 "is_fast_lane": False,
                 "status": "approved",
@@ -243,8 +243,8 @@ def make_data_realistic():
                 "request_type": "leave",
                 "category": "medical_emergency",
                 "description": "Convalescent rest for Grade-1 right ankle ligament sprain sustained during battalion obstacle training course.",
-                "start_date": "2026-06-01",
-                "end_date": "2026-06-15",
+                "start_date": (today - timedelta(days=110)).isoformat(),
+                "end_date": (today - timedelta(days=96)).isoformat(),
                 "filing_channel": "pwa",
                 "is_fast_lane": True,
                 "status": "approved",
@@ -267,8 +267,8 @@ def make_data_realistic():
                 "request_type": "grievance",
                 "category": "administrative_delay",
                 "description": "Assistance from Welfare Directorate for District Magistrate liaison regarding unauthorized boundary encroachment on ancestral agricultural land during active deployment.",
-                "start_date": "2026-04-28",
-                "end_date": "2026-05-10",
+                "start_date": (today - timedelta(days=145)).isoformat(),
+                "end_date": (today - timedelta(days=133)).isoformat(),
                 "filing_channel": "pwa",
                 "is_fast_lane": False,
                 "status": "approved",

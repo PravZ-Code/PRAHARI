@@ -26,6 +26,78 @@ from ml.train import train_model
 from ml.predict import predict_batch, DISPLAY_NAME_MAP
 from services.commander_service import compute_readiness
 
+def load_empirical_datasets():
+    """
+    Loads real-world empirical burnout & sleep metrics from:
+    1. HackerEarth Employee Burnout Train Dataset (22,750 records: Mental Fatigue & Burn Rate)
+    2. Kaggle Sleep Health and Lifestyle Dataset (374 records: Sleep Duration, Quality, Stress)
+    Partitions empirical observations into operational tiers (Red, Orange, Yellow, Green).
+    """
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    burnout_path = os.path.join(base_dir, "ml", "data", "hackerearth_employee_burnout_train.csv")
+    sleep_path = os.path.join(base_dir, "ml", "data", "kaggle_sleep_health_and_lifestyle.csv")
+
+    burn_records = {"red": [], "orange": [], "yellow": [], "green": []}
+    sleep_records = {"red": [], "orange": [], "yellow": [], "green": []}
+
+    if os.path.exists(burnout_path):
+        try:
+            df_b = pd.read_csv(burnout_path).dropna(subset=["Mental Fatigue Score", "Burn Rate"])
+            for _, row in df_b.iterrows():
+                br = float(row["Burn Rate"])
+                mf = float(row["Mental Fatigue Score"])
+                if br >= 0.65 or mf >= 7.5:
+                    burn_records["red"].append((mf, br))
+                elif br >= 0.45 or mf >= 6.0:
+                    burn_records["orange"].append((mf, br))
+                elif br >= 0.30 or mf >= 4.5:
+                    burn_records["yellow"].append((mf, br))
+                else:
+                    burn_records["green"].append((mf, br))
+            print(f"  [DATASET] Loaded {len(df_b)} empirical records from HackerEarth Employee Burnout.")
+        except Exception as e:
+            print(f"  [DATASET WARNING] Could not load HackerEarth dataset: {e}")
+
+    if os.path.exists(sleep_path):
+        try:
+            df_s = pd.read_csv(sleep_path).dropna(subset=["Sleep Duration", "Quality of Sleep", "Stress Level"])
+            for _, row in df_s.iterrows():
+                sd = float(row["Sleep Duration"])
+                sq = float(row["Quality of Sleep"])
+                sl = float(row["Stress Level"])
+                if sl >= 7:
+                    sleep_records["red"].append((sd, sq, sl))
+                elif sl == 6:
+                    sleep_records["orange"].append((sd, sq, sl))
+                elif sl == 5:
+                    sleep_records["yellow"].append((sd, sq, sl))
+                else:
+                    sleep_records["green"].append((sd, sq, sl))
+            print(f"  [DATASET] Loaded {len(df_s)} empirical records from Kaggle Sleep Health & Lifestyle.")
+        except Exception as e:
+            print(f"  [DATASET WARNING] Could not load Kaggle Sleep dataset: {e}")
+
+    # Ensure each tier has at least fallback records if dataset empty
+    defaults_burn = {
+        "red": [(8.2, 0.82), (7.9, 0.76), (8.5, 0.88)],
+        "orange": [(6.6, 0.58), (6.2, 0.52), (6.9, 0.63)],
+        "yellow": [(5.1, 0.38), (4.8, 0.34), (5.4, 0.41)],
+        "green": [(2.8, 0.16), (3.2, 0.20), (2.1, 0.12)],
+    }
+    defaults_sleep = {
+        "red": [(5.5, 4.0, 8.0), (5.8, 5.0, 7.0), (5.2, 4.0, 9.0)],
+        "orange": [(6.4, 6.0, 6.0), (6.2, 6.0, 6.0), (6.5, 6.0, 6.0)],
+        "yellow": [(6.8, 7.0, 5.0), (7.0, 7.0, 5.0), (6.6, 6.0, 5.0)],
+        "green": [(7.8, 8.0, 3.0), (8.1, 9.0, 3.0), (7.5, 8.0, 4.0)],
+    }
+    for k in ["red", "orange", "yellow", "green"]:
+        if not burn_records[k]:
+            burn_records[k] = defaults_burn[k]
+        if not sleep_records[k]:
+            sleep_records[k] = defaults_sleep[k]
+
+    return burn_records, sleep_records
+
 UNITS_SPEC = [
     {
         "name": "Alpha Company (Srinagar - High Altitude / CI, Hard Zone)",
@@ -439,11 +511,14 @@ def seed_battalion():
 
         print("  [OK] 90-day duty roster synchronized across all 1,000 personnel.")
 
-        # 6. Seed 90 Days Longitudinal Self-Assessments (with Temporal Degradation for High-Risk)
-        print("\n[STEP 6/9] Generating Longitudinal Self-Assessments (90 Days) with Temporal Degradation...")
+        # 6. Seed 90 Days Longitudinal Self-Assessments (with Empirical Kaggle/HackerEarth Sampling & Temporal Trajectories)
+        print("\n[STEP 6/9] Generating Longitudinal Self-Assessments (90 Days) from Empirical Kaggle & HackerEarth Datasets...")
+        burn_records, sleep_records = load_empirical_datasets()
         assessment_batch = []
         for p, profile, unit in personnel_records:
             compliance = 0.50 if profile == "red" else (0.65 if profile == "orange" else (0.80 if profile == "yellow" else 0.90))
+            burn_pool = burn_records[profile]
+            sleep_pool = sleep_records[profile]
 
             for day_offset in range(90, -1, -1):
                 if random.random() > compliance:
@@ -455,42 +530,47 @@ def seed_battalion():
                 # Degradation progression over 90 days
                 deg_factor = (90 - day_offset) / 90.0
 
+                b_sample = random.choice(burn_pool)
+                s_sample = random.choice(sleep_pool)
+                mf, br = b_sample
+                emp_sd, emp_sq, emp_sl = s_sample
+
                 if profile == "red":
                     # Severe progressive degradation
-                    sq = int(np.clip(np.random.normal(3.2 - deg_factor * 1.8, 0.4), 1, 5))
-                    sh = float(np.clip(np.random.normal(6.5 - deg_factor * 2.8, 0.6), 3.0, 8.5))
-                    mood = int(np.clip(np.random.normal(3.3 - deg_factor * 1.9, 0.4), 1, 5))
-                    energy = int(np.clip(np.random.normal(3.3 - deg_factor * 1.8, 0.4), 1, 5))
-                    stress = int(np.clip(np.random.normal(2.5 + deg_factor * 2.2, 0.4), 1, 5))
-                    app_score = int(np.clip(np.random.normal(3.4 - deg_factor * 1.7, 0.4), 1, 5))
-                    soc = int(np.clip(np.random.normal(3.3 - deg_factor * 1.8, 0.4), 1, 5))
+                    sh = float(np.clip(emp_sd - deg_factor * 2.2 + np.random.normal(0, 0.25), 3.0, 8.5))
+                    sq = int(np.clip(round((emp_sq / 2.0) - deg_factor * 1.5 + np.random.normal(0, 0.2)), 1, 5))
+                    stress = int(np.clip(round((emp_sl / 2.0) + deg_factor * 1.8 + np.random.normal(0, 0.2)), 1, 5))
+                    energy = int(np.clip(round(((10.0 - mf) / 2.0) - deg_factor * 1.5 + np.random.normal(0, 0.2)), 1, 5))
+                    mood = int(np.clip(round(((1.0 - br) * 4.0 + 1.0) - deg_factor * 1.6 + np.random.normal(0, 0.2)), 1, 5))
+                    app_score = int(np.clip(round((energy + sq) / 2.0 + np.random.normal(0, 0.2)), 1, 5))
+                    soc = int(np.clip(round((mood + energy) / 2.0 + np.random.normal(0, 0.2)), 1, 5))
                 elif profile == "orange":
                     # Moderate progressive degradation
-                    sq = int(np.clip(np.random.normal(3.6 - deg_factor * 1.2, 0.5), 1, 5))
-                    sh = float(np.clip(np.random.normal(7.0 - deg_factor * 1.8, 0.6), 3.5, 9.0))
-                    mood = int(np.clip(np.random.normal(3.6 - deg_factor * 1.2, 0.5), 1, 5))
-                    energy = int(np.clip(np.random.normal(3.5 - deg_factor * 1.2, 0.5), 1, 5))
-                    stress = int(np.clip(np.random.normal(2.2 + deg_factor * 1.8, 0.5), 1, 5))
-                    app_score = int(np.clip(np.random.normal(3.6 - deg_factor * 1.1, 0.5), 1, 5))
-                    soc = int(np.clip(np.random.normal(3.6 - deg_factor * 1.2, 0.5), 1, 5))
+                    sh = float(np.clip(emp_sd - deg_factor * 1.2 + np.random.normal(0, 0.25), 3.5, 9.0))
+                    sq = int(np.clip(round((emp_sq / 2.0) - deg_factor * 0.9 + np.random.normal(0, 0.2)), 1, 5))
+                    stress = int(np.clip(round((emp_sl / 2.0) + deg_factor * 1.2 + np.random.normal(0, 0.2)), 1, 5))
+                    energy = int(np.clip(round(((10.0 - mf) / 2.0) - deg_factor * 0.9 + np.random.normal(0, 0.2)), 1, 5))
+                    mood = int(np.clip(round(((1.0 - br) * 4.0 + 1.0) - deg_factor * 1.0 + np.random.normal(0, 0.2)), 1, 5))
+                    app_score = int(np.clip(round((energy + sq) / 2.0 + np.random.normal(0, 0.2)), 1, 5))
+                    soc = int(np.clip(round((mood + energy) / 2.0 + np.random.normal(0, 0.2)), 1, 5))
                 elif profile == "yellow":
                     # Mild operational strain
-                    sq = int(np.clip(np.random.normal(3.2, 0.5), 1, 5))
-                    sh = float(np.clip(np.random.normal(6.2, 0.6), 4.5, 9.0))
-                    mood = int(np.clip(np.random.normal(3.2, 0.5), 1, 5))
-                    energy = int(np.clip(np.random.normal(3.1, 0.5), 1, 5))
-                    stress = int(np.clip(np.random.normal(3.2, 0.5), 1, 5))
-                    app_score = int(np.clip(np.random.normal(3.3, 0.5), 1, 5))
-                    soc = int(np.clip(np.random.normal(3.2, 0.5), 1, 5))
+                    sh = float(np.clip(emp_sd + np.random.normal(0, 0.3), 4.5, 9.0))
+                    sq = int(np.clip(round(emp_sq / 2.0 + np.random.normal(0, 0.2)), 1, 5))
+                    stress = int(np.clip(round(emp_sl / 2.0 + np.random.normal(0, 0.2)), 1, 5))
+                    energy = int(np.clip(round((10.0 - mf) / 2.0 + np.random.normal(0, 0.2)), 1, 5))
+                    mood = int(np.clip(round((1.0 - br) * 4.0 + 1.0 + np.random.normal(0, 0.2)), 1, 5))
+                    app_score = int(np.clip(round((energy + sq) / 2.0), 1, 5))
+                    soc = int(np.clip(round((mood + energy) / 2.0), 1, 5))
                 else:  # green
                     # Resilient & well-balanced
-                    sq = int(np.clip(np.random.normal(4.3, 0.4), 1, 5))
-                    sh = float(np.clip(np.random.normal(7.6, 0.5), 5.5, 10.0))
-                    mood = int(np.clip(np.random.normal(4.3, 0.4), 1, 5))
-                    energy = int(np.clip(np.random.normal(4.2, 0.4), 1, 5))
-                    stress = int(np.clip(np.random.normal(1.7, 0.4), 1, 5))
-                    app_score = int(np.clip(np.random.normal(4.2, 0.4), 1, 5))
-                    soc = int(np.clip(np.random.normal(4.3, 0.4), 1, 5))
+                    sh = float(np.clip(emp_sd + np.random.normal(0, 0.3), 5.5, 10.0))
+                    sq = int(np.clip(round(emp_sq / 2.0 + np.random.normal(0, 0.2)), 1, 5))
+                    stress = int(np.clip(round(emp_sl / 2.0 + np.random.normal(0, 0.2)), 1, 5))
+                    energy = int(np.clip(round((10.0 - mf) / 2.0 + np.random.normal(0, 0.2)), 1, 5))
+                    mood = int(np.clip(round((1.0 - br) * 4.0 + 1.0 + np.random.normal(0, 0.2)), 1, 5))
+                    app_score = int(np.clip(round((energy + sq) / 2.0), 1, 5))
+                    soc = int(np.clip(round((mood + energy) / 2.0), 1, 5))
 
                 sa = SelfAssessment(
                     id=str(uuid.uuid4()),

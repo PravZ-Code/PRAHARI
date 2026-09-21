@@ -34,6 +34,10 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
     return encoded_jwt
 
+def decode_access_token(token: str) -> dict:
+    return jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+
+
 def blacklist_token(auth_db: Session, token: str):
     """
     Records revoked JWT in the persistent TokenBlacklist table.
@@ -93,7 +97,7 @@ async def get_current_user(
     except JWTError:
         raise credentials_exception
 
-    user = auth_db.query(User).filter(User.id == user_id).first()
+    user = auth_db.query(User).filter((User.id == user_id) | (User.username == user_id)).first()
     if user is None or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User inactive or not found")
     return user

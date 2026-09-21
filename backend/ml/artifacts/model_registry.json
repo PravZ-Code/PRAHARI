@@ -1,42 +1,42 @@
 {
   "model_id": "PRAHARI-XGB-V2-DEFENSE",
   "architecture": "Calibrated Regularized Gradient Boosted Trees (XGBoost 3.4)",
-  "trained_at": "2026-09-20T17:19:16.514457+00:00",
-  "sample_size_troopers": 6094,
+  "trained_at": "2026-09-21T12:44:36.341584+00:00",
+  "sample_size_troopers": 1000,
   "training_horizon_days": 180,
-  "total_observations": 85316,
+  "total_observations": 14000,
   "primary_metrics": {
-    "auroc": 0.9681,
-    "pr_auc": 0.9321,
-    "f1_score": 0.8532,
-    "brier_score": 0.0488,
-    "expected_calibration_error": 0.0074,
+    "auroc": 1.0,
+    "pr_auc": 1.0,
+    "f1_score": 0.991,
+    "brier_score": 0.001,
+    "expected_calibration_error": 0.001,
     "false_positive_rate_green": 0.008
   },
   "calibration_bins": [
     {
       "bin": "0.0 - 0.25 (Green)",
-      "predicted_prob": 0.036,
-      "empirical_prob": 0.037,
-      "count": 4575
+      "predicted_prob": 0.0,
+      "empirical_prob": 0.0,
+      "count": 944
     },
     {
       "bin": "0.25 - 0.50 (Yellow)",
-      "predicted_prob": 0.383,
-      "empirical_prob": 0.395,
-      "count": 238
+      "predicted_prob": 0.375,
+      "empirical_prob": 0.375,
+      "count": 0
     },
     {
       "bin": "0.50 - 0.75 (Orange)",
-      "predicted_prob": 0.627,
-      "empirical_prob": 0.619,
-      "count": 218
+      "predicted_prob": 0.625,
+      "empirical_prob": 0.625,
+      "count": 0
     },
     {
       "bin": "0.75 - 1.0 (Red)",
-      "predicted_prob": 0.959,
-      "empirical_prob": 0.953,
-      "count": 1063
+      "predicted_prob": 1.0,
+      "empirical_prob": 0.982,
+      "count": 56
     }
   ],
   "subgroup_fairness_audit": {
@@ -63,34 +63,34 @@
   },
   "top_global_shap_factors": [
     {
-      "feature": "social_connection_avg_7d",
-      "display": "Social Connection Avg 7D",
-      "mean_abs_shap": 2.062
+      "feature": "sleep_quality_avg_7d",
+      "display": "Sleep Quality Avg 7D",
+      "mean_abs_shap": 1.169
     },
     {
-      "feature": "leave_denial_rate_6m",
-      "display": "Leave Denial Rate 6M",
-      "mean_abs_shap": 1.07
+      "feature": "sleep_quality_avg_14d",
+      "display": "Sleep Quality Avg 14D",
+      "mean_abs_shap": 0.987
     },
     {
       "feature": "mood_score_avg_7d",
       "display": "Mood Score Avg 7D",
-      "mean_abs_shap": 0.925
+      "mean_abs_shap": 0.212
     },
     {
-      "feature": "energy_level_avg_7d",
-      "display": "Energy Level Avg 7D",
-      "mean_abs_shap": 0.374
+      "feature": "mood_score_avg_14d",
+      "display": "Mood Score Avg 14D",
+      "mean_abs_shap": 0.009
     },
     {
-      "feature": "unit_buddy_signals_4w",
-      "display": "Unit Buddy Signals 4W",
-      "mean_abs_shap": 0.311
+      "feature": "sleep_hours_avg_7d",
+      "display": "Sleep Hours Avg 7D",
+      "mean_abs_shap": 0.008
     },
     {
-      "feature": "avg_hours_per_day_14d",
-      "display": "Avg Hours Per Day 14D",
-      "mean_abs_shap": 0.296
+      "feature": "social_connection_avg_7d",
+      "display": "Social Connection Avg 7D",
+      "mean_abs_shap": 0.008
     }
   ]
 }

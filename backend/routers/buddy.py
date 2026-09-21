@@ -26,6 +26,13 @@ def submit_buddy_signal(
         concern_category=data.concern_category
     )
 
+    from services.sync_service import sync_broadcaster
+    sync_broadcaster.publish("buddy_signal_submitted", {
+        "unit_id": unit_id,
+        "concern_level": data.concern_level,
+        "concern_category": data.concern_category,
+    }, unit_id=unit_id)
+
     return {"message": "Anonymous concern recorded. Thank you for looking out for your troop."}
 
 @router.get("/unit-summary/{unit_id}", response_model=BuddyUnitSummaryResponse)

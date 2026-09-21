@@ -39,6 +39,15 @@ class Settings(BaseSettings):
     OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "qwen3:0.6b")
 
     RATE_LIMIT_ENABLED: bool = os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "true"
+    # Real-Time Synchronization Engine Configuration (No hardcoded values)
+    SYNC_REDIS_ENABLED: bool = os.getenv("SYNC_REDIS_ENABLED", "auto").lower() in ("true", "1", "auto")
+    SYNC_CHANNEL: str = os.getenv("SYNC_CHANNEL", "prahari:sync:events")
+    SYNC_HEARTBEAT_INTERVAL: float = float(os.getenv("SYNC_HEARTBEAT_INTERVAL", "15.0"))
+    SYNC_QUEUE_MAXSIZE: int = int(os.getenv("SYNC_QUEUE_MAXSIZE", "500"))
+    SYNC_EVENT_BUFFER_SIZE: int = int(os.getenv("SYNC_EVENT_BUFFER_SIZE", "1000"))
+    EMERGENCY_SLA_HOURS: int = int(os.getenv("EMERGENCY_SLA_HOURS", "12"))
+    STANDARD_SLA_HOURS: int = int(os.getenv("STANDARD_SLA_HOURS", "48"))
+
     # Integration and ledger keys must be explicitly provisioned in production.
     GATEWAY_SHARED_SECRET: str = os.getenv("GATEWAY_SHARED_SECRET", "")
     AIRGAP_SHARED_SECRET: str = os.getenv("AIRGAP_SHARED_SECRET", "")

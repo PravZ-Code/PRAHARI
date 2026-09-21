@@ -549,6 +549,20 @@ def commit_plan_endpoint(
     intervention.status, intervention.committed = "committed", True
     intervention.details = {"rechecked": True, "collision_warnings": collision.get("operational_warnings", [])}
     db.commit()
+
+    from services.sync_service import sync_broadcaster
+    sync_broadcaster.publish("resilience_plan_committed", {
+        "intervention_id": intervention.id,
+        "plan_id": req.plan_id,
+        "personnel_id": target.id,
+        "replacement_personnel_id": replacement.id if replacement else None,
+        "target_date": req.target_date.isoformat() if hasattr(req.target_date, "isoformat") else str(req.target_date),
+        "proposed_shift": req.proposed_shift,
+        "duty_type": req.duty_type,
+        "unit_id": unit_id,
+        "committed_by": current_user.username,
+    }, unit_id=unit_id)
+
     log_audit(db, current_user, request, resource_type="resilience_intervention",
               resource_id=intervention.id, action="POST",
               details={"event": "resilience_plan_committed", "plan_id": req.plan_id,
