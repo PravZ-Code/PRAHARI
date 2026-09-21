@@ -113,14 +113,14 @@ export default function RecoveryTimelinePage() {
           </Link>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-black font-heading text-slate-900 tracking-tight">
-              Dedicated Recovery Timeline
+              My Rest & Recovery Journey
             </h1>
-            <span className="px-2.5 py-0.5 rounded bg-emerald-100 text-emerald-900 text-xs font-bold font-mono border border-emerald-300">
-              6-STAGE LIFECYCLE
+            <span className="px-2.5 py-0.5 rounded bg-emerald-100 text-emerald-900 text-xs font-bold border border-emerald-300">
+              6 Steps
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-600">
-            End-to-end audit trail tracking operational fatigue detection, human review, relief intervention, and verified recovery.
+            See how your heavy duty schedule was noticed, rest time was approved, and your normal routine was safely restored.
           </p>
         </div>
 
@@ -187,7 +187,7 @@ export default function RecoveryTimelinePage() {
                   Stage {data.current_stage} of {data.total_stages}
                 </span>
                 <span className="text-[11px] text-slate-300 block">
-                  {data.current_stage === 6 ? "Recovery Verified" : "Active Supervision"}
+                  {data.current_stage === 6 ? "Fully Restored" : "Support Active"}
                 </span>
               </div>
             </div>
@@ -195,12 +195,12 @@ export default function RecoveryTimelinePage() {
             {/* Stepper Progress Bar */}
             <div className="space-y-2 pt-2 border-t border-white/10">
               <div className="flex items-center justify-between text-[11px] text-slate-300 font-semibold">
-                <span>Baseline</span>
-                <span>Risk Detected</span>
-                <span>Human Review</span>
-                <span>Intervention</span>
-                <span>Follow-up</span>
-                <span>Verified</span>
+                <span>Routine</span>
+                <span>Heavy Duty</span>
+                <span>Officer Review</span>
+                <span>Rest Granted</span>
+                <span>Check-in</span>
+                <span>Restored</span>
               </div>
               <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
                 <div
@@ -213,21 +213,21 @@ export default function RecoveryTimelinePage() {
 
           {/* NET RELIEF HIGHLIGHT CARD */}
           <div className="bg-emerald-50 rounded-xl border-2 border-emerald-300 p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold shrink-0">
-                <Award className="w-5 h-5" />
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold shrink-0 shadow-xs">
+                <CheckCircle2 className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="text-sm font-extrabold text-emerald-950">
-                  Rest Score Recovery Verified: -0.46 (-67.6% Fatigue Reduction)
+                  Full Rest Restored: Back to Normal Routine
                 </h3>
-                <p className="text-xs text-emerald-800">
-                  Initial elevated fatigue of 0.68 normalized to healthy 0.22 following scheduled rest and duty rotation.
+                <p className="text-xs text-emerald-800 mt-0.5 leading-relaxed">
+                  Your rest day and shift rotation helped reduce fatigue by over 60%. You are well-rested and back to your regular squad schedule.
                 </p>
               </div>
             </div>
-            <span className="px-3 py-1 rounded bg-white text-emerald-900 font-mono font-extrabold text-xs border border-emerald-300 shrink-0">
-              OFFICIAL RECORD VERIFIED
+            <span className="px-3 py-1 rounded bg-white text-emerald-900 font-bold text-xs border border-emerald-300 shrink-0 shadow-xs">
+              OFFICIALLY CONFIRMED
             </span>
           </div>
 
@@ -323,21 +323,21 @@ export default function RecoveryTimelinePage() {
             <div className="flex items-center gap-2">
               <Shield className="w-5 h-5 text-emerald-400" />
               <h3 className="text-sm font-bold text-emerald-300 uppercase tracking-wider font-heading">
-                Official Record Guarantee & Protection
+                Your Service Record is 100% Protected
               </h3>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Every stage of this recovery lifecycle is permanently verified and protected. In accordance with service welfare rules, no welfare or recovery record can ever be used against you in Annual Confidential Reports (ACR), promotions, or postings.
+              Every step of this welfare recovery is completely protected. Under official CRPF and MHA welfare guidelines, receiving rest days or welfare assistance can NEVER be used against you in your Annual Confidential Report (ACR), seniority, promotions, or transfer postings.
             </p>
             <div className="pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-400">
-              <span>Welfare Care Standard Verified</span>
+              <span className="text-emerald-400 font-medium">Official Protection Verified</span>
               <div className="flex items-center gap-4">
                 <Link href="/portal/what-changed" className="text-emerald-300 hover:underline inline-flex items-center gap-1">
                   <ArrowLeft className="w-3 h-3" />
-                  <span>What Changed?</span>
+                  <span>What Changed in My Schedule?</span>
                 </Link>
                 <Link href="/portal/why-risk-changing" className="text-emerald-300 hover:underline inline-flex items-center gap-1">
-                  <span>Why is my risk changing?</span>
+                  <span>Why Did My Rest Score Change?</span>
                   <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>

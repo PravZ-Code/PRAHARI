@@ -810,19 +810,19 @@ def get_recovery_timeline(
 
     if is_resolved:
         current_stage = 6
-        overall_status = "Recovery Verified & Closed"
+        overall_status = "Fully Recovered & Back to Normal Duty"
     elif has_intervention:
         current_stage = 5
-        overall_status = "Follow-up & Monitoring Active"
+        overall_status = "Rest Granted — Follow-up Active"
     elif case and case.acknowledged_at:
         current_stage = 4
-        overall_status = "Intervention In Progress"
+        overall_status = "Rest Day in Progress"
     elif case:
         current_stage = 3
-        overall_status = "Human Welfare Review Active"
+        overall_status = "Welfare Review in Progress"
     else:
         current_stage = 4
-        overall_status = "Intervention Active"
+        overall_status = "Rest & Duty Relief Active"
 
     now = datetime.now(timezone.utc)
     base_date = now - timedelta(days=24)
@@ -836,93 +836,93 @@ def get_recovery_timeline(
         {
             "stage_id": "baseline",
             "stage_number": 1,
-            "title": "Normal Operational Baseline",
+            "title": "Normal Duty Schedule",
             "status": "completed",
             "timestamp": base_date.strftime("%d %b %Y, %H:%M hrs"),
-            "summary": "Regular duty operations logged. Normal sleep latency, scheduled perimeter rotations, and low strain score.",
+            "summary": "Regular duty shifts logged with healthy sleep (over 7 hours) and steady rest between patrols.",
             "metrics": {
-                "strain_score": "0.18 (Green)",
-                "night_shifts_14d": "2 shifts",
-                "avg_sleep_hours": "7.1 hrs"
+                "duty_condition": "Normal (Green Zone)",
+                "night_shifts_14d": "2 shifts in 2 weeks",
+                "average_sleep": "7.1 hours per night"
             },
-            "authority": "Automated Battalion Baseline Engine",
-            "statutory_seal": "Standard Duty Operation"
+            "authority": "Company Duty Roster",
+            "statutory_seal": "Routine Duty"
         },
         {
             "stage_id": "risk_detected",
             "stage_number": 2,
-            "title": "Operational Strain Detected",
+            "title": "Heavy Duty & Fatigue Noticed",
             "status": "completed" if current_stage >= 2 else "pending",
             "timestamp": detect_date.strftime("%d %b %Y, %H:%M hrs"),
-            "summary": "Prospective 14-day strain escalation detected by Calibrated XGBoost engine (Score: 0.68 / Orange). Catalyst: 5 night patrols in 9 days.",
+            "summary": "Heavy duty stretch noticed: 5 night patrols in 9 days. System flagged fatigue early so you can get rest before burning out.",
             "metrics": {
-                "strain_score": "0.68 (Orange)",
-                "catalyst": "High Night Shift Clustering (5 shifts)",
-                "model_confidence": "88.4%"
+                "fatigue_status": "High Workload (Orange Zone)",
+                "cause": "5 night patrols in 9 days",
+                "check_status": "Early fatigue notice"
             },
-            "authority": "Calibrated Prospective XGBoost Model",
-            "statutory_seal": "Section 21 Non-Punitive Protected Event"
+            "authority": "Duty Schedule Monitor",
+            "statutory_seal": "Protected Notice (Zero Penalty)"
         },
         {
             "stage_id": "human_review",
             "stage_number": 3,
-            "title": "Human Welfare Officer Review",
+            "title": "Confidential Welfare Officer Review",
             "status": "completed" if current_stage >= 3 else ("current" if current_stage == 2 else "pending"),
             "timestamp": review_date.strftime("%d %b %Y, %H:%M hrs"),
-            "summary": "Battalion Welfare Officer conducted confidential review. Verified schedule conflict without stigma; initiated trade-matched duty relief plan.",
+            "summary": "The Battalion Welfare Officer reviewed your schedule in complete confidence and recommended a 24-hour full rest day with a duty replacement.",
             "metrics": {
-                "officer_action": "Relief Recommendation Approved",
-                "review_duration": "42 minutes",
-                "confidentiality_status": "Strict Officer-Trooper Privilege"
+                "action_taken": "24h rest relief recommended",
+                "review_time": "42 minutes",
+                "privacy": "100% private between officer and jawan"
             },
-            "authority": "Welfare Officer Meera Sharma (WO-CRPF)",
-            "statutory_seal": "MHCA 2017 §21 Confidential Privilege"
+            "authority": "Welfare Officer Meera Sharma",
+            "statutory_seal": "Confidential & Protected"
         },
         {
             "stage_id": "intervention",
             "stage_number": 4,
-            "title": "Dual-Approved Operational Relief",
+            "title": "24-Hour Rest Granted & Shift Covered",
             "status": "completed" if current_stage >= 4 else ("current" if current_stage == 3 else "pending"),
             "timestamp": interv_date.strftime("%d %b %Y, %H:%M hrs"),
-            "summary": "Unit Resilience Optimizer (URO) Hungarian Bipartite swap executed: 24h rest stand-down granted; perimeter guard covered by trade-compatible replacement.",
+            "summary": "Company Commander and Welfare Officer approved a 24-hour rest day. A well-rested replacement jawan covered your post without leaving the squad short.",
             "metrics": {
-                "intervention_type": "24h Circadian Stand-down & Trade-Matched Swap",
-                "dual_approval": "Company Commander & Welfare Officer Co-Signed",
-                "team_collision_check": "Zero Squad Rest Barrier Violations"
+                "relief_given": "24-hour rest day granted",
+                "duty_coverage": "Covered by replacement jawan",
+                "approvals": "Company Commander & Welfare Officer"
             },
             "authority": "Company Commander Vikram Singh & WO Meera Sharma",
-            "statutory_seal": "Section 29 Dual-Control Governance"
+            "statutory_seal": "Command Approved"
         },
         {
             "stage_id": "follow_up",
             "stage_number": 5,
-            "title": "Day 7 & Day 14 Follow-up Check-in",
+            "title": "Follow-up Rest Check-in",
             "status": "completed" if current_stage >= 5 else ("current" if current_stage == 4 else "pending"),
             "timestamp": followup_date.strftime("%d %b %Y, %H:%M hrs"),
-            "summary": "Follow-up pulse check-in completed. Trooper reported restful sleep (7.4 hrs), normalized cognitive energy, and positive relief feedback.",
+            "summary": "Follow-up check completed after your rest break. You reported sleeping over 7 hours with good energy and feeling much better.",
             "metrics": {
-                "trooper_feedback": "Yes, significantly better",
-                "sleep_recovery": "+2.2 hours / night",
-                "follow_up_tier": "Battalion Welfare Desk"
+                "your_feedback": "Feeling much better & rested",
+                "sleep_gain": "+2.2 extra hours of sleep",
+                "support_check": "Welfare team follow-up"
             },
-            "authority": "Battalion Welfare Officer & Peer Buddy Pair",
-            "statutory_seal": "Section 28 Recovery Monitoring Protocol"
+            "authority": "Welfare Team & Peer Buddy",
+            "statutory_seal": "Health Check Confirmed"
         },
         {
             "stage_id": "recovery_verified",
             "stage_number": 6,
-            "title": "Recovery Clinically & Statistically Verified",
+            "title": "Fully Recovered — Back to Normal Routine",
             "status": "completed" if current_stage >= 6 else ("current" if current_stage == 5 else "pending"),
             "timestamp": recovery_date.strftime("%d %b %Y, %H:%M hrs"),
-            "summary": "Calibrated strain score dropped from 0.68 to 0.22 (Δ -0.46 net relief). Rest debt fully cleared. Normal duty resumed without administrative penalty.",
+            "summary": "Tiredness is fully cleared. You have returned to normal duty with healthy rest. This welfare case is successfully resolved and safely filed.",
             "metrics": {
-                "initial_score": "0.68 (Orange)",
-                "verified_score": "0.22 (Green)",
-                "net_strain_reduction": "-0.46 (-67.6%)",
-                "docket_status": "Formally Resolved & Archived"
+                "starting_status": "High Workload (Orange)",
+                "current_status": "Healthy & Rested (Green)",
+                "fatigue_reduction": "68% improvement",
+                "record_status": "Resolved & Officially Closed"
             },
-            "authority": "PRAHARI Statutory Recovery Verification Engine",
-            "statutory_seal": "BSA 2023 §63 Cryptographic Court of Inquiry Ledger"
+            "authority": "Battalion Welfare Directorate",
+            "statutory_seal": "Service Record Safe & Protected"
         }
     ]
 

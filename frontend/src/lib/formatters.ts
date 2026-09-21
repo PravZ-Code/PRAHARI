@@ -26,6 +26,45 @@ const KNOWN_ACRONYMS = new Set([
   "CO",
 ]);
 
+const FRIENDLY_METRIC_MAP: Record<string, string> = {
+  duty_condition: "Duty Condition",
+  night_shifts_14d: "Night Duties (14 Days)",
+  avg_sleep_hours: "Average Sleep",
+  average_sleep: "Average Sleep",
+  fatigue_status: "Fatigue Status",
+  cause: "Main Cause",
+  check_status: "System Check",
+  action_taken: "Action Taken",
+  review_time: "Review Time",
+  privacy: "Privacy Guarantee",
+  relief_given: "Relief Provided",
+  duty_coverage: "Duty Coverage",
+  approvals: "Authorized Approvals",
+  your_feedback: "Your Feedback",
+  sleep_gain: "Sleep Gain",
+  support_check: "Support Check",
+  starting_status: "Starting Status",
+  current_status: "Current Status",
+  fatigue_reduction: "Fatigue Reduction",
+  record_status: "Service Record Status",
+  strain_score: "Fatigue Level",
+  catalyst: "Primary Cause",
+  model_confidence: "Check Confidence",
+  officer_action: "Officer Action",
+  review_duration: "Review Duration",
+  confidentiality_status: "Confidentiality Status",
+  intervention_type: "Relief Action",
+  dual_approval: "Co-Signatures",
+  team_collision_check: "Squad Roster Check",
+  trooper_feedback: "Trooper Feedback",
+  sleep_recovery: "Sleep Gain",
+  follow_up_tier: "Follow-up Level",
+  initial_score: "Initial Fatigue",
+  verified_score: "Restored Rest",
+  net_strain_reduction: "Total Fatigue Reduction",
+  docket_status: "Docket Status",
+};
+
 /**
  * Converts snake_case, kebab-case, or screaming snake_case to polished Title Case English.
  * Preserves known military and technical acronyms (e.g. CRPF, HR, SLA, MOS, IVR).
@@ -36,6 +75,11 @@ export function formatHumanReadable(text?: string | null, fallback: string = "")
   // Trim and remove any wrapping brackets like [Roster]
   const cleaned = text.replace(/^[\[\(]+|[\]\)]+$/g, "").trim();
   if (!cleaned) return fallback;
+
+  const lowerKey = cleaned.toLowerCase();
+  if (FRIENDLY_METRIC_MAP[lowerKey]) {
+    return FRIENDLY_METRIC_MAP[lowerKey];
+  }
 
   // Split by underscores, hyphens, and whitespace
   const words = cleaned
