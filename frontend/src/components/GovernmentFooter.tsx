@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { Shield, Lock, FileText, CheckCircle2, AlertCircle, HelpCircle, ExternalLink, PhoneCall, Mail } from "lucide-react";
+import { Shield, Lock, FileText, PhoneCall, Scale, Clock, AlertCircle } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { isAuthenticated } from "@/lib/auth";
+import { openPolicyModal } from "@/components/PolicyModalHost";
 
 export const GovernmentFooter: React.FC = () => {
   const { t, lang } = useTranslation();
@@ -21,12 +22,12 @@ export const GovernmentFooter: React.FC = () => {
     authenticated ? target : `/login?redirect=${encodeURIComponent(target)}`;
 
   return (
-    <footer className="bg-[#0f172a] text-slate-300 text-xs border-t-4 border-[#ff9933] mt-16 print:hidden">
-      {/* Official Government Partner Logos Strip (NIC Style) */}
+    <footer className="ux4g-footer-wrapper ux4g-footer-dark bg-[#0f172a] text-slate-300 text-xs border-t-4 border-[#ff9933] mt-16 print:hidden">
+      {/* Official Government Partner Logos Strip (GIGW 3.0 / NIC Style) */}
       <div className="bg-[#09101f] border-b border-slate-800/80 py-5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center justify-center sm:justify-between gap-6 opacity-90 hover:opacity-100 transition-opacity">
-            {/* Swachh Bharat */}
+            {/* Swachh Bharat SVG */}
             <a
               href="https://swachhbharatmission.ddws.gov.in/"
               target="_blank"
@@ -41,7 +42,7 @@ export const GovernmentFooter: React.FC = () => {
               />
             </a>
 
-            {/* Digital India */}
+            {/* Digital India SVG */}
             <a
               href="https://www.digitalindia.gov.in/"
               target="_blank"
@@ -65,7 +66,7 @@ export const GovernmentFooter: React.FC = () => {
               />
             </div>
 
-            {/* National Informatics Centre (NIC) */}
+            {/* National Informatics Centre (NIC) SVG */}
             <a
               href="https://www.nic.gov.in/"
               target="_blank"
@@ -74,13 +75,13 @@ export const GovernmentFooter: React.FC = () => {
               title="National Informatics Centre (NIC)"
             >
               <img
-                src="/images/logo_of_national_informatics_centre.png"
+                src="/images/nic_logo.svg"
                 alt="National Informatics Centre"
-                className="h-7 w-auto object-contain filter brightness-110"
+                className="h-8 w-auto object-contain filter brightness-110"
               />
             </a>
 
-            {/* India.gov.in */}
+            {/* India.gov.in SVG */}
             <a
               href="https://www.india.gov.in/"
               target="_blank"
@@ -95,7 +96,7 @@ export const GovernmentFooter: React.FC = () => {
               />
             </a>
 
-            {/* STQC CQW Certified Badge */}
+            {/* STQC CQW Certified Badge SVG */}
             <div className="flex items-center gap-2" title="Certified Quality Website (GIGW 3.0)">
               <img
                 src="/images/stqc_badge.svg"
@@ -107,8 +108,8 @@ export const GovernmentFooter: React.FC = () => {
         </div>
       </div>
 
-      {/* Top Links Grid */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      {/* Main Footer Body (ux4g-footer-row) */}
+      <div className="ux4g-footer-row max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
           {/* Col 1: About PRAHARI */}
           <div>
@@ -128,7 +129,11 @@ export const GovernmentFooter: React.FC = () => {
             </p>
             <div className="mt-3 p-2.5 rounded bg-slate-900 border border-slate-800 text-[11px] text-amber-300/90 leading-normal">
               <strong>{lang === "hi" ? "प्रमुख नियम: " : lang === "ta" ? "முக்கிய விதி: " : "Core Mandate: "}</strong>
-              {lang === "hi" ? "सहायता पहले, पूर्वानुमान बाद में। कमान अधिकारी की प्रत्यक्ष मानवीय समीक्षा अनिवार्य है।" : lang === "ta" ? "முதலில் உதவி, அடுத்து கணிப்பு. கட்டளை அதிகாரியின் நேரடி மனித மதிப்பாய்வு கட்டாயமாகும்." : "Help First. Predict Second. Automated systems never decline leave independently."}
+              {lang === "hi"
+                ? "सहायता पहले, पूर्वानुमान बाद में। कमान अधिकारी की प्रत्यक्ष मानवीय समीक्षा अनिवार्य है।"
+                : lang === "ta"
+                ? "முதலில் உதவி, அடுத்து கணிப்பு. கட்டளை அதிகாரியின் நேரடி மனித மதிப்பாய்வு கட்டாயமாகும்."
+                : "Help First, Predict Second. Automated systems never decline leave independently."}
             </div>
           </div>
 
@@ -172,42 +177,65 @@ export const GovernmentFooter: React.FC = () => {
             </ul>
           </div>
 
-          {/* Col 3: Policy & Statutory Compliance */}
+          {/* Col 3: Policy & Statutory Charters (Modal Popups) */}
           <div>
             <h4 className="text-white font-bold text-xs uppercase tracking-wider mb-3 border-b border-slate-800 pb-1 font-heading">
               {t.footer.statutoryTitle}
             </h4>
             <ul className="space-y-2">
               <li>
-                <Link href="/privacy" className="hover:text-white transition-colors underline font-medium">
-                  {t.nav.privacy}
-                </Link>
+                <button
+                  type="button"
+                  onClick={() => openPolicyModal("terms")}
+                  className="hover:text-white transition-colors underline font-medium text-left cursor-pointer flex items-center gap-1.5"
+                >
+                  <Scale className="w-3.5 h-3.5 text-[#ff9933] shrink-0" />
+                  <span>Terms of Service &amp; Usage Charter</span>
+                </button>
               </li>
               <li>
-                <Link href="/terms" className="hover:text-white transition-colors underline font-medium">
-                  Terms of Service & System Usage Charter
-                </Link>
+                <button
+                  type="button"
+                  onClick={() => openPolicyModal("privacy")}
+                  className="hover:text-white transition-colors underline font-medium text-left cursor-pointer flex items-center gap-1.5"
+                >
+                  <Lock className="w-3.5 h-3.5 text-[#ff9933] shrink-0" />
+                  <span>Statutory Privacy Policy (DPDP Act)</span>
+                </button>
               </li>
               <li>
-                <span className="text-slate-400">Mental Healthcare Act 2017 (§21 Confidentiality)</span>
+                <button
+                  type="button"
+                  onClick={() => openPolicyModal("confidentiality")}
+                  className="hover:text-white transition-colors underline font-medium text-left cursor-pointer flex items-center gap-1.5"
+                >
+                  <Shield className="w-3.5 h-3.5 text-[#ff9933] shrink-0" />
+                  <span>Mental Healthcare Act Section 21</span>
+                </button>
               </li>
               <li>
-                <span className="text-slate-400">Bharatiya Sakshya Adhiniyam 2023 (§63 Audit Hash)</span>
+                <button
+                  type="button"
+                  onClick={() => openPolicyModal("guidelines")}
+                  className="hover:text-white transition-colors underline font-medium text-left cursor-pointer flex items-center gap-1.5"
+                >
+                  <Clock className="w-3.5 h-3.5 text-[#ff9933] shrink-0" />
+                  <span>Rest &amp; Circadian Welfare Guidelines</span>
+                </button>
               </li>
               <li>
-                <span className="text-slate-400">DPDP Act 2023 (§7b, §7i State Processing)</span>
+                <span className="text-slate-400">Bharatiya Sakshya Adhiniyam 2023 (Section 63 Audit Hash)</span>
               </li>
               <li>
-                <span className="text-slate-400">GIGW 3.0 & WCAG 2.1 Level AA Compliant</span>
+                <span className="text-slate-400">GIGW 3.0 &amp; WCAG 2.1 Level AA Compliant</span>
               </li>
               <li className="pt-1">
                 <span className="inline-block px-2 py-1 rounded bg-slate-900 border border-slate-700 text-[10px] text-amber-300 font-medium">
-                  Decision Support System Only — Not a clinical diagnostic device
+                  Decision Support System Only &mdash; Not a clinical diagnostic device
                 </span>
               </li>
             </ul>
           </div>
-
 
           {/* Col 4: Troop Helplines & Ministry Info */}
           <div>
@@ -217,7 +245,7 @@ export const GovernmentFooter: React.FC = () => {
             <div className="space-y-2.5 text-[11px] text-slate-400">
               <div className="p-2.5 rounded bg-emerald-950/40 border border-emerald-500/40 text-emerald-200">
                 <strong className="text-emerald-100 font-bold block flex items-center gap-1.5">
-                  <PhoneCall className="w-3.5 h-3.5 text-emerald-400" />
+                  <PhoneCall className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                   National Tele-MANAS (MoHFW)
                 </strong>
                 <span className="font-mono text-white text-xs font-bold">14416</span> / <span className="font-mono text-white text-xs font-bold">1800-891-4416</span>
@@ -226,11 +254,11 @@ export const GovernmentFooter: React.FC = () => {
 
               <div className="p-2.5 rounded bg-blue-950/40 border border-blue-500/40 text-blue-200">
                 <strong className="text-blue-100 font-bold block flex items-center gap-1.5">
-                  <PhoneCall className="w-3.5 h-3.5 text-blue-400" />
-                  CRPF 'Madadgaar' Helpline
+                  <PhoneCall className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                  CRPF Madadgaar Helpline
                 </strong>
                 <span className="font-mono text-white text-xs font-bold">14411</span> / <span className="font-mono text-white text-xs font-bold">0194-2440210</span>
-                <span className="block text-[10px] text-blue-300 mt-0.5">Citizen & Force Welfare Assistance</span>
+                <span className="block text-[10px] text-blue-300 mt-0.5">Force Welfare &amp; Emergency Assistance</span>
               </div>
 
               <p className="pt-1">
@@ -250,7 +278,7 @@ export const GovernmentFooter: React.FC = () => {
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 text-slate-400">
             <span>{t.footer.lastUpdated}</span>
-            <span>·</span>
+            <span>&middot;</span>
             <span className="text-emerald-400 font-semibold">{t.footer.shaStatus}</span>
           </div>
         </div>

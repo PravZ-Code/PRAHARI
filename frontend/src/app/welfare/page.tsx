@@ -590,7 +590,8 @@ export default function WelfarePage() {
                         ? "bg-teal-400 text-slate-900"
                         : "bg-blue-400 text-slate-900"
                     }`}>
-                      ● {selectedCaseDetail.latest_prediction.trajectory.replace("_", " ")}
+                      <span className="w-1.5 h-1.5 rounded-full bg-current inline-block mr-1.5 align-middle" />
+                      {selectedCaseDetail.latest_prediction.trajectory.replace("_", " ")}
                     </span>
                   )}
                 </div>

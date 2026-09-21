@@ -200,11 +200,11 @@ export const UROVisualizer: React.FC<UROVisualizerProps> = ({
 
                   {isCommander ? (
                     <p className="text-[10px] text-m3-on-surface-variant font-medium mt-0.5">
-                      Shift Adjustment: <strong className="text-risk-green">Moved: Night Shift → Lighter Day Duty</strong>
+                      Shift Adjustment: <strong className="text-risk-green">Moved: Night Shift to Lighter Day Duty</strong>
                     </p>
                   ) : (
                     <p className="text-[10px] text-m3-on-surface-variant font-medium mt-0.5">
-                      Risk: {((swap.projected_risk_change_a?.from || 0) * 100).toFixed(0)}% →{" "}
+                      Risk: {((swap.projected_risk_change_a?.from || 0) * 100).toFixed(0)}% to{" "}
                       <strong className="text-risk-green font-bold">
                         {((swap.projected_risk_change_a?.to || 0) * 100).toFixed(0)}%
                       </strong>
@@ -249,7 +249,7 @@ export const UROVisualizer: React.FC<UROVisualizerProps> = ({
                     </p>
                   ) : (
                     <p className="text-[10px] text-m3-on-surface-variant font-medium mt-0.5">
-                      Risk: {((swap.projected_risk_change_b?.from || 0) * 100).toFixed(0)}% →{" "}
+                      Risk: {((swap.projected_risk_change_b?.from || 0) * 100).toFixed(0)}% to{" "}
                       <span className="text-m3-on-surface font-semibold">
                         {((swap.projected_risk_change_b?.to || 0) * 100).toFixed(0)}% (safe capacity)
                       </span>

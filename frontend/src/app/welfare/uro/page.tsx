@@ -136,7 +136,7 @@ export default function UROPage() {
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="px-2.5 py-1 rounded bg-white border border-slate-300 text-slate-700 flex items-center gap-1.5 shadow-sm">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
-            <span>MOS Trade Matched (GD ↔ GD)</span>
+            <span>MOS Trade Matched (GD to GD)</span>
           </span>
           <span className="px-2.5 py-1 rounded bg-white border border-slate-300 text-slate-700 flex items-center gap-1.5 shadow-sm">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />

@@ -283,7 +283,7 @@ export default function AdminPage() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <FileCheck className="w-3.5 h-3.5 text-emerald-700" />
-                  <span className="truncate">Standard: <strong>BSA 2023 §63(4)</strong></span>
+                  <span className="truncate">Standard: <strong>BSA 2023 Section 63(4)</strong></span>
                 </div>
               </div>
             )}

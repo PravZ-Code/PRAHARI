@@ -18,6 +18,7 @@ import {
   ExternalLink,
   KeyRound,
   FileCheck,
+  ArrowRight,
 } from "lucide-react";
 
 export default function LoginPage() {
@@ -386,8 +387,10 @@ export default function LoginPage() {
               >
                 <div className="font-bold text-[#0c3866] text-[11px]">Trooper (Personnel)</div>
                 <div className="text-[10px] text-slate-500 font-mono">rajesh_kumar</div>
-                <div className="text-[9px] text-slate-400 font-mono">CRP-2019-45821</div>
-                <div className="text-[9px] text-emerald-700 font-semibold mt-0.5">→ Trooper Portal</div>
+                <div className="text-[9px] text-emerald-700 font-semibold mt-0.5 flex items-center gap-1">
+                  <ArrowRight className="w-2.5 h-2.5" />
+                  <span>Trooper Portal</span>
+                </div>
               </button>
 
               <button
@@ -402,7 +405,10 @@ export default function LoginPage() {
                 <div className="font-bold text-[#0c3866] text-[11px]">Company Commander</div>
                 <div className="text-[10px] text-slate-500 font-mono">cmd_vikram</div>
                 <div className="text-[9px] text-slate-400 font-mono">Alpha Company</div>
-                <div className="text-[9px] text-blue-700 font-semibold mt-0.5">→ Command Center</div>
+                <div className="text-[9px] text-blue-700 font-semibold mt-0.5 flex items-center gap-1">
+                  <ArrowRight className="w-2.5 h-2.5" />
+                  <span>Command Center</span>
+                </div>
               </button>
 
               <button
@@ -417,7 +423,10 @@ export default function LoginPage() {
                 <div className="font-bold text-[#0c3866] text-[11px]">Welfare Officer</div>
                 <div className="text-[10px] text-slate-500 font-mono">wo_meera</div>
                 <div className="text-[9px] text-slate-400 font-mono">Battalion Welfare</div>
-                <div className="text-[9px] text-emerald-700 font-semibold mt-0.5">→ Welfare Desk</div>
+                <div className="text-[9px] text-emerald-700 font-semibold mt-0.5 flex items-center gap-1">
+                  <ArrowRight className="w-2.5 h-2.5" />
+                  <span>Welfare Desk</span>
+                </div>
               </button>
 
               <button
@@ -432,7 +441,10 @@ export default function LoginPage() {
                 <div className="font-bold text-[#0c3866] text-[11px]">System Administrator</div>
                 <div className="text-[10px] text-slate-500 font-mono">admin_sys</div>
                 <div className="text-[9px] text-slate-400 font-mono">System & Audit</div>
-                <div className="text-[9px] text-purple-700 font-semibold mt-0.5">→ Audit & Health</div>
+                <div className="text-[9px] text-purple-700 font-semibold mt-0.5 flex items-center gap-1">
+                  <ArrowRight className="w-2.5 h-2.5" />
+                  <span>Audit & Health</span>
+                </div>
               </button>
             </div>
             <div className="pt-1 text-[10px] text-slate-500 border-t border-slate-200">

@@ -291,7 +291,7 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
                   Welfare Case & Operational Fatigue Briefing
                 </h3>
                 <span className="text-[10px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-500/40 px-2 py-0.5 rounded-full">
-                  MHA §21 CONFIDENTIAL
+                  MHA SEC 21 CONFIDENTIAL
                 </span>
               </div>
               <p className="text-[11px] text-slate-400">

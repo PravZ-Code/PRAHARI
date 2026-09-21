@@ -132,7 +132,7 @@ export default function SupportOutcomeRecoveryPage() {
               Dedicated 6-Stage Recovery Timeline
             </h2>
             <p className="text-xs text-slate-300">
-              Audit trail: Baseline → Risk detected → Human review → Intervention → Follow-up → Recovery verified.
+              Audit stages: Baseline, Risk Detected, Human Review, Intervention, Follow-up, Recovery Verified.
             </p>
           </div>
         </div>

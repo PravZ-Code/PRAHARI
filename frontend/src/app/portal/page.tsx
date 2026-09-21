@@ -266,7 +266,7 @@ export default function TrooperPortalPage() {
       const res = await api.post("/personnel/data-deletion", {
         data_category: deletionCategory,
         timeframe: deletionTimeframe,
-        reason: deletionReason || "Statutory erasure requested under DPDP Act 2023 §12(3)",
+        reason: deletionReason || "Statutory erasure requested under DPDP Act 2023 Section 12(3)",
         affirmation: true
       });
       setDeletionResult(res.data);
@@ -1427,8 +1427,10 @@ export default function TrooperPortalPage() {
                               {formatDate(req.filed_at)}
                             </td>
                             <td className="py-3 px-4 text-slate-600 whitespace-nowrap">
-                              {req.start_date ? formatDate(req.start_date) : "Immediate"}
-                              {req.end_date ? ` → ${formatDate(req.end_date)}` : ""}
+                              <span>
+                                {formatDate(req.start_date)}
+                                {req.end_date ? ` to ${formatDate(req.end_date)}` : ""}
+                              </span>
                             </td>
                             <td className="py-3 px-4 whitespace-nowrap">{getStatusBadge(req.status, req.is_fast_lane)}</td>
                             <td className="py-3 px-4 text-right whitespace-nowrap">
@@ -1707,9 +1709,10 @@ export default function TrooperPortalPage() {
               </div>
               <button
                 onClick={() => setShowCheckinModal(false)}
-                className="text-slate-400 hover:text-slate-600 p-1"
+                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                aria-label="Close"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -1932,9 +1935,10 @@ export default function TrooperPortalPage() {
                   setShowCorrectionModal(false);
                   setCorrectionResult(null);
                 }}
-                className="text-slate-400 hover:text-slate-600 p-1"
+                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                aria-label="Close"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -2058,8 +2062,9 @@ export default function TrooperPortalPage() {
                   setDeletionResult(null);
                 }}
                 className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                aria-label="Close"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 

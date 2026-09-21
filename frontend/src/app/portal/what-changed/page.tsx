@@ -18,6 +18,7 @@ import {
   HelpCircle,
   BarChart3,
   Shield,
+  ArrowRight,
 } from "lucide-react";
 
 interface ChangedFactor {
@@ -486,7 +487,7 @@ export default function WhatChangedPage() {
                             ? "bg-red-50 text-red-700 border border-red-200"
                             : "bg-emerald-50 text-emerald-700 border border-emerald-200"
                         }`}>
-                          Δ {factor.delta_display} ({factor.pct_change})
+                          Shift: {factor.delta_display} ({factor.pct_change})
                         </span>
                       </div>
                     </div>
@@ -533,11 +534,13 @@ export default function WhatChangedPage() {
             <div className="pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-400">
               <span>Secure Welfare Record · Strictly Confidential</span>
               <div className="flex items-center gap-3">
-                <Link href="/portal/why-risk-changing" className="text-amber-300 hover:underline font-semibold">
-                  Why is my risk changing? →
+                <Link href="/portal/why-risk-changing" className="text-amber-300 hover:underline font-semibold inline-flex items-center gap-1">
+                  <span>Why is my risk changing?</span>
+                  <ArrowRight className="w-3 h-3" />
                 </Link>
-                <Link href="/portal/recovery-timeline" className="text-amber-300 hover:underline font-semibold">
-                  View Recovery Timeline →
+                <Link href="/portal/recovery-timeline" className="text-amber-300 hover:underline font-semibold inline-flex items-center gap-1">
+                  <span>View Recovery Timeline</span>
+                  <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
             </div>

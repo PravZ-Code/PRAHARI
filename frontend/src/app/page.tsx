@@ -984,7 +984,7 @@ export default function HomePage() {
                     {t.innovations.guardrails.title}
                   </h3>
                   <p className="text-xs text-slate-600 leading-relaxed">
-                    Automatic clinical sanitization compliant with Mental Healthcare Act 2017 (§21 & §115). Converts clinical diagnosis terms into non-stigmatizing operational stress terminology.
+                    Automatic clinical sanitization compliant with Mental Healthcare Act 2017 (Section 21 and Section 115). Converts clinical diagnosis terms into non-stigmatizing operational stress terminology.
                   </p>
                   <div className="pt-2">
                     <span className="text-[11px] font-bold text-[#29136C] flex items-center gap-1">
@@ -1003,7 +1003,7 @@ export default function HomePage() {
                     {t.innovations.uro.title}
                   </h3>
                   <p className="text-xs text-slate-600 leading-relaxed">
-                    Mixed-integer shift optimization enforcing strict trade compatibility (GD ↔ GD, Armorer ↔ Armorer), rolling 8-hour rest barriers, and unit fairness caps.
+                    Mixed-integer shift optimization enforcing strict trade compatibility (GD to GD, Armorer to Armorer), rolling 8-hour rest barriers, and unit fairness caps.
                   </p>
                   <div className="pt-2">
                     <Link href="/what-if" className="text-[11px] font-bold text-emerald-700 hover:underline flex items-center gap-1">

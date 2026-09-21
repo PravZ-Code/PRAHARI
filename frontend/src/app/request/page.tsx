@@ -13,6 +13,7 @@ import {
   ArrowLeft,
   HeartHandshake,
   Search,
+  Loader2,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { getStoredUser } from "@/lib/auth";
@@ -497,7 +498,7 @@ function RequestWelfareContent() {
             >
               {loading ? (
                 <>
-                  <span className="animate-spin mr-2">◌</span>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
                   <span>Sending Request...</span>
                 </>
               ) : (

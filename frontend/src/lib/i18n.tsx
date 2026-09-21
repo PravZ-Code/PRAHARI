@@ -236,7 +236,7 @@ export const translations = {
           title: "Battalion Sainik Sammelan & Welfare Darbar",
           type: "Command Redressal",
           desc: "Direct, open forum presided over by Commandant for confidential resolution of personnel welfare issues and family allowances.",
-          authority: "CRPF Act 1949 §8",
+          authority: "CRPF Act 1949 Section 8",
         },
         26: {
           title: "Weekly Force Rest & Recovery",

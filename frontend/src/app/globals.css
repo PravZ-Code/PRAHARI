@@ -20,7 +20,18 @@
   --goi-border: #cbd5e1;
   --goi-border-light: #e2e8f0;
   --goi-text: #0f172a;
-  --goi-text-muted: #475569;
+  /* UX4G 3.1.0 Defense Theme Root Token Overrides (Design.md Contract) */
+  --ux4g-color-primary-600: #0c3866 !important;
+  --ux4g-color-primary-700: #072648 !important;
+  --ux4g-color-primary-800: #051c36 !important;
+  --ux4g-color-secondary-600: #ff9933 !important;
+  --ux4g-color-tertiary-600: #138808 !important;
+  --ux4g-bg-primary-strong: #0c3866 !important;
+  --ux4g-bg-primary: #0c3866 !important;
+  --ux4g-text-brand-primary-default: #0c3866 !important;
+  --ux4g-focus-outline: #ff9933 !important;
+  --ux4g-border-neutral-strong: #737373 !important;
+
   --font-scale: 1rem;
 
   scroll-behavior: smooth;

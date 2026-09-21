@@ -332,11 +332,13 @@ export default function RecoveryTimelinePage() {
             <div className="pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-400">
               <span>Welfare Care Standard Verified</span>
               <div className="flex items-center gap-4">
-                <Link href="/portal/what-changed" className="text-emerald-300 hover:underline">
-                  ← What Changed?
+                <Link href="/portal/what-changed" className="text-emerald-300 hover:underline inline-flex items-center gap-1">
+                  <ArrowLeft className="w-3 h-3" />
+                  <span>What Changed?</span>
                 </Link>
-                <Link href="/portal/why-risk-changing" className="text-emerald-300 hover:underline">
-                  Why is my risk changing? →
+                <Link href="/portal/why-risk-changing" className="text-emerald-300 hover:underline inline-flex items-center gap-1">
+                  <span>Why is my risk changing?</span>
+                  <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
             </div>
