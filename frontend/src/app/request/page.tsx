@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { getStoredUser } from "@/lib/auth";
+import { formatRequestId } from "@/lib/formatters";
 
 function RequestWelfareContent() {
   const { lang } = useTranslation();
@@ -81,8 +82,8 @@ function RequestWelfareContent() {
     setLoading(true);
     setSubmissionError(null);
 
-    const refNo = `PRH-2026-${Math.floor(100000 + Math.random() * 900000)}`;
     const submissionDate = new Date().toISOString();
+    const refNo = formatRequestId(undefined, submissionDate);
 
     const isLeave = requestType.toLowerCase().includes("leave") || requestType.toLowerCase().includes("emergency");
     const requestBody = {
@@ -118,7 +119,7 @@ function RequestWelfareContent() {
         headers: { "Idempotency-Key": payload.queue_id },
       });
       if (res.data && res.data.id) {
-        payload.reference_number = `PRH-2026-${res.data.id.slice(0, 6).toUpperCase()}`;
+        payload.reference_number = formatRequestId(res.data.id, submissionDate);
       }
       setIsOfflineSubmission(false);
       setSubmittedReceipt(payload);
@@ -139,19 +140,8 @@ function RequestWelfareContent() {
         setIsOfflineSubmission(true);
         setSubmittedReceipt(payload);
       } else {
-        // Concrete HTTP error response from backend (401, 403, 422, 500)
-        const status = err.response?.status;
-        const detail = err.response?.data?.detail || "An unexpected error occurred while processing your request.";
-        if (status === 401) {
-          setSubmissionError("Authentication session expired. Please log in again.");
-          setTimeout(() => {
-            window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
-          }, 1500);
-        } else if (status === 403) {
-          setSubmissionError(`Permission Denied (403): ${detail}`);
-        } else {
-          setSubmissionError(`Submission Failed (${status}): ${detail}`);
-        }
+        const detail = err.response?.data?.detail || "Submission failed. Please try again or contact your unit duty officer.";
+        setSubmissionError(detail);
       }
     } finally {
       setLoading(false);
@@ -168,7 +158,7 @@ function RequestWelfareContent() {
       <nav aria-label="Breadcrumb" className="ux4g-breadcrumb ux4g-breadcrumb-divider text-xs text-slate-500 flex items-center gap-1.5 no-print">
         <Link href="/portal" className="hover:text-[#0c3866] font-semibold inline-flex items-center gap-1">
           <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Trooper Portal</span>
+          <span>Personnel Welfare Portal</span>
         </Link>
         <span>/</span>
         <span className="text-slate-800 font-semibold">Apply for Leave / Support</span>
@@ -313,11 +303,11 @@ function RequestWelfareContent() {
 
             <div className="flex items-center gap-2">
               <Link
-                href={`/track?ref=${encodeURIComponent(submittedReceipt.reference_number)}`}
+                href="/portal/requests"
                 className="ux4g-btn ux4g-btn-primary ux4g-btn-sm flex items-center gap-1.5"
               >
                 <Search className="w-4 h-4" />
-                <span>Check Status</span>
+                <span>View My Requests</span>
               </Link>
               <button
                 onClick={() => {

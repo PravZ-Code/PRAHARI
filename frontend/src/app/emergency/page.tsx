@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 
+import { formatRequestId } from "@/lib/formatters";
+
 export default function FamilyEmergencyPage() {
   const { lang } = useTranslation();
   const router = useRouter();
@@ -27,6 +29,7 @@ export default function FamilyEmergencyPage() {
   const [contactNumber, setContactNumber] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [submittedRef, setSubmittedRef] = useState<string | null>(null);
+  const [isOfflineSubmission, setIsOfflineSubmission] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -44,9 +47,11 @@ export default function FamilyEmergencyPage() {
         category: "family_emergency",
         description: `Family Emergency [${relationship}]: ${details} (Destination: ${destination || "Home"}, Contact: ${contactNumber || "On file"})`,
         filing_channel: "pwa",
+        is_fast_lane: true,
       });
-      const ref = res.data?.id ? `PRH-2026-${res.data.id.slice(0, 6).toUpperCase()}` : `PRH-2026-${Math.floor(100000 + Math.random() * 900000)}`;
+      const ref = formatRequestId(res.data?.id, new Date().toISOString());
       setSubmittedRef(ref);
+      setIsOfflineSubmission(false);
     } catch (err: any) {
       console.error("Emergency submit error:", err);
       if (typeof window !== "undefined" && !navigator.onLine) {
@@ -59,16 +64,18 @@ export default function FamilyEmergencyPage() {
               request_type: "leave",
               category: "family_emergency",
               description: `Family Emergency [${relationship}]: ${details} (Destination: ${destination || "Home"}, Contact: ${contactNumber || "On file"})`,
-              filing_channel: "pwa_offline"
+              filing_channel: "pwa_offline",
+              is_fast_lane: true,
             },
             submitted_at: new Date().toISOString()
           };
           queue.push(emergencyPayload);
           localStorage.setItem("prahari_offline_queue", JSON.stringify(queue));
           window.dispatchEvent(new Event("prahari_offline_update"));
-          setSubmittedRef(`OFFLINE-${Math.floor(100000 + Math.random() * 900000)}`);
+          setSubmittedRef(formatRequestId(undefined, new Date().toISOString()));
+          setIsOfflineSubmission(true);
         } catch {
-          setErrorMessage("Failed to buffer emergency request offline. Please dial 14411 / 14416 immediately.");
+          setErrorMessage("Failed to save emergency request locally. Please dial 14411 / 14416 immediately.");
         }
       } else {
         const detail = err.response?.data?.detail || "Emergency submission failed. Please contact duty officer or dial 14411 / 14416 immediately.";
@@ -85,10 +92,10 @@ export default function FamilyEmergencyPage() {
       <nav aria-label="Breadcrumb" className="ux4g-breadcrumb ux4g-breadcrumb-divider text-xs text-slate-500 flex items-center gap-1.5">
         <Link href="/portal" className="hover:text-[#0c3866] font-semibold inline-flex items-center gap-1">
           <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Trooper Portal</span>
+          <span>Personnel Welfare Portal</span>
         </Link>
         <span>/</span>
-        <span className="text-slate-800 font-semibold">Family Emergency SOS (12h)</span>
+        <span className="text-slate-800 font-semibold">Family Emergency</span>
       </nav>
 
       {/* Header */}
@@ -190,6 +197,13 @@ export default function FamilyEmergencyPage() {
             </div>
           </div>
 
+          {isOfflineSubmission && (
+            <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Submitted while offline &bull; Saved locally &amp; will sync automatically when online</span>
+            </div>
+          )}
+
           <div className="p-4 rounded-lg bg-blue-50 border border-blue-200 text-xs text-slate-700 space-y-1">
             <span className="font-bold text-[#0c3866] block">Next Step</span>
             <p>
@@ -199,17 +213,17 @@ export default function FamilyEmergencyPage() {
 
           <div className="flex items-center justify-between pt-4 border-t border-slate-200">
             <Link
-              href="/"
+              href="/portal"
               className="ux4g-btn ux4g-btn-outline-primary ux4g-btn-sm"
             >
-              <span>Back to Home</span>
+              <span>Back to Portal</span>
             </Link>
 
             <Link
-              href={`/track?ref=${encodeURIComponent(submittedRef)}`}
+              href={`/portal/requests`}
               className="ux4g-btn ux4g-btn-primary ux4g-btn-md"
             >
-              <span>Track This Emergency</span>
+              <span>View My Requests</span>
             </Link>
           </div>
         </div>

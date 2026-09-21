@@ -223,3 +223,113 @@ export function formatConcern(concern?: string | null, fallback: string = "Wellb
   if (CONCERN_MAP[key]) return CONCERN_MAP[key];
   return formatHumanReadable(concern, fallback);
 }
+
+/**
+ * Formats request IDs into clean, official identifiers (e.g. PRH-260921-00427).
+ * Removes raw UUIDs and technical offline prefixes like #offline-ws- from user view.
+ */
+export function formatRequestId(id?: string | null, filedAt?: string | null): string {
+  if (!id) return "PRH-REQUEST";
+  const trimmed = id.trim();
+  if (/^PRH-\d{6}-\d+$/i.test(trimmed)) return trimmed.toUpperCase();
+  if (/^PRH-\d{4}-\d+$/i.test(trimmed)) return trimmed.toUpperCase();
+
+  let datePart = "";
+  if (filedAt) {
+    try {
+      const d = new Date(filedAt);
+      if (!isNaN(d.getTime())) {
+        const yy = String(d.getFullYear()).slice(-2);
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        datePart = `${yy}${mm}${dd}`;
+      }
+    } catch {
+      // ignore
+    }
+  }
+  if (!datePart) {
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const dd = String(now.getDate()).padStart(2, "0");
+    datePart = `${yy}${mm}${dd}`;
+  }
+
+  let hash = 0;
+  const cleanId = trimmed.replace(/[^a-zA-Z0-9]/g, "");
+  for (let i = 0; i < cleanId.length; i++) {
+    hash = (hash << 5) - hash + cleanId.charCodeAt(i);
+    hash |= 0;
+  }
+  const numericSuffix = String((Math.abs(hash) % 90000) + 10000);
+
+  return `PRH-${datePart}-${numericSuffix}`;
+}
+
+/**
+ * Formats descriptions, sanitizing raw technical or legal payloads for user display.
+ */
+export function formatDescription(desc?: string | null): string {
+  if (!desc) return "No description provided.";
+  if (desc.includes("DPDP ACT") || desc.includes("Statutory erasure") || desc.includes("data_category")) {
+    return "Personal data correction / erasure request submitted under DPDP Act statutory guidelines.";
+  }
+  if (desc.startsWith("{") && desc.endsWith("}")) {
+    try {
+      const parsed = JSON.parse(desc);
+      if (parsed.reason) return parsed.reason;
+      if (parsed.description) return parsed.description;
+    } catch {
+      // ignore
+    }
+  }
+  return desc;
+}
+
+/**
+ * Formats wellbeing status into calm, non-diagnostic government categories.
+ * Stable, Monitor, Support recommended, Support active.
+ */
+export function formatWellbeingStatus(status?: string | null, riskLevel?: string | null): {
+  label: "Stable" | "Monitor" | "Support recommended" | "Support active";
+  colorClass: string;
+  dotColor: string;
+  description: string;
+} {
+  const level = (riskLevel || "").toLowerCase();
+  const s = (status || "").toLowerCase();
+
+  if (level === "red" || s.includes("high strain") || s.includes("support active") || s.includes("critical")) {
+    return {
+      label: "Support active",
+      colorClass: "bg-red-50 text-red-700 border-red-200",
+      dotColor: "bg-red-500",
+      description: "Support resources have been proactively made available to your unit.",
+    };
+  }
+  if (level === "orange" || s.includes("elevated") || s.includes("support recommended") || s.includes("fatigue")) {
+    return {
+      label: "Support recommended",
+      colorClass: "bg-amber-50 text-amber-800 border-amber-200",
+      dotColor: "bg-amber-500",
+      description: "Rest rotation or scheduled downtime is recommended.",
+    };
+  }
+  if (level === "yellow" || s.includes("moderate") || s.includes("monitor")) {
+    return {
+      label: "Monitor",
+      colorClass: "bg-blue-50 text-blue-700 border-blue-200",
+      dotColor: "bg-blue-500",
+      description: "Your duty pattern shows moderate activity; rest balance is being monitored.",
+    };
+  }
+
+  return {
+    label: "Stable",
+    colorClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    dotColor: "bg-emerald-500",
+    description: "Your recent duty and recovery pattern is within your normal range.",
+  };
+}
+
