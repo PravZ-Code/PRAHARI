@@ -91,14 +91,15 @@ def derive_forward_14d_outcome(db: Session, personnel_id: str, anchor_date: date
             longest_duty_streak = max(longest_duty_streak, current_streak)
         previous_date = shift.date
 
-    return int(
-        future_stress >= 3.7
-        or future_mood <= 2.3
-        or future_sleep <= 2.3
-        or future_stress - prior_stress >= 0.75
-        or (longest_duty_streak >= 9 and night_shifts >= 3)
-        or (future_denials >= 1 and longest_duty_streak >= 7)
+    has_strain = (
+        bool(future_stress >= 3.7)
+        or bool(future_mood <= 2.3)
+        or bool(future_sleep <= 2.3)
+        or bool((future_stress - prior_stress) >= 0.75)
+        or bool(longest_duty_streak >= 9 and night_shifts >= 3)
+        or bool(future_denials >= 1 and longest_duty_streak >= 7)
     )
+    return int(has_strain)
 
 
 def refresh_matured_prediction_outcomes(db: Session, as_of: Optional[datetime] = None) -> int:

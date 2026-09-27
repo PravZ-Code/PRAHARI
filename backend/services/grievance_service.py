@@ -22,8 +22,11 @@ FAST_LANE_CATEGORIES = {
     "medical_emergency",
     "family_crisis"
 }
-EMERGENCY_SLA_HOURS = 12
-STANDARD_SLA_HOURS = 72
+# SLA windows are configurable via environment (single source of truth: config.settings).
+# Defaults: 12h emergency fast-lane, 72h standard track.
+from config import settings as _settings
+EMERGENCY_SLA_HOURS = int(getattr(_settings, "EMERGENCY_SLA_HOURS", 12))
+STANDARD_SLA_HOURS = int(getattr(_settings, "STANDARD_SLA_HOURS", 72))
 
 ESCALATION_TIERS = {
     0: "Company Commander / Platoon Havildar",
@@ -481,7 +484,7 @@ def compute_resolution_bottlenecks(db: Session, unit_id: Optional[str] = None) -
         sla_pct = round((within_sla / tot) * 100, 1) if tot > 0 else 100.0
 
         durations = [g.time_to_resolution_hours for g in grievances if g.time_to_resolution_hours is not None]
-        avg_hrs = round(sum(durations) / len(durations), 1) if durations else 24.0
+        avg_hrs = round(sum(durations) / len(durations), 1) if durations else None
 
         for g in grievances:
             cat = g.category or "general"

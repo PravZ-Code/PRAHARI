@@ -12,6 +12,55 @@ from config import settings
 
 router = APIRouter()
 
+# ---------------------------------------------------------------------------
+# Server-issued Captcha (single-use, 5-minute TTL, in-memory challenge store)
+# Replaces the previous client-side-only captcha, which offered no bot resistance.
+# ---------------------------------------------------------------------------
+import hashlib
+import hmac
+import secrets
+import threading
+import time
+
+_CAPTCHA_TTL_SECONDS = 300
+_CAPTCHA_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+_captcha_lock = threading.Lock()
+_captcha_store: dict[str, tuple[str, float]] = {}  # captcha_id -> (sha256(answer), expiry_ts)
+
+
+def _issue_captcha() -> tuple[str, str]:
+    code = "".join(secrets.choice(_CAPTCHA_ALPHABET) for _ in range(5))
+    captcha_id = secrets.token_hex(16)
+    answer_hash = hashlib.sha256(code.encode("utf-8")).hexdigest()
+    expiry = time.time() + _CAPTCHA_TTL_SECONDS
+    with _captcha_lock:
+        # Opportunistic sweep of expired challenges to bound memory
+        stale = [k for k, (_, exp) in _captcha_store.items() if exp < time.time()]
+        for k in stale:
+            _captcha_store.pop(k, None)
+        _captcha_store[captcha_id] = (answer_hash, expiry)
+    return captcha_id, code
+
+
+def _verify_captcha(captcha_id: str, captcha_text: str) -> bool:
+    """Single-use verification: the challenge is consumed on ANY login attempt."""
+    with _captcha_lock:
+        entry = _captcha_store.pop(captcha_id, None)
+    if not entry:
+        return False
+    answer_hash, expiry = entry
+    if expiry < time.time():
+        return False
+    expected = hashlib.sha256(captcha_text.strip().upper().encode("utf-8")).hexdigest()
+    return hmac.compare_digest(expected, answer_hash)
+
+
+@router.get("/captcha")
+def get_captcha():
+    """Issues a fresh single-use captcha challenge."""
+    captcha_id, code = _issue_captcha()
+    return {"captcha_id": captcha_id, "code": code, "expires_in_seconds": _CAPTCHA_TTL_SECONDS}
+
 USERNAME_ALIASES = {
     "personnel_unit_a_01": "rajesh_kumar",
     "crpf-84012": "rajesh_kumar",
@@ -43,6 +92,31 @@ def login(
             detail="Service number/username and PIN/password are required"
         )
 
+    # Server-side captcha enforcement for the web SSO gateway.
+    # - If a captcha_id is supplied, the challenge MUST validate (single-use).
+    # - When AUTH_CAPTCHA_REQUIRED=true, a valid challenge is mandatory for all logins.
+    captcha_required = getattr(settings, "AUTH_CAPTCHA_REQUIRED", False)
+    if login_req.captcha_id:
+        if not _verify_captcha(login_req.captcha_id, login_req.captcha_text or ""):
+            log_audit(
+                db=db,
+                user=None,
+                request=request,
+                action="LOGIN_FAILED",
+                resource_type="auth",
+                resource_id=identifier,
+                details={"identifier": identifier, "reason": "invalid_captcha"}
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired captcha. Please retry the security verification."
+            )
+    elif captcha_required:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Server-issued captcha verification is required for sign-in."
+        )
+
     # Resolve demo/display aliases
     resolved_identifier = USERNAME_ALIASES.get(identifier.lower(), identifier)
 
@@ -60,19 +134,26 @@ def login(
             (Personnel.service_number == clean_id)
         ).first()
         if not personnel:
-            # Fallback matching with stripped punctuation
+            # Fallback matching with stripped punctuation, computed in SQL
+            # (avoids a full-table Python scan on every failed login: O(n) DoS fix)
             raw_clean = clean_id.replace("-", "").replace(" ", "")
-            all_p = db.query(Personnel).filter(Personnel.service_number.isnot(None)).all()
-            for p in all_p:
-                if p.service_number and p.service_number.replace("-", "").replace(" ", "").upper() == raw_clean:
-                    personnel = p
-                    break
+            personnel = db.query(Personnel).filter(
+                func.upper(func.replace(func.replace(Personnel.service_number, "-", ""), " ", "")) == raw_clean
+            ).first()
         if personnel:
             user = auth_db.query(User).filter(User.personnel_id == personnel.id).first()
             if not user:
                 safe_username = personnel.service_number.lower().replace("-", "_").replace(" ", "_")
                 user = auth_db.query(User).filter(User.username == safe_username).first()
-            if not user and secret == "demo123":
+            # JIT auto-provisioning of personnel logins is a development/demo convenience.
+            # It is gated by BOTH a non-production environment AND an explicit opt-in flag,
+            # so forgetting APP_ENV can never activate it in a real deployment.
+            if (
+                not user
+                and secret == "demo123"
+                and getattr(settings, "APP_ENV", "development") != "production"
+                and getattr(settings, "DEMO_AUTOPROVISION_ENABLED", False)
+            ):
                 import uuid
                 from middleware.rbac import get_password_hash
                 safe_username = personnel.service_number.lower().replace("-", "_").replace(" ", "_")
@@ -88,6 +169,15 @@ def login(
                 auth_db.add(user)
                 auth_db.commit()
                 auth_db.refresh(user)
+                log_audit(
+                    db=db,
+                    user=None,
+                    request=request,
+                    action="JIT_ACCOUNT_PROVISIONED",
+                    resource_type="auth",
+                    resource_id=personnel.id,
+                    details={"service_number": personnel.service_number, "reason": "demo_autoprovision"}
+                )
 
     if not user or not verify_password(secret, user.password_hash):
         log_audit(

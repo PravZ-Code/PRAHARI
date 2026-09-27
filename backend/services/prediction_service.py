@@ -46,6 +46,15 @@ def run_batch_predictions(db: Session, unit_id: Optional[str] = None, model_vers
         baseline = db.query(PersonalBaseline).filter(PersonalBaseline.personnel_id == p.id).first()
         b_type = baseline.baseline_type if baseline else "cohort"
 
+        wc_payload = dict(pred.get("what_changed", {}))
+        wc_payload["evidence_sufficiency"] = pred.get("evidence_sufficiency", "GREEN")
+        wc_payload["evidence_verdict"] = pred.get("evidence_verdict", "")
+        wc_payload["required_evidence_to_unlock"] = pred.get("required_evidence_to_unlock", [])
+        wc_payload["data_trust_tier"] = pred.get("data_trust_tier", "HIGH")
+        wc_payload["data_trust_score"] = pred.get("data_trust_score", 0.85)
+        wc_payload["confidence_data_trust_asymmetry"] = pred.get("confidence_data_trust_asymmetry", False)
+        wc_payload["asymmetry_advisory"] = pred.get("asymmetry_advisory", "")
+
         db_pred = RiskPrediction(
             personnel_id=p.id,
             predicted_at=now,
@@ -63,12 +72,13 @@ def run_batch_predictions(db: Session, unit_id: Optional[str] = None, model_vers
             abstention_flag=1 if pred.get("abstention_flag") else 0,
             abstention_reason=pred.get("abstention_reason"),
             signal_reliability=pred.get("signal_reliability", "high"),
-            what_changed=pred.get("what_changed", {})
+            what_changed=wc_payload
         )
         db.add(db_pred)
 
-        # Auto-create welfare case for Orange or Red if none active
-        if lvl in ("orange", "red"):
+        # Samvedna Evidence Gating: Prohibit automated risk case escalation if evidence sufficiency is GREY / False
+        escalation_permitted = pred.get("risk_escalation_permitted", True)
+        if lvl in ("orange", "red") and escalation_permitted:
             active_case = db.query(WelfareCase).filter(
                 WelfareCase.personnel_id == p.id,
                 WelfareCase.status.in_(["pending", "acknowledged", "plan_created", "intervention_active", "escalated"])

@@ -27,43 +27,45 @@ export const CaseCard: React.FC<CaseCardProps> = ({ welfareCase, isSelected = fa
   return (
     <div
       onClick={onClick}
-      className={`p-4 rounded-m3-2xl border transition-all duration-200 cursor-pointer shadow-m3-1 ${
+      className={`ux4g-card ux4g-card-outline cursor-pointer transition-all duration-200 ${
         isSelected
-          ? "bg-m3-surface-container-high border-m3-primary shadow-m3-2 ring-2 ring-m3-primary/30"
-          : "bg-m3-surface-container border-m3-outline-variant/60 hover:bg-m3-surface-container-high hover:border-m3-outline"
+          ? "border-[var(--ux4g-color-primary-600)] shadow-md ring-2 ring-[var(--ux4g-color-primary-600)]/20"
+          : "hover:border-[var(--ux4g-border-neutral-strong)]"
       }`}
     >
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-m3-surface-container-highest border border-m3-outline-variant flex items-center justify-center text-m3-primary">
-            <User className="w-4 h-4" />
+      <div className="ux4g-card-body p-4">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-[var(--ux4g-bg-neutral-soft,#f5f5f5)] border border-[var(--ux4g-border-neutral-subtle,#e5e5e5)] flex items-center justify-center text-[var(--ux4g-text-brand-primary-default,#4A2BC2)]">
+              <User className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="ux4g-card-title font-bold text-sm leading-tight text-[var(--ux4g-text-neutral-primary,#171717)]">
+                {welfareCase.personnel_name}
+              </h4>
+              <p className="ux4g-card-sub-title text-xs text-[var(--ux4g-text-neutral-secondary,#404040)] font-medium">
+                {welfareCase.personnel_rank} • {welfareCase.unit_name}
+              </p>
+            </div>
           </div>
-          <div>
-            <h4 className="font-bold text-m3-on-surface text-sm leading-tight">
-              {welfareCase.personnel_name}
-            </h4>
-            <p className="text-xs text-m3-on-surface-variant font-medium">
-              {welfareCase.personnel_rank} • {welfareCase.unit_name}
-            </p>
-          </div>
+
+          <RiskBadge level={welfareCase.risk_level} size="sm" />
         </div>
 
-        <RiskBadge level={welfareCase.risk_level} size="sm" />
-      </div>
+        <div className="ux4g-card-footer flex items-center justify-between mt-3 pt-2.5 border-t border-[var(--ux4g-border-neutral-subtle,#e5e5e5)] text-xs">
+          <span className="text-[var(--ux4g-text-neutral-secondary,#404040)] font-medium flex items-center gap-1.5">
+            {trigger ? <trigger.Icon className="w-3.5 h-3.5 text-[var(--ux4g-text-brand-primary-default,#4A2BC2)]" /> : <Bell className="w-3.5 h-3.5 text-[var(--ux4g-text-brand-primary-default,#4A2BC2)]" />}
+            {trigger?.label || formatTrigger(welfareCase.triggered_by)}
+          </span>
 
-      <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-m3-outline-variant/60 text-xs">
-        <span className="text-m3-on-surface-variant font-medium flex items-center gap-1.5">
-          {trigger ? <trigger.Icon className="w-3.5 h-3.5 text-m3-primary" /> : <Bell className="w-3.5 h-3.5 text-m3-primary" />}
-          {trigger?.label || formatTrigger(welfareCase.triggered_by)}
-        </span>
-
-        <SLATimer
-          deadline={welfareCase.sla_acknowledge_deadline}
-          isBreached={welfareCase.sla_breached}
-          isAcknowledged={welfareCase.status !== "pending"}
-          hoursRemaining={welfareCase.hours_until_ack_deadline}
-          stage="ack"
-        />
+          <SLATimer
+            deadline={welfareCase.sla_acknowledge_deadline}
+            isBreached={welfareCase.sla_breached}
+            isAcknowledged={welfareCase.status !== "pending"}
+            hoursRemaining={welfareCase.hours_until_ack_deadline}
+            stage="ack"
+          />
+        </div>
       </div>
     </div>
   );

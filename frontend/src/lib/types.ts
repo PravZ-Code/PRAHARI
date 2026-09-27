@@ -307,6 +307,8 @@ export interface CopilotChatResponse {
 export interface ChainVerificationResponse {
   chain_status: "INTACT" | "COMPROMISED";
   total_blocks: number;
+  total_blocks_verified?: number;
+  message?: string;
   tampered_index?: number | null;
   verified_count?: number;
   anchors_verified?: number;
@@ -365,6 +367,22 @@ export interface EvidenceConflictReport {
   decision_support_narrative: string;
   recommended_welfare_action: string;
   provenance_sources: EvidenceSourceProvenance[];
+  evidence_gating?: {
+    verdict: "GREEN" | "AMBER" | "GREY";
+    is_sufficient: boolean;
+    risk_escalation_permitted: boolean;
+    unmet_criteria: string[];
+    required_evidence_to_unlock?: string[];
+  };
+  data_trust?: {
+    trust_score: number;
+    trust_tier: "HIGH" | "MODERATE" | "LOW";
+    completeness: number;
+    freshness: number;
+    reliability: number;
+    confidence_trust_asymmetry: boolean;
+    asymmetry_warning?: string;
+  };
 }
 
 export interface BaselineComparisonPoint {

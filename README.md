@@ -8,8 +8,8 @@
 
 [![SIH 2026](https://img.shields.io/badge/SIH%202026-PS26186-orange.svg?style=flat-square)](https://www.sih.gov.in/)
 [![Ministry](https://img.shields.io/badge/Ministry-Home%20Affairs%20%2F%20CRPF-003366.svg?style=flat-square)](https://www.mha.gov.in/)
-[![Backend Tests](https://img.shields.io/badge/Backend%20Tests-134%2F134%20Passed-2ea44f.svg?style=flat-square&logo=pytest&logoColor=white)](#-verification--system-integrity-scorecard)
-[![Mobile Tests](https://img.shields.io/badge/Mobile%20Tests-14%2F14%20Passed-02569B.svg?style=flat-square&logo=flutter&logoColor=white)](#-verification--system-integrity-scorecard)
+[![Backend Tests](https://img.shields.io/badge/Backend%20Tests-206%2F206%20Passed-2ea44f.svg?style=flat-square&logo=pytest&logoColor=white)](#-verification--system-integrity-scorecard)
+[![Mobile Tests](https://img.shields.io/badge/Mobile%20Tests-18%2F18%20Passed-02569B.svg?style=flat-square&logo=flutter&logoColor=white)](#-verification--system-integrity-scorecard)
 [![Code Quality](https://img.shields.io/badge/Static%20Analysis-0%20Issues-brightgreen.svg?style=flat-square)](#-verification--system-integrity-scorecard)
 [![Compliance](https://img.shields.io/badge/Statutory%20Standard-MHCA%202017%20%7C%20BSA%202023%20%7C%20DPDP%202023-blueviolet.svg?style=flat-square)](#-statutory--governance-framework)
 [![License](https://img.shields.io/badge/License-MIT-lightgrey.svg?style=flat-square)](LICENSE)
@@ -92,8 +92,8 @@ The repository is continuously verified through comprehensive automated test sui
 
 | Subsystem | Test Command | Scope | Result | Status |
 | :--- | :--- | :--- | :---: | :---: |
-| **Backend Core** | `pytest tests/` | Concurrency, SLA workers, access control, audit ledger, APIs | **134 / 134** | ✅ 100% Passed |
-| **Mobile Client** | `flutter test` | Local storage, security store, state synchronization, data models | **14 / 14** | ✅ 100% Passed |
+| **Backend Core** | `pytest tests/` | Concurrency, SLA workers, access control, audit ledger, ML monotonic constraints, APIs | **206 / 206** | ✅ 100% Passed |
+| **Mobile Client** | `flutter test` | Local storage, security store, state synchronization, data models | **18 / 18** | ✅ 100% Passed |
 | **Mobile Linter** | `flutter analyze` | Static code analysis, type safety, null safety | **0 Issues** | ✅ Clean |
 | **Web Portal** | `npm run build` | Application router compilation and type safety | **0 Errors** | ✅ Clean Build |
 | **Accessibility** | Audit Suite | GIGW 3.0 / WCAG 2.2 AA government standard | **Passed** | ✅ Verified |
@@ -115,9 +115,11 @@ prahari/
 | Layer | Component | Technologies |
 | :--- | :--- | :--- |
 | **Backend API** | High-Performance Server | Python 3.11+, FastAPI, SQLAlchemy, Pydantic |
+| **Edge AI Copilot** | Local Tactical Intelligence | Ollama (`qwen3:0.6b`), On-Premises LLM Inference (Offline, Zero Cloud) |
+| **Decision Intelligence** | Calibrated Risk Scoring | XGBoost 3.4 (Monotonic Constraints), Platt Scaling, K-Means Cold-Start Cohorts, SciPy (Hungarian URO), Scikit-Learn |
 | **Web Portal** | Command & Administration Console | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS, UX4G |
-| **Mobile Client** | Frontline Personnel Client | Flutter, Dart, Local Encrypted SQLite |
-| **Desktop Orchestrator** | Service Management | Native Windows GUI subsystem, Tkinter, Pystray |
+| **Mobile Client** | Frontline Personnel Client | Flutter, Dart, Local Encrypted SQLite (Web preview on port 8080) |
+| **Desktop Orchestrator** | Service Management | Native Windows GUI subsystem, PySide6, Tkinter, Pystray |
 | **Data Persistence** | Edge & Central Data Stores | SQLite (Edge) / PostgreSQL (Central) |
 | **Governance** | Statutory Compliance | MHCA 2017 §21, BSA 2023 §63/65B, DPDP Act 2023, GIGW 3.0 |
 
@@ -127,7 +129,7 @@ prahari/
 
 ### Method 1: Desktop Orchestrator (Windows)
 Double-click **`PRAHARI_Launcher.exe`** in the root directory.
-* Automatically launches the backend (port 8000), web portal (port 3000), and mobile asset distribution (port 8080).
+* Automatically launches the backend (port 8000), web portal (port 3000), mobile asset distribution (port 8080), and local Ollama inference service (port 11434).
 * Operates in the background with zero intrusive command-line windows.
 * Includes system tray integration and service status monitoring.
 

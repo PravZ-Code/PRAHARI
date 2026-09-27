@@ -221,6 +221,7 @@ def build_feature_vector(personnel: Personnel, db: Session, as_of_date: date = N
         "assessment_compliance_14d": float(compliance_14d),
         "unit_buddy_signals_4w": float(unit_buddy_count),
         "unit_buddy_avg_concern": float(unit_buddy_avg),
+        "valid_historical_days": len({s.date for s in recent_shifts if s.date}.union({a.assessed_at.date() for a in assessments_14d if a.assessed_at})),
     }
 
     return features

@@ -23,6 +23,7 @@ import {
   Layers,
   XCircle,
   Loader2,
+  Sliders,
 } from "lucide-react";
 import { getStoredUser, isAuthenticated } from "@/lib/auth";
 import { useDataSync } from "@/lib/useDataSync";
@@ -38,9 +39,20 @@ export default function CommanderPage() {
   const [loading, setLoading] = useState(true);
   const [requestsLoading, setRequestsLoading] = useState(true);
   const [welfareDebt, setWelfareDebt] = useState<any>(null);
+  const [commandAttribution, setCommandAttribution] = useState<any>(null);
   const [bottleneckData, setBottleneckData] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "requests" | "workload" | "bottlenecks">("overview");
+  const [dataErrors, setDataErrors] = useState<string[]>([]);
+
+  const noteError = (label: string, err: any) => {
+    console.error(`Failed to load ${label}:`, err);
+    const status = err?.response?.status;
+    const suffix = status ? ` (HTTP ${status})` : " (network unavailable)";
+    setDataErrors((prev) =>
+      prev.some((m) => m.startsWith(label)) ? prev : [...prev, `${label}${suffix}`]
+    );
+  };
 
   // Real-time synchronization: automatically re-fetch KPIs and queue when DB events occur
   useDataSync({
@@ -91,6 +103,7 @@ export default function CommanderPage() {
       }
     } catch (err) {
       console.error("Failed to load units:", err);
+      noteError("Unit list", err);
     } finally {
       setLoading(false);
     }
@@ -99,26 +112,32 @@ export default function CommanderPage() {
   const fetchUnitDetails = (uid: string) => {
     if (!uid) return;
     setRequestsLoading(true);
+    setDataErrors([]);
 
     // Parallel Stream 1: Readiness Score & Trend
     api.get(`/commander/unit/${uid}`)
       .then((res) => setReadinessDetail(res.data))
-      .catch((err) => console.error("Failed to load readiness:", err));
+      .catch((err) => noteError("Readiness metrics", err));
 
     // Parallel Stream 2: Dashboard KPIs (Decision summary)
     api.get(`/commander/unit/${uid}/dashboard-kpis`)
       .then((res) => setDashboardKpis(res.data))
-      .catch((err) => console.error("Failed to load KPIs:", err));
+      .catch((err) => noteError("Dashboard KPIs", err));
 
     // Parallel Stream 3: Welfare Debt (Section 31)
     api.get(`/commander/unit/${uid}/welfare-debt`)
       .then((res) => setWelfareDebt(res.data))
-      .catch((err) => console.error("Failed to load welfare debt:", err));
+      .catch((err) => noteError("Welfare debt index", err));
+
+    // Parallel Stream 3b: Structural Stress Attribution Index (SSAI / Reverse Lens - Feature 25)
+    api.get(`/commander/unit/${uid}/command-attribution`)
+      .then((res) => setCommandAttribution(res.data))
+      .catch((err) => noteError("Command attribution index (SSAI)", err));
 
     // Parallel Stream 4: Resolution Bottlenecks (Section 12)
     api.get(`/grievance/resolution-bottlenecks?unit_id=${uid}`)
       .then((res) => setBottleneckData(res.data))
-      .catch((err) => console.error("Failed to load bottlenecks:", err));
+      .catch((err) => noteError("Resolution bottleneck data", err));
 
     // Parallel Stream 5: Pending Queue (Requests)
     api.get(`/grievance/pending-queue?unit_id=${uid}`)
@@ -126,7 +145,7 @@ export default function CommanderPage() {
         setPendingRequests(res.data || []);
       })
       .catch((err) => {
-        console.error("Failed to load pending requests:", err);
+        noteError("Pending request queue", err);
         setPendingRequests([]);
       })
       .finally(() => {
@@ -176,6 +195,17 @@ export default function CommanderPage() {
         <span className="text-slate-800 font-semibold">Commander Workspace</span>
       </nav>
 
+      {/* Surface data loading failures visibly instead of silently rendering empty sections */}
+      {dataErrors.length > 0 && (
+        <div className="ux4g-alert ux4g-alert-warning flex items-start gap-2" role="alert">
+          <AlertTriangle className="w-4 h-4 text-amber-800 flex-shrink-0 mt-0.5" />
+          <div className="text-xs">
+            <strong>Some live data could not be loaded:</strong> {dataErrors.join("; ")}.
+            The figures below may be stale or incomplete until the service is reachable.
+          </div>
+        </div>
+      )}
+
       {/* Header & Formation Selector */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
@@ -216,6 +246,24 @@ export default function CommanderPage() {
         </div>
       </div>
 
+      {/* Operational Tools — direct navigation to policy simulation, mission gate, and helper-load ledger */}
+      {selectedUnitId && (
+        <div className="flex flex-wrap gap-2">
+          <Link href="/commander/policy-what-if" className="ux4g-btn ux4g-btn-outline-primary ux4g-btn-sm text-xs">
+            <Sliders className="w-3.5 h-3.5 mr-1" />
+            <span>Policy What-If Simulator</span>
+          </Link>
+          <Link href="/commander/mission-gate" className="ux4g-btn ux4g-btn-outline-primary ux4g-btn-sm text-xs">
+            <FileText className="w-3.5 h-3.5 mr-1" />
+            <span>Mission Risk Budget Gate</span>
+          </Link>
+          <Link href={`/commander/helper-load/${selectedUnitId}`} className="ux4g-btn ux4g-btn-outline-primary ux4g-btn-sm text-xs">
+            <Scale className="w-3.5 h-3.5 mr-1" />
+            <span>Welfare Cost Ledger (Who Carries the Load)</span>
+          </Link>
+        </div>
+      )}
+
       {/* Decision Summary KPI Grid (Live from Backend) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
         <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-3.5 space-y-1 bg-white">
@@ -253,7 +301,7 @@ export default function CommanderPage() {
         <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-3.5 space-y-1 bg-white">
           <span className="text-[11px] font-bold text-slate-500 uppercase block">Unit Readiness</span>
           <span className="text-2xl font-bold text-emerald-700">
-            {dashboardKpis?.unit_readiness ?? readinessDetail?.readiness_score ?? activeUnit?.readiness_score ?? 91}%
+            {dashboardKpis?.unit_readiness ?? readinessDetail?.readiness_score ?? activeUnit?.readiness_score ?? 100}%
           </span>
           <span className="text-[10px] text-emerald-800 block">Operational</span>
         </div>
@@ -261,7 +309,7 @@ export default function CommanderPage() {
         <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-3.5 space-y-1 bg-white">
           <span className="text-[11px] font-bold text-slate-500 uppercase block">Rest Compliance</span>
           <span className="text-2xl font-bold text-slate-900">
-            {dashboardKpis?.rest_compliance ?? 97.2}%
+            {dashboardKpis?.rest_compliance ?? 100}%
           </span>
           <span className="text-[10px] text-slate-500 block">&gt; 8 hours rest</span>
         </div>
@@ -287,15 +335,15 @@ export default function CommanderPage() {
                 ? "bg-amber-100 text-amber-800"
                 : "bg-emerald-100 text-emerald-800"
             }`}>
-              {welfareDebt?.welfare_debt_level ?? "MODERATE"}
+              {welfareDebt?.welfare_debt_level ?? "LOW"}
             </span>
           </div>
           <span className="text-2xl font-bold text-slate-900 block">
-            {welfareDebt?.welfare_debt_score ?? 35.0}
+            {welfareDebt?.welfare_debt_score ?? 0}
             <span className="text-xs text-slate-500 font-normal"> /100</span>
           </span>
           <span className="text-[10px] text-slate-600 block truncate">
-            {welfareDebt?.primary_contributors?.[0] ?? "Operational load audit"}
+            {welfareDebt?.primary_contributors?.[0] ?? "Operational load audit active"}
           </span>
         </div>
       </div>
@@ -478,24 +526,24 @@ export default function CommanderPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-1">
               <span className="text-slate-500 block">Unit Strength:</span>
-              <strong className="text-base text-slate-900">{activeUnit?.strength || 200} Troops</strong>
+              <strong className="text-base text-slate-900">{activeUnit?.strength || 0} Troops</strong>
               <span className="text-slate-500 block text-[11px]">
-                Active on duty: {dashboardKpis?.active_on_duty ?? 194} · Leave: {dashboardKpis?.on_leave ?? 6}
+                Active on duty: {dashboardKpis?.active_on_duty ?? activeUnit?.strength ?? 0} · Leave: {dashboardKpis?.on_leave ?? 0}
               </span>
             </div>
 
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-1">
               <span className="text-slate-500 block">Night Duty Share:</span>
               <strong className="text-base text-slate-900">
-                {dashboardKpis?.night_duty_share ?? 22.4}% (Past 14 Days)
+                {dashboardKpis?.night_duty_share ?? 0}% (Past 14 Days)
               </strong>
-              <span className="text-emerald-700 block text-[11px]">Fairly shared across squads</span>
+              <span className="text-emerald-700 block text-[11px]">Balanced across squads</span>
             </div>
 
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-1">
               <span className="text-slate-500 block">Available Rested Personnel:</span>
               <strong className="text-base text-emerald-700">
-                {dashboardKpis?.available_rested ?? 37} Available
+                {dashboardKpis?.available_rested ?? 0} Available
               </strong>
               <span className="text-slate-500 block text-[11px]">Ready with &gt; 12 hours rest</span>
             </div>
@@ -513,43 +561,112 @@ export default function CommanderPage() {
       )}
 
       {/* Tab 3: Administrative Self-Correction */}
+      {/* Tab 3: Feature 25 - Structural Stress Attribution Index (SSAI / Reverse Lens) */}
       {activeTab === "workload" && (
-        <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-5 space-y-4 bg-white">
-          <div className="border-b border-slate-200 pb-3 flex items-center justify-between">
+        <div className="ux4g-card ux4g-card-solid ux4g-card-vertical p-5 space-y-5 bg-white border border-slate-200 shadow-sm">
+          <div className="border-b border-slate-200 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider font-heading">
-                Unit Scheduling Balance (Private Reflection)
-              </h3>
-              <p className="text-xs text-slate-600 mt-0.5">
-                Private information for company commanders to self-correct leave and shift patterns compared to peer units.
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider font-heading">
+                  Structural Stress Attribution Index (SSAI — Reverse Lens)
+                </h3>
+                <span className={`text-xs font-bold px-2.5 py-0.5 rounded border ${
+                  (commandAttribution?.structural_stress_attribution_index ?? 0) >= 0.55
+                    ? "bg-amber-100 text-amber-900 border-amber-300"
+                    : "bg-emerald-100 text-emerald-900 border-emerald-300"
+                }`}>
+                  {commandAttribution?.status ?? "BALANCED_COMMAND_PRACTICE"}
+                </span>
+                <span className="text-xs font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-900 border border-blue-200">
+                  Private to Commander
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 mt-1">
+                Evaluates organizational scheduling, leave denial frequency, and rest compliance normalized against peer units in {commandAttribution?.operational_area ?? activeUnit?.operational_area ?? "hard"} terrain.
               </p>
             </div>
-            <span className="text-xs font-bold px-2.5 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300">
-              Non-Punitive
+
+            <div className="text-right sm:text-right">
+              <span className="text-2xl font-extrabold text-slate-900 font-mono">
+                {commandAttribution?.structural_stress_attribution_index?.toFixed(3) ?? "0.280"}
+                <span className="text-xs text-slate-500 font-normal"> / 1.000</span>
+              </span>
+              <span className="text-[10px] text-slate-500 block">Structural Attribution Index</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+            <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+              <span className="text-slate-500 block">Unit Leave Denial Rate:</span>
+              <strong className="text-slate-900 text-sm">
+                {commandAttribution?.metrics?.unit_leave_denial_rate != null
+                  ? `${(commandAttribution.metrics.unit_leave_denial_rate * 100).toFixed(1)}%`
+                  : `${dashboardKpis?.leave_denial_frequency ?? 0}%`}
+              </strong>
+              <span className="text-slate-500 block text-[11px]">
+                Peer Norm: {commandAttribution?.metrics?.peer_baseline_denial_rate != null
+                  ? `${(commandAttribution.metrics.peer_baseline_denial_rate * 100).toFixed(1)}%`
+                  : "< 12.5%"} ({commandAttribution?.metrics?.leave_denial_ratio_vs_peers ?? 1.0}x ratio)
+              </span>
+            </div>
+
+            <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+              <span className="text-slate-500 block">Night Duty Skew (Top 20% Load):</span>
+              <strong className="text-slate-900 text-sm">
+                {commandAttribution?.metrics?.night_shift_top20_concentration != null
+                  ? `${(commandAttribution.metrics.night_shift_top20_concentration * 100).toFixed(0)}% of duties`
+                  : dashboardKpis?.night_duty_distribution ?? "Balanced"}
+              </strong>
+              <span className="text-slate-500 block text-[11px]">
+                {((commandAttribution?.metrics?.night_shift_top20_concentration ?? 0.20) > 0.40)
+                  ? "Significant concentration detected"
+                  : "Equitably distributed across squads"}
+              </span>
+            </div>
+
+            <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+              <span className="text-slate-500 block">10+ Day Duty Streaks:</span>
+              <strong className="text-slate-900 text-sm">
+                {commandAttribution?.metrics?.troopers_with_consecutive_streaks_10d ?? 0} Troopers
+              </strong>
+              <span className="text-slate-500 block text-[11px]">Continuous duty without rest</span>
+            </div>
+
+            <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+              <span className="text-slate-500 block">Battalion Escalation:</span>
+              <strong className={`text-sm ${commandAttribution?.battalion_oversight_escalation_required ? "text-rose-700" : "text-emerald-700"}`}>
+                {commandAttribution?.battalion_oversight_escalation_required ? "Escalation Required" : "Internal Resolution"}
+              </strong>
+              <span className="text-slate-500 block text-[11px]">Non-punitive commander guidance</span>
+            </div>
+          </div>
+
+          {/* Commander Insight & Recommendations */}
+          <div className="p-4 bg-blue-50/60 border border-blue-200 rounded-lg space-y-2">
+            <span className="font-bold text-blue-950 uppercase text-[11px] block flex items-center gap-1.5">
+              <Shield className="w-3.5 h-3.5 text-blue-700" />
+              Private Commander Guidance (Non-Punitive Self-Correction):
             </span>
+            <p className="text-xs text-blue-900 leading-relaxed italic">
+              &ldquo;{commandAttribution?.private_commander_insight ?? dashboardKpis?.guidance_text ?? "Your company scheduling shows good balance. Resolving pending requests will keep morale high."}&rdquo;
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-            <div className="p-3.5 bg-slate-50 rounded border border-slate-200 space-y-1">
-              <span className="text-slate-500 block">Leave Denial Frequency:</span>
-              <strong className="text-slate-900 text-sm">{dashboardKpis?.leave_denial_frequency ?? 8.2}%</strong>
-              <span className="text-slate-500 block text-[11px]">Peer hard-zone benchmark: &lt; 12.5%</span>
+          {commandAttribution?.actionable_self_correction_recommendations?.length > 0 && (
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-2">
+              <span className="font-bold text-slate-800 uppercase text-[11px] block">
+                Actionable Self-Correction Recommendations:
+              </span>
+              <ul className="space-y-1.5 text-xs text-slate-700">
+                {commandAttribution.actionable_self_correction_recommendations.map((rec: string, idx: number) => (
+                  <li key={idx} className="flex items-start gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <span>{rec}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <div className="p-3.5 bg-slate-50 rounded border border-slate-200 space-y-1">
-              <span className="text-slate-500 block">Night Duty Distribution:</span>
-              <strong className="text-slate-900 text-sm">{dashboardKpis?.night_duty_distribution ?? "Evenly Balanced"}</strong>
-              <span className="text-slate-500 block text-[11px]">No single soldier unfairly loaded</span>
-            </div>
-            <div className="p-3.5 bg-slate-50 rounded border border-slate-200 space-y-1">
-              <span className="text-slate-500 block">Short-Rest Incidents:</span>
-              <strong className="text-slate-900 text-sm">{dashboardKpis?.short_rest_incidents ?? 1} (Remediated)</strong>
-              <span className="text-slate-500 block text-[11px]">Resolved via shift swap</span>
-            </div>
-          </div>
-
-          <p className="text-xs text-slate-700 italic bg-slate-50 p-3 rounded border border-slate-200">
-            &ldquo;{dashboardKpis?.guidance_text ?? "Your company scheduling shows good balance. Resolving pending requests will keep morale high."}&rdquo;
-          </p>
+          )}
         </div>
       )}
 
@@ -581,7 +698,7 @@ export default function CommanderPage() {
 
               <div className="text-right sm:text-right">
                 <span className="text-2xl font-extrabold text-slate-900 font-mono">
-                  {welfareDebt?.welfare_debt_score ?? 35.0}
+                  {welfareDebt?.welfare_debt_score ?? 0}
                   <span className="text-xs text-slate-500 font-normal"> / 100</span>
                 </span>
                 <span className="text-[10px] text-slate-500 block">Organizational Load Index</span>
@@ -595,10 +712,8 @@ export default function CommanderPage() {
                   Primary Welfare Pressure Contributors:
                 </span>
                 <ul className="space-y-1.5 text-amber-950">
-                  {(welfareDebt?.primary_contributors || [
-                    "Unresolved family emergency requests exceeding 12h SLA",
-                    "Repeated rest deficits from high night patrol concentration",
-                    "Deferred recovery interventions during operational surges"
+                  {(welfareDebt?.primary_contributors?.length ? welfareDebt.primary_contributors : [
+                    "Operational scheduling under automated audit"
                   ]).map((c: string, idx: number) => (
                     <li key={idx} className="flex items-start gap-2">
                       <span className="text-amber-700 font-bold">•</span>
@@ -616,12 +731,12 @@ export default function CommanderPage() {
                   <div>
                     <div className="flex justify-between text-[11px] mb-1">
                       <span className="text-slate-600">Unresolved Grievance Backlog (35% wt):</span>
-                      <strong className="text-slate-900">{welfareDebt?.component_breakdown?.unresolved_grievance_pressure ?? 45}%</strong>
+                      <strong className="text-slate-900">{welfareDebt?.component_breakdown?.unresolved_grievance_pressure ?? 0}%</strong>
                     </div>
                     <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-amber-500 rounded-full"
-                        style={{ width: `${Math.min(100, welfareDebt?.component_breakdown?.unresolved_grievance_pressure ?? 45)}%` }}
+                        style={{ width: `${Math.min(100, welfareDebt?.component_breakdown?.unresolved_grievance_pressure ?? 0)}%` }}
                       />
                     </div>
                   </div>
@@ -629,12 +744,12 @@ export default function CommanderPage() {
                   <div>
                     <div className="flex justify-between text-[11px] mb-1">
                       <span className="text-slate-600">Rest Deficit &amp; Duty Overload (35% wt):</span>
-                      <strong className="text-slate-900">{welfareDebt?.component_breakdown?.rest_deficit_pressure ?? 35}%</strong>
+                      <strong className="text-slate-900">{welfareDebt?.component_breakdown?.rest_deficit_pressure ?? 0}%</strong>
                     </div>
                     <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-blue-500 rounded-full"
-                        style={{ width: `${Math.min(100, welfareDebt?.component_breakdown?.rest_deficit_pressure ?? 35)}%` }}
+                        style={{ width: `${Math.min(100, welfareDebt?.component_breakdown?.rest_deficit_pressure ?? 0)}%` }}
                       />
                     </div>
                   </div>
@@ -642,12 +757,12 @@ export default function CommanderPage() {
                   <div>
                     <div className="flex justify-between text-[11px] mb-1">
                       <span className="text-slate-600">Reserve Depletion &amp; Deferrals (30% wt):</span>
-                      <strong className="text-slate-900">{welfareDebt?.component_breakdown?.reserve_depletion_pressure ?? 25}%</strong>
+                      <strong className="text-slate-900">{welfareDebt?.component_breakdown?.reserve_depletion_pressure ?? 0}%</strong>
                     </div>
                     <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-emerald-500 rounded-full"
-                        style={{ width: `${Math.min(100, welfareDebt?.component_breakdown?.reserve_depletion_pressure ?? 25)}%` }}
+                        style={{ width: `${Math.min(100, welfareDebt?.component_breakdown?.reserve_depletion_pressure ?? 0)}%` }}
                       />
                     </div>
                   </div>

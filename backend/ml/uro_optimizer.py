@@ -129,7 +129,8 @@ def optimize_roster(
     personnel_list: List[Dict[str, Any]],
     roster_entries: List[Dict[str, Any]],
     max_swaps: int = 10,
-    protect_minimum_manning: bool = True
+    protect_minimum_manning: bool = True,
+    hard_excluded_helper_ids: Optional[List[str]] = None
 ) -> Dict[str, Any]:
     """
     Unit Resilience Optimizer (URO)
@@ -139,9 +140,15 @@ def optimize_roster(
     2. 8-hour rolling rest barrier between consecutive duty shifts
     3. Fairness cap: <= 2 high-burden shifts (night/split) in any rolling 7-day period
     4. Section 29 Intervention Equity: penalize excessive swap concentration on single soldiers
+    5. F1 Helper-Load Ledger: `hard_excluded_helper_ids` are REMOVED from the
+       replacement pool (burden threshold crossed; payback owed). Their removal
+       is reported via `excluded_helpers` so the docket never silently answers
+       with a degraded pool.
     """
     # 1. Map personnel by ID
     p_map = {p["id"]: dict(p) for p in personnel_list}
+
+    excluded_helpers = list(hard_excluded_helper_ids or [])
 
     # 2. Group roster entries by personnel_id and date
     p_shifts = {p["id"]: [] for p in personnel_list}
@@ -177,6 +184,7 @@ def optimize_roster(
     low_candidates = [
         pid for pid in reversed(sorted_by_burden)
         if float(p_map[pid].get("risk_score", 0.0)) < 0.45
+        and pid not in excluded_helpers
     ]
 
     swaps = []
@@ -367,5 +375,7 @@ def optimize_roster(
         "before": before_counts,
         "after": after_counts,
         "swaps": swaps,
-        "risk_reduction_pct": max(0.0, reduction_pct)
+        "risk_reduction_pct": max(0.0, reduction_pct),
+        "excluded_helpers": excluded_helpers,
+        "helper_exclusion_note": "Helpers listed were removed from the replacement pool because their welfare-load ledger exceeds the burden threshold; reciprocal payback tasks are queued." if excluded_helpers else None,
     }

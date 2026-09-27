@@ -211,23 +211,87 @@ export default function RecoveryTimelinePage() {
             </div>
           </div>
 
-          {/* NET RELIEF HIGHLIGHT CARD */}
-          <div className="bg-emerald-50 rounded-xl border-2 border-emerald-300 p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+          {/* NET RELIEF HIGHLIGHT CARD - DYNAMIC BASED ON STAGE */}
+          <div className={`rounded-xl border-2 p-5 flex flex-col sm:flex-row items-center justify-between gap-4 ${
+            data.current_stage === 6
+              ? "bg-emerald-50 border-emerald-300"
+              : data.current_stage >= 4
+              ? "bg-teal-50 border-teal-300"
+              : data.current_stage >= 2
+              ? "bg-amber-50 border-amber-300"
+              : "bg-blue-50 border-blue-300"
+          }`}>
             <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold shrink-0 shadow-xs">
-                <CheckCircle2 className="w-5 h-5" />
+              <div className={`w-10 h-10 rounded-full text-white flex items-center justify-center font-bold shrink-0 shadow-xs ${
+                data.current_stage === 6
+                  ? "bg-emerald-600"
+                  : data.current_stage >= 4
+                  ? "bg-teal-600"
+                  : data.current_stage >= 2
+                  ? "bg-amber-600"
+                  : "bg-blue-600"
+              }`}>
+                {data.current_stage === 6 ? (
+                  <CheckCircle2 className="w-5 h-5" />
+                ) : data.current_stage >= 2 ? (
+                  <AlertTriangle className="w-5 h-5" />
+                ) : (
+                  <ShieldCheck className="w-5 h-5" />
+                )}
               </div>
               <div>
-                <h3 className="text-sm font-extrabold text-emerald-950">
-                  Full Rest Restored: Back to Normal Routine
+                <h3 className={`text-sm font-extrabold ${
+                  data.current_stage === 6
+                    ? "text-emerald-950"
+                    : data.current_stage >= 4
+                    ? "text-teal-950"
+                    : data.current_stage >= 2
+                    ? "text-amber-950"
+                    : "text-blue-950"
+                }`}>
+                  {data.current_stage === 6
+                    ? "Full Rest Restored: Back to Normal Routine"
+                    : data.current_stage >= 4
+                    ? "Rest Time Approved: Recovery Underway"
+                    : data.current_stage >= 2
+                    ? "Operational Strain Detected: Support Active"
+                    : "Routine Operational Baseline: Healthy & Well Rested"}
                 </h3>
-                <p className="text-xs text-emerald-800 mt-0.5 leading-relaxed">
-                  Your rest day and shift rotation helped reduce fatigue by over 60%. You are well-rested and back to your regular squad schedule.
+                <p className={`text-xs mt-0.5 leading-relaxed ${
+                  data.current_stage === 6
+                    ? "text-emerald-800"
+                    : data.current_stage >= 4
+                    ? "text-teal-800"
+                    : data.current_stage >= 2
+                    ? "text-amber-800"
+                    : "text-blue-800"
+                }`}>
+                  {data.current_stage === 6
+                    ? "Your rest day and shift rotation helped reduce fatigue by over 60%. You are well-rested and back to your regular squad schedule."
+                    : data.current_stage >= 4
+                    ? "Your 24-hour rest day was approved and covered by a replacement jawan. Relief support is active."
+                    : data.current_stage >= 2
+                    ? "A heavy stretch of duty was detected early. Battalion welfare is coordinating rest time and duty replacement."
+                    : "Your duty schedule and rest hours are currently well balanced. Keep maintaining regular sleep and squad check-ins."}
                 </p>
               </div>
             </div>
-            <span className="px-3 py-1 rounded bg-white text-emerald-900 font-bold text-xs border border-emerald-300 shrink-0 shadow-xs">
-              OFFICIALLY CONFIRMED
+            <span className={`px-3 py-1 rounded font-bold text-xs border shrink-0 shadow-xs ${
+              data.current_stage === 6
+                ? "bg-white text-emerald-900 border-emerald-300"
+                : data.current_stage >= 4
+                ? "bg-white text-teal-900 border-teal-300"
+                : data.current_stage >= 2
+                ? "bg-white text-amber-900 border-amber-300"
+                : "bg-white text-blue-900 border-blue-300"
+            }`}>
+              {data.current_stage === 6
+                ? "OFFICIALLY CONFIRMED"
+                : data.current_stage >= 4
+                ? "REST ACTIVE"
+                : data.current_stage >= 2
+                ? "SUPPORT IN PROGRESS"
+                : "HEALTHY BASELINE"}
             </span>
           </div>
 

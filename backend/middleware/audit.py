@@ -2,6 +2,7 @@ import uuid
 import json
 import hashlib
 import hmac
+import logging
 import threading
 from datetime import datetime, timezone
 from typing import Optional, Any, List
@@ -16,6 +17,8 @@ from models.audit import AuditLog, AuditAnchor
 # but concurrent uvicorn async tasks can still race on reading max(sequence_number).
 # This lock serializes audit writes so the hash chain is always strictly sequential.
 _AUDIT_WRITE_LOCK = threading.Lock()
+
+_logger = logging.getLogger("prahari.audit")
 
 def get_signing_key() -> bytes:
     key = settings.LEDGER_SIGNING_KEY
@@ -182,7 +185,21 @@ def log_audit(
                     genesis_hash = "0" * 64
                     if last_entry and last_entry.current_hash:
                         prev_hash = last_entry.current_hash
-                        next_seq = (last_entry.sequence_number or 0) + 1
+                        if last_entry.sequence_number is not None:
+                            next_seq = last_entry.sequence_number + 1
+                        else:
+                            # Legacy row with NULL sequence at chain head: derive
+                            # next sequence from the table max + legacy row count so
+                            # the chain never silently forks back to 1.
+                            from sqlalchemy import func as _func
+                            max_seq = audit_db.query(_func.max(AuditLog.sequence_number)).scalar() or 0
+                            null_rows = audit_db.query(_func.count(AuditLog.id)).filter(
+                                AuditLog.sequence_number.is_(None)
+                            ).scalar() or 0
+                            next_seq = max_seq + null_rows + 1
+                            _logger.warning(
+                                "Audit chain head has NULL sequence_number; resuming at %d", next_seq
+                            )
                     else:
                         prev_hash = genesis_hash
                         next_seq = 1
@@ -222,12 +239,12 @@ def log_audit(
                 except Exception as e:
                     audit_db.rollback()
                     if attempt == max_retries - 1:
-                        print(f"[Audit Log Error] Failed to write audit log after {max_retries} attempts: {e}")
+                        _logger.error("Failed to write audit log after %d attempts: %s", max_retries, e)
                     else:
                         import time
                         time.sleep(0.05 * (attempt + 1))
                 finally:
                     audit_db.close()
     except Exception as e:
-        print(f"[Audit Log Error] Unexpected exception in log_audit: {e}")
+        _logger.error("Unexpected exception in log_audit: %s", e)
 

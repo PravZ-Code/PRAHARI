@@ -182,10 +182,13 @@ def gather_trooper_dossier(
         RiskPrediction.personnel_id == personnel.id
     ).order_by(RiskPrediction.predicted_at.desc()).first()
 
-    risk_score = float(latest_pred.risk_score) if latest_pred else 0.45
-    risk_level = latest_pred.risk_level if latest_pred else "yellow"
-    confidence = float(latest_pred.confidence_score) if latest_pred else 0.85
-    data_quality = float(latest_pred.data_quality_score) if latest_pred else 0.80
+    # Never fabricate a prediction: when no stored RiskPrediction exists, abstain
+    # explicitly instead of injecting invented score/confidence values.
+    prediction_available = latest_pred is not None
+    risk_score = float(latest_pred.risk_score) if prediction_available else None
+    risk_level = latest_pred.risk_level if prediction_available else "insufficient_evidence"
+    confidence = float(latest_pred.confidence_score) if prediction_available else None
+    data_quality = float(latest_pred.data_quality_score) if prediction_available else None
 
     shap_factors = []
     if latest_pred and latest_pred.shap_values:
@@ -262,8 +265,16 @@ def gather_trooper_dossier(
         f"LEAVE_LOG - {len(denied_leaves)} leave denials out of {total_applied} applications in past 90 days (Recent denial: {recent_denial_reason})",
         f"DUTY_ROSTER - {night_shifts} night shifts out of {total_shifts} shifts logged in past 30 days ({night_density:.1%} density, {avg_hours:.1f}h avg shift)",
         f"DUTY_ROSTER - {max_consecutive} consecutive duty days without mandatory rest cycle",
-        f"PREDICTION_ENGINE - Calibrated stress risk index {risk_score:.2f} ({risk_level.upper()}) with {confidence:.0%} confidence",
     ]
+    if prediction_available:
+        citations_index.append(
+            f"PREDICTION_ENGINE - Calibrated stress risk index {risk_score:.2f} ({risk_level.upper()}) with {confidence:.0%} confidence"
+        )
+    else:
+        citations_index.append(
+            "PREDICTION_ENGINE - ABSTAINED: insufficient longitudinal evidence; no calibrated score available. "
+            "Human welfare contact recommended instead of algorithmic estimation."
+        )
 
     for sf in shap_factors[:3]:
         impact_sign = "+" if sf["impact"] >= 0 else ""
@@ -322,10 +333,12 @@ def gather_trooper_dossier(
             "max_consecutive": max_consecutive
         },
         "prediction": {
+            "available": prediction_available,
             "risk_score": risk_score,
             "risk_level": risk_level,
             "confidence": confidence,
             "data_quality": data_quality,
+            "abstention_reason": None if prediction_available else "No stored calibrated prediction for this personnel; model abstained per insufficient-evidence guardrail.",
             "shap_factors": shap_factors
         },
         "buddy": {
@@ -337,159 +350,95 @@ def gather_trooper_dossier(
     }
 
 # ---------------------------------------------------------------------------
-# 3. DETERMINISTIC GROUNDED BRIEF GENERATOR (Fallback Engine)
+# 3. LOCAL INTELLIGENCE ENGINE (Ollama Local AI Engine)
 # ---------------------------------------------------------------------------
-def generate_grounded_fallback_brief(dossier: Dict[str, Any]) -> str:
+async def query_ollama(prompt: str, system_prompt: Optional[str] = None) -> Tuple[Optional[str], str]:
     """
-    Generates a comprehensive, defense-grade structured intelligence brief
-    grounded 100% in factual trooper data with mandatory [CITED: ...] tags.
-    Used when Ollama is offline, unreachable, or in air-gapped environments.
-    """
-    p = dossier["personnel"]
-    lv = dossier["leaves"]
-    rs = dossier["roster"]
-    pr = dossier["prediction"]
-    bd = dossier["buddy"]
-
-    shap_rows = []
-    for idx, s in enumerate(pr["shap_factors"], 1):
-        sign = "+" if s["impact"] >= 0 else ""
-        direction = "Elevates operational strain" if s["impact"] > 0 else "Protective buffering factor"
-        shap_rows.append(
-            f"{idx}. [CITED: SHAP_FACTORS - {s['display_name']} (Impact: {sign}{s['impact']:.2f}, Observed Value: {s['value']})] — *{direction}*"
-        )
-    shap_text = "\n".join(shap_rows) if shap_rows else "1. [CITED: SHAP_FACTORS - Operational tenure and night shift density constitute primary drivers]"
-
-    buddy_detail = (
-        f"- [CITED: BUDDY_SIGNALS - Unit {p['unit_name']} logged {bd['count_30d']} peer signals in 30 days (Top concerns: {', '.join(bd['category_counts'].keys()) or 'general tension'})]."
-        if bd["count_30d"] > 0
-        else f"- [CITED: BUDDY_SIGNALS - Unit {p['unit_name']} peer signals remain within baseline threshold (0 active flags)]."
-    )
-
-    brief = f"""# PRAHARI DEFENSE WELFARE BRIEF
-**CLASSIFICATION: CONFIDENTIAL // WELFARE BRANCH // FOR OFFICERS ONLY**
-**SYSTEM:** PRAHARI Assistant (Compliant with MHA & Mental Healthcare Act 2017 Sec 23 & 115 // Tele-MANAS Referral 14416)
-
----
-
-## 1. SOLDIER PROFILE & CURRENT SITUATION
-- **Soldier:** [CITED: SERVICE_RECORD - {p['display_name']} ({p['service_number']}), {p['hard_area_months']} months in hard-area posting at {p['unit_name']}]
-- **Overall Stress Level:** **{pr['risk_level'].upper()}** ([CITED: PREDICTION_ENGINE - Stress score {pr['risk_score']:.2f} ({pr['risk_level'].upper()}) with {pr['confidence']:.0%} confidence])
-- **Quick Summary:** This soldier is experiencing high duty stress and physical tiredness. Long posting in a hard area, rejected leave applications, and continuous night shifts without enough rest have caused heavy strain. The Company Commander and Welfare Officer should take quick welfare steps.
-
----
-
-## 2. LEAVE STATUS & FAMILY WORRIES
-- **Recent Leaves (Past 90 Days):** [CITED: LEAVE_LOG - {lv['denied']} leaves denied out of {lv['total_applied']} applied (Recent reason: {lv['recent_denial_reason']})]
-- **Impact on Soldier:** Being unable to go home during urgent domestic matters has caused heavy family worry and personal stress.
-
----
-
-## 3. DUTY SCHEDULE & LACK OF SLEEP
-- **Night Duties:** [CITED: DUTY_ROSTER - {rs['night_shifts']} night duties out of {rs['total_shifts']} duties in past 30 days ({rs['night_density']:.1%} night duty rate, {rs['avg_hours']:.1f} hours per shift)]
-- **Continuous Work:** [CITED: DUTY_ROSTER - {rs['max_consecutive']} days on continuous duty without a full day of rest]
-- **Impact on Soldier:** Working night shifts back-to-back with broken sleep causes severe body tiredness, slow reaction time, and irritability.
-
----
-
-## 4. MAIN REASONS IDENTIFIED BY AI (ROOT CAUSES)
-The system identified these main factors causing elevated stress:
-{shap_text}
-
----
-
-## 5. UNIT ENVIRONMENT & BUDDY OBSERVATIONS
-{buddy_detail}
-- Squadmates have observed that the soldier is unusually quiet or tired during daily duties.
-
----
-
-## 6. RECOMMENDED WELFARE ACTIONS (ACTION STEPS)
-1. **Swap Duty Shifts (Smart Roster):** Move the soldier from night shifts to daytime duties for the next 7 days so they can get normal night sleep.
-2. **Grant Emergency Leave:** Sanction 10 to 14 days of compassionate leave so the soldier can visit home and settle family matters.
-3. **Friendly Medical Check:** Arrange a routine, confidential check-up with the Unit Doctor (RMO). This is for health support, NOT for any disciplinary record.
-4. **Assign a Trusted Buddy:** Pair the soldier with a close friend in the barracks to look out for each other.
-"""
-    return sanitize_clinical_lexicon(brief)
-
-# ---------------------------------------------------------------------------
-# 4. LOCAL INTELLIGENCE ENGINE (Ollama qwen3:0.6b Fine-Tuned)
-# ---------------------------------------------------------------------------
-async def query_ollama(prompt: str, system_prompt: Optional[str] = None) -> Optional[str]:
-    """
-    Asynchronously queries local Ollama instance at config.OLLAMA_BASE_URL (qwen3:0.6b).
-    Uses Ollama's Chat API with native ChatML templating, low temperature, and repeat penalty.
+    Asynchronously queries local Ollama instance at config.OLLAMA_BASE_URL.
+    Dynamically identifies installed local models (defaulting to settings.OLLAMA_MODEL)
+    and strictly generates responses using local AI with zero hardcoded templates.
     """
     base_url = settings.OLLAMA_BASE_URL.rstrip('/')
-    chat_url = f"{base_url}/api/chat"
-    gen_url = f"{base_url}/api/generate"
+    target_model = settings.OLLAMA_MODEL
+    timeout = httpx.Timeout(60.0, connect=3.0)
+
+    models_to_try = [target_model]
+    try:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(3.0, connect=1.5)) as client:
+            tags_resp = await client.get(f"{base_url}/api/tags")
+            if tags_resp.status_code == 200:
+                avail = [m.get("name") for m in tags_resp.json().get("models", []) if m.get("name")]
+                for m_name in avail:
+                    if m_name not in models_to_try:
+                        models_to_try.append(m_name)
+    except Exception:
+        pass
 
     messages = []
     if system_prompt:
         messages.append({"role": "system", "content": system_prompt})
     messages.append({"role": "user", "content": prompt})
 
-    chat_payload = {
-        "model": settings.OLLAMA_MODEL,
-        "messages": messages,
-        "stream": False,
-        "options": {
-            "temperature": 0.15,
-            "top_p": 0.85,
-            "repeat_penalty": 1.2,
-            "num_ctx": 4096,
-            "num_predict": 1024
-        }
-    }
-    timeout = httpx.Timeout(60.0, connect=3.0)
-    try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            # 1. Try Chat API (native Qwen ChatML formatting)
-            response = await client.post(chat_url, json=chat_payload)
-            if response.status_code == 200:
-                data = response.json()
-                msg = data.get("message", {}).get("content", "").strip()
-                if msg:
-                    return msg
-            else:
-                logger.warning("Ollama chat returned HTTP %s: %s", response.status_code, response.text[:500])
-
-            # 2. Fallback to Generate API if Chat API is unsupported
-            full_prompt = f"{system_prompt}\n\n{prompt}" if system_prompt else prompt
-            gen_payload = {
-                "model": settings.OLLAMA_MODEL,
-                "prompt": full_prompt,
-                "stream": False,
-                "options": {
-                    "temperature": 0.15,
-                    "top_p": 0.85,
-                    "repeat_penalty": 1.2,
-                    "num_ctx": 4096,
-                    "num_predict": 1024
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        for model in models_to_try:
+            try:
+                # 1. Try Chat API (Qwen ChatML formatting)
+                chat_payload = {
+                    "model": model,
+                    "messages": messages,
+                    "stream": False,
+                    "options": {
+                        "temperature": 0.2,
+                        "top_p": 0.85,
+                        "repeat_penalty": 1.2,
+                        "num_ctx": 4096,
+                        "num_predict": 1024
+                    }
                 }
-            }
-            response = await client.post(gen_url, json=gen_payload)
-            if response.status_code == 200:
-                data = response.json()
-                return data.get("response", "").strip()
-            else:
-                logger.warning("Ollama generate returned HTTP %s: %s", response.status_code, response.text[:500])
-    except (httpx.HTTPError, ValueError) as e:
-        logger.warning("Local Ollama request failed (%s): %s", type(e).__name__, e)
-        return None
+                chat_resp = await client.post(f"{base_url}/api/chat", json=chat_payload)
+                if chat_resp.status_code == 200:
+                    msg = chat_resp.json().get("message", {}).get("content", "").strip()
+                    if msg:
+                        return msg, model
 
-async def query_llm(prompt: str, system_prompt: Optional[str] = None) -> Tuple[Optional[str], str]:
+                # 2. Fallback to Generate API if Chat API is unsupported
+                full_prompt = f"{system_prompt}\n\n{prompt}" if system_prompt else prompt
+                gen_payload = {
+                    "model": model,
+                    "prompt": full_prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": 0.2,
+                        "top_p": 0.85,
+                        "repeat_penalty": 1.2,
+                        "num_ctx": 4096,
+                        "num_predict": 1024
+                    }
+                }
+                gen_resp = await client.post(f"{base_url}/api/generate", json=gen_payload)
+                if gen_resp.status_code == 200:
+                    msg = gen_resp.json().get("response", "").strip()
+                    if msg:
+                        return msg, model
+            except Exception as e:
+                logger.warning("Local Ollama request for model %s failed: %s", model, e)
+                continue
+
+    return None, target_model
+
+async def query_llm(prompt: str, system_prompt: Optional[str] = None) -> Tuple[str, str]:
     """
-    Local-only AI engine dispatcher. No canned or remote fallback is allowed.
+    Local-only AI engine dispatcher. All responses are strictly generated by local AI.
+    No hardcoded templates, no canned fallback.
     """
     logger.info(f"Dispatching prompt to Local Ollama ({settings.OLLAMA_MODEL})...")
-    resp = await query_ollama(prompt, system_prompt=system_prompt)
+    resp, model_used = await query_ollama(prompt, system_prompt=system_prompt)
     if resp and len(resp.strip()) > 30:
-        return resp.strip(), settings.OLLAMA_MODEL
+        return resp.strip(), model_used
 
     raise LocalModelUnavailable(
-        f"Local model '{settings.OLLAMA_MODEL}' did not return a usable response. "
-        "Start Ollama and ensure that model is installed."
+        f"Local model '{model_used}' did not return a usable response. "
+        "Please ensure Ollama is running and has the model installed."
     )
 
 async def generate_copilot_brief(
@@ -500,7 +449,8 @@ async def generate_copilot_brief(
     custom_instructions: Optional[str] = None
 ) -> Dict[str, Any]:
     """
-    Main entry point for a grounded brief generated by the local Ollama model.
+    Main entry point for a grounded brief generated strictly by the local AI engine.
+    Zero hardcoded templates.
     """
     dossier = gather_trooper_dossier(db, case_id=case_id, personnel_id=personnel_id)
     if not dossier:
@@ -538,7 +488,7 @@ PERSONNEL PARTICULARS:
 - Tenure in Hard Area: {dossier['personnel']['hard_area_months']} months | Transfers: {dossier['personnel']['total_transfers']}
 - Leaves (90d): {dossier['leaves']['denied']} denied out of {dossier['leaves']['total_applied']} applied (Reason: {dossier['leaves']['recent_denial_reason']})
 - Rosters (30d): {dossier['roster']['night_shifts']} night shifts / {dossier['roster']['total_shifts']} shifts ({dossier['roster']['night_density']:.1%} density, {dossier['roster']['avg_hours']:.1f}h/shift, {dossier['roster']['max_consecutive']} consecutive days)
-- Risk Prediction: Score {dossier['prediction']['risk_score']:.2f}, Level {dossier['prediction']['risk_level'].upper()}, Confidence {dossier['prediction']['confidence']:.0%}
+- Risk Prediction: {f"Score {dossier['prediction']['risk_score']:.2f}, Level {dossier['prediction']['risk_level'].upper()}, Confidence {dossier['prediction']['confidence']:.0%}" if dossier['prediction']['available'] else "ABSTAINED — insufficient longitudinal evidence; no calibrated score. Rely on human welfare assessment."}
 - Top SHAP Driver: {dossier['prediction']['shap_factors'][0]['display_name'] if dossier['prediction']['shap_factors'] else 'Deployment tenure'}
 - Unit Buddy Signals (30d): {dossier['buddy']['count_30d']} signals
 """
@@ -547,21 +497,12 @@ PERSONNEL PARTICULARS:
 
     user_prompt += "\nProduce the complete intelligence brief now."
 
-    # Query Local Ollama Intelligence Engine with Deterministic Defense Grounded Fallback
-    try:
-        raw_response, model_used = await query_llm(user_prompt, system_prompt=system_prompt)
-        sanitized_response = sanitize_clinical_lexicon(raw_response)
-        cited_sources = extract_citations(sanitized_response)
-        if len(cited_sources) < 2:
-            cited_sources = dossier["citations_index"]
-        brief_markdown = sanitized_response
-        is_fallback = False
-    except LocalModelUnavailable:
-        logger.info("Local Ollama offline; activating deterministic grounded defense brief fallback.")
-        brief_markdown = generate_grounded_fallback_brief(dossier)
+    # Strictly query local AI engine - zero hardcoded fallback templates
+    raw_response, model_used = await query_llm(user_prompt, system_prompt=system_prompt)
+    sanitized_response = sanitize_clinical_lexicon(raw_response)
+    cited_sources = extract_citations(sanitized_response)
+    if len(cited_sources) < 2:
         cited_sources = dossier["citations_index"]
-        model_used = "deterministic-defense-grounded-fallback"
-        is_fallback = True
 
     return {
         "case_id": dossier["case_id"],
@@ -571,9 +512,9 @@ PERSONNEL PARTICULARS:
         "unit_name": dossier["personnel"]["unit_name"],
         "risk_level": dossier["prediction"]["risk_level"],
         "risk_score": dossier["prediction"]["risk_score"],
-        "brief_markdown": brief_markdown,
+        "brief_markdown": sanitized_response,
         "cited_sources": cited_sources,
-        "is_fallback": is_fallback,
+        "is_fallback": False,
         "model_used": model_used,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "evidence_summary": {
@@ -599,8 +540,8 @@ async def chat_with_copilot(
     conversation_history: Optional[List[Dict[str, str]]] = None
 ) -> Dict[str, Any]:
     """
-    Answers operational welfare queries from Welfare Officers / Commanders
-    grounded in trooper dossiers and defense welfare regulations.
+    Answers operational welfare queries from Welfare Officers, Commanders, or Troopers
+    strictly generated by local AI grounded in trooper dossiers and defense welfare regulations.
     """
     dossier = None
     if case_id or personnel_id:
@@ -618,20 +559,29 @@ async def chat_with_copilot(
         context_str = f"""
 TARGET SOLDIER DOSSIER:
 - Subject: {p['display_name']} ({p['service_number']}), Unit {p['unit_name']}
-- Stress Risk Level: {pr['risk_level'].upper()} (Risk Index: {pr['risk_score']:.2f}) [CITED: PREDICTION_ENGINE - Calibrated stress risk index {pr['risk_score']:.2f}]
+- Stress Risk Level: {pr['risk_level'].upper()} {f"(Risk Index: {pr['risk_score']:.2f}) [CITED: PREDICTION_ENGINE - Calibrated stress risk index {pr['risk_score']:.2f}]" if pr.get('available') else "[PREDICTION_ENGINE abstained — no calibrated score; insufficient evidence]"}
 - 90d Leave Status: {lv['denied']} denied / {lv['total_applied']} applied (Recent reason: {lv['recent_denial_reason']}) [CITED: LEAVE_LOG - {lv['denied']} leave denials in 90 days]
 - 30d Duty Roster: {rs['night_shifts']} night shifts / {rs['total_shifts']} shifts ({rs['night_density']:.1%} night density, {rs['avg_hours']:.1f}h/day, {rs['max_consecutive']} consecutive duty days) [CITED: DUTY_ROSTER - {rs['night_shifts']} night shifts, {rs['max_consecutive']} consecutive duty days]
 - Top SHAP Drivers: {', '.join([s['display_name'] for s in pr['shap_factors'][:3]])}
 """
+    else:
+        context_str = """
+GENERAL DEFENSE WELFARE & STATUTORY REGULATIONS:
+- MHA Standing Order SO-04: Mandatory 8-hour continuous circadian rest barrier between armed shifts; sentry shift rotation required for 3+ consecutive night watches.
+- 72-Hour Fast-Track Emergency Leave: Urgent domestic distress or family medical crisis requests carry a guaranteed 72-hour priority countdown, escalating to Battalion 2IC / Welfare Officer.
+- Section 21 of Mental Healthcare Act 2017: Non-punitive welfare doctrine; seeking counseling or medical welfare review cannot impact ACR, weapons entitlement, or promotions.
+- Unit Resilience Optimizer (URO): Equal-trade shift swapping (GD with GD, Armorer with Armorer).
+- Tele-MANAS: National 24x7 psychological support helpline 14416.
+"""
 
-    system_prompt = """You are PRAHARI Defense AI Copilot, assisting a military Welfare Officer or Company Commander.
-Answer the user's operational question directly, concisely, and practically in 2 to 4 clear bullet points based on the soldier's dossier.
+    system_prompt = """You are PRAHARI Defense Local AI Copilot, assisting a military Welfare Officer, Commander, or Trooper.
+Answer the operational question directly, concisely, and practically in 2 to 4 clear bullet points based on the verified soldier dossier or defense welfare regulations.
 
 STRICT OPERATIONAL RULES:
 1. MHA Clinical Lexicon Compliance (Mental Healthcare Act 2017):
    - NEVER use psychiatric pathology labels (prohibited: depression, ptsd, suicide, mental illness, psychiatric).
    - ALWAYS use operational stress terms: 'acute operational stress', 'administrative friction', 'roster burnout', 'sleep debt accumulation', 'critical welfare distress'.
-2. Ground all factual statements with [CITED: SOURCE - DETAIL] citations.
+2. Ground factual statements with [CITED: SOURCE - DETAIL] citations where applicable.
 3. Recommend actionable command solutions: Unit Resilience Optimizer (URO) shift swaps, leave sanctions, peer buddy pairing, and routine RMO health consultations.
 4. Keep answers concise, factual, and formatted with bullet points. Avoid conversational filler."""
 
@@ -641,33 +591,20 @@ USER QUESTION: {message}
 
 Provide a direct, practical, and grounded answer now:"""
 
-    # Query Local Ollama Intelligence Engine with Deterministic Defense Grounded Fallback
-    try:
-        raw_response, model_used = await query_llm(user_prompt, system_prompt=system_prompt)
-        sanitized = sanitize_clinical_lexicon(raw_response)
-        citations = extract_citations(sanitized)
-        if not citations and citations_pool:
-            citations = citations_pool[:3]
-        is_fallback = False
-    except LocalModelUnavailable:
-        logger.info("Local Ollama offline; activating deterministic grounded chat fallback.")
-        sanitized = (
-            f"Based on verified service records for {dossier['personnel']['display_name'] if dossier else 'personnel'}:\n"
-            f"- Stress Index is currently at {dossier['prediction']['risk_level'].upper()} [CITED: PREDICTION_ENGINE - Stress score {dossier['prediction']['risk_score']:.2f}].\n"
-            f"- Recommended action: Review leave status ({dossier['leaves']['denied']} denied leaves in 90 days [CITED: LEAVE_LOG]) "
-            f"and consider Unit Resilience Optimizer (URO) shift rotation to alleviate night shift load ({dossier['roster']['night_shifts']} night shifts [CITED: DUTY_ROSTER])."
-            if dossier else "System operational. Please provide personnel ID to retrieve specific welfare context."
-        )
-        citations = citations_pool[:3] if citations_pool else ["PREDICTION_ENGINE", "DUTY_ROSTER"]
-        model_used = "deterministic-defense-grounded-fallback"
-        is_fallback = True
+    # Strictly query local AI engine - zero hardcoded fallback templates
+    raw_response, model_used = await query_llm(user_prompt, system_prompt=system_prompt)
+    sanitized = sanitize_clinical_lexicon(raw_response)
+    citations = extract_citations(sanitized)
+    if not citations and citations_pool:
+        citations = citations_pool[:3]
 
     return {
         "response": sanitized,
+        "reply": sanitized,
         "case_id": case_id,
         "personnel_id": personnel_id or (dossier["personnel"]["id"] if dossier else None),
         "cited_sources": citations,
-        "is_fallback": is_fallback,
+        "is_fallback": False,
         "model_used": model_used,
         "generated_at": datetime.now(timezone.utc).isoformat()
-    }
+    }

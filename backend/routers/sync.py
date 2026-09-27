@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db, AuthSessionLocal
 from models.user import User
-from middleware.rbac import get_current_user, decode_access_token, ROLE_ALIASES
+from middleware.rbac import get_current_user, decode_access_token, is_token_revoked, ROLE_ALIASES
 from config import settings
 from services.sync_service import (
     sync_broadcaster,
@@ -197,34 +197,34 @@ async def sync_websocket_endpoint(
     """
     await websocket.accept()
 
-    # Authenticate token from query parameter or initial frame
+    # Authenticate token from query parameter or initial frame.
+    # Revoked (blacklisted) tokens are rejected here as well.
+    async def _resolve_ws_user(raw_token: str):
+        try:
+            payload = decode_access_token(raw_token)
+        except Exception:
+            return None
+        sub_val = payload.get("sub")
+        if not sub_val:
+            return None
+        auth_db = AuthSessionLocal()
+        try:
+            if is_token_revoked(auth_db, raw_token):
+                return None
+            return auth_db.query(User).filter((User.id == sub_val) | (User.username == sub_val)).first()
+        finally:
+            auth_db.close()
+
     user = None
     if token:
-        try:
-            payload = decode_access_token(token)
-            sub_val = payload.get("sub")
-            if sub_val:
-                auth_db = AuthSessionLocal()
-                try:
-                    user = auth_db.query(User).filter((User.id == sub_val) | (User.username == sub_val)).first()
-                finally:
-                    auth_db.close()
-        except Exception:
-            user = None
+        user = await _resolve_ws_user(token)
 
     if not user:
         # Wait for initial auth message if not provided in query param
         try:
             auth_msg = await asyncio.wait_for(websocket.receive_json(), timeout=10.0)
             if auth_msg.get("type") == "auth" and auth_msg.get("token"):
-                payload = decode_access_token(auth_msg["token"])
-                sub_val = payload.get("sub")
-                if sub_val:
-                    auth_db = AuthSessionLocal()
-                    try:
-                        user = auth_db.query(User).filter((User.id == sub_val) | (User.username == sub_val)).first()
-                    finally:
-                        auth_db.close()
+                user = await _resolve_ws_user(auth_msg["token"])
         except Exception:
             user = None
 

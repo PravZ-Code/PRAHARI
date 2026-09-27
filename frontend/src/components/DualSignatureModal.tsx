@@ -148,31 +148,33 @@ export const DualSignatureModal: React.FC<DualSignatureModalProps> = ({
   const swapsCount = runData?.swaps?.length || 0;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="dual-signature-title">
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
-      />
-
+    <div
+      className="ux4g-modal-backdrop ux4g-modal-backdrop-50 fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="dual-signature-title"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       {/* Modal Dialog */}
-      <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-700/90 rounded-2xl shadow-2xl z-10 overflow-hidden text-slate-100 animate-in fade-in zoom-in-95 duration-200">
+      <div className="ux4g-modal-box ux4g-modal-l bg-slate-900 border border-slate-700/90 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden text-slate-100">
         {/* Header */}
-        <div className="p-5 border-b border-slate-700/80 bg-slate-950/60 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="ux4g-modal-header p-5 border-b border-slate-700/80 bg-slate-950/60 flex items-center justify-between">
+          <div className="ux4g-modal-header-title-content flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center text-white shadow-md">
               <KeyRound className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 id="dual-signature-title" className="text-base font-black text-white uppercase tracking-tight">
+                <h3 id="dual-signature-title" className="ux4g-modal-header-title text-base font-black text-white uppercase tracking-tight">
                   Two-Officer Shift Approval
                 </h3>
                 <span className="text-[10px] font-mono bg-emerald-950 text-emerald-400 border border-emerald-500/40 px-2 py-0.5 rounded-full font-bold">
                   Commander + Welfare
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="ux4g-modal-header-sub-heading text-xs text-slate-400">
                 Requires approval from both the Company Commander and the Welfare Officer.
               </p>
             </div>
@@ -182,13 +184,13 @@ export const DualSignatureModal: React.FC<DualSignatureModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Close two-officer approval dialog"
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+            className="ux4g-modal-close p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-6 space-y-5">
+        <div className="ux4g-modal-body p-6 space-y-5">
           {/* Stress & Operational Impact Summary Card */}
           <div className="bg-gradient-to-r from-emerald-950/50 via-slate-850 to-slate-900 border border-emerald-500/40 rounded-xl p-4 flex items-center justify-between">
             <div className="space-y-1">
@@ -217,16 +219,16 @@ export const DualSignatureModal: React.FC<DualSignatureModalProps> = ({
 
           {/* Alert / Feedback Messages */}
           {errorMessage && (
-            <div className="bg-rose-950/70 border border-rose-500/60 text-rose-200 text-xs p-3.5 rounded-xl flex items-center gap-2.5">
-              <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0" />
-              <span>{errorMessage}</span>
+            <div className="ux4g-alert ux4g-alert-error bg-rose-950/70 border border-rose-500/60 text-rose-200 text-xs p-3.5 rounded-xl flex items-center gap-2.5" role="alert">
+              <AlertTriangle className="ux4g-alert-icon w-4 h-4 text-rose-400 flex-shrink-0" />
+              <span className="ux4g-alert-message">{errorMessage}</span>
             </div>
           )}
 
           {successMessage && (
-            <div className="bg-emerald-950/70 border border-emerald-500/60 text-emerald-200 text-xs p-3.5 rounded-xl flex items-center gap-2.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-              <span>{successMessage}</span>
+            <div className="ux4g-alert ux4g-alert-success bg-emerald-950/70 border border-emerald-500/60 text-emerald-200 text-xs p-3.5 rounded-xl flex items-center gap-2.5" role="alert">
+              <CheckCircle2 className="ux4g-alert-icon w-4 h-4 text-emerald-400 flex-shrink-0" />
+              <span className="ux4g-alert-message">{successMessage}</span>
             </div>
           )}
 
@@ -280,7 +282,7 @@ export const DualSignatureModal: React.FC<DualSignatureModalProps> = ({
                     <button
                       onClick={() => handleSign("commander")}
                       disabled={signingRole === "commander" || rosterCommitted}
-                      className="flex-1 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs py-2 px-3 rounded-lg shadow transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+                      className="ux4g-btn ux4g-btn-primary ux4g-btn-sm flex-1 font-bold text-xs py-2 px-3 flex items-center justify-center gap-1.5 disabled:opacity-50"
                     >
                       <Lock className="w-3.5 h-3.5" />
                       {signingRole === "commander" ? "Approving..." : "Approve as Commander"}
@@ -341,7 +343,7 @@ export const DualSignatureModal: React.FC<DualSignatureModalProps> = ({
                     <button
                       onClick={() => handleSign("welfare")}
                       disabled={signingRole === "welfare" || rosterCommitted}
-                      className="flex-1 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white font-bold text-xs py-2 px-3 rounded-lg shadow transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+                      className="ux4g-btn ux4g-btn-primary ux4g-btn-sm flex-1 font-bold text-xs py-2 px-3 flex items-center justify-center gap-1.5 disabled:opacity-50"
                     >
                       <Lock className="w-3.5 h-3.5" />
                       {signingRole === "welfare" ? "Approving..." : "Approve as Welfare Officer"}
@@ -408,10 +410,10 @@ export const DualSignatureModal: React.FC<DualSignatureModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-800 bg-slate-950/60 flex items-center justify-end gap-3">
+        <div className="ux4g-modal-actions p-4 border-t border-slate-800 bg-slate-950/60 flex items-center justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+            className="ux4g-btn ux4g-btn-outline-neutral ux4g-btn-sm px-4 py-2 text-xs font-semibold"
           >
             {rosterCommitted ? "Close" : "Cancel"}
           </button>
@@ -421,7 +423,7 @@ export const DualSignatureModal: React.FC<DualSignatureModalProps> = ({
                 onApproved();
                 onClose();
               }}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-lg shadow flex items-center gap-1.5"
+              className="ux4g-btn ux4g-btn-primary ux4g-btn-sm text-xs font-bold px-4 py-2 flex items-center gap-1.5"
             >
               <CheckCircle2 className="w-4 h-4" />
               Done

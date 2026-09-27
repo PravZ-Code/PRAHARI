@@ -39,7 +39,9 @@ export const setAuthData = (token: string, user: User): void => {
   }
   localStorage.setItem("prahari_token", token);
   localStorage.setItem("prahari_user", JSON.stringify(user));
-  document.cookie = `prahari_session=${token}; path=/; max-age=86400; SameSite=Lax`;
+  // NOTE: the `prahari_session` cookie is set exclusively by POST /api/session
+  // (HttpOnly). Do NOT set it from client JS here — a non-HttpOnly duplicate
+  // would expose the JWT to XSS exfiltration.
 
   window.dispatchEvent(new CustomEvent("prahari_auth_change", { detail: { user } }));
 };
@@ -95,29 +97,7 @@ export const isAuthenticated = (): boolean => {
     clearAuthData();
     return false;
   }
-  // Ensure Next.js edge cookie is synchronized with active client session
-  const token = localStorage.getItem("prahari_token");
-  if (token && !document.cookie.includes("prahari_session=")) {
-    document.cookie = `prahari_session=${token}; path=/; max-age=86400; SameSite=Lax`;
-  }
+  // Edge proxy reads the HttpOnly `prahari_session` cookie set by /api/session;
+  // no client-side cookie management is required (or permitted) here.
   return true;
 };
-
-export const isSessionExpired = (): boolean => {
-  const expiry = getStored<number>(TOKEN_EXPIRY_KEY);
-  if (!expiry) return true;
-  return Date.now() > expiry;
-};
-
-export const getSessionRemainingMs = (): number => {
-  const expiry = getStored<number>(TOKEN_EXPIRY_KEY);
-  if (!expiry) return 0;
-  return Math.max(0, expiry - Date.now());
-};
-
-export const recordActivity = (): void => {
-  if (typeof window === "undefined") return;
-  setStored(LAST_ACTIVITY_KEY, Date.now());
-};
-
-export const getSessionTimeoutMs = (): number => SESSION_TIMEOUT_MS;

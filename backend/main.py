@@ -26,8 +26,14 @@ from routers.grievance import router as grievance_router
 from routers.personnel import router as personnel_router
 from routers.sync import router as sync_router
 from routers.notifications import router as notifications_router
+from routers.reintegration import router as reintegration_router, cmd_router as reintegration_cmd_router, personnel_router as reintegration_personnel_router
+from routers.helper_load import router as helper_load_router
+from routers.welfare_notes import router as welfare_notes_router
+from routers.policy_sim import router as policy_sim_router
+from routers.mission_gate import router as mission_gate_router
 from middleware.correlation import CorrelationIdMiddleware
 from middleware.security import SecurityMiddleware
+from middleware.career_firewall import CareerDataFirewallMiddleware
 from middleware.prometheus import generate_prometheus_metrics
 from ml.diagnostics import generate_model_registry_metadata
 from services.sla_worker import start_sla_worker
@@ -62,6 +68,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(SecurityMiddleware)
+app.add_middleware(CareerDataFirewallMiddleware)
 app.add_middleware(CorrelationIdMiddleware)
 
 
@@ -81,6 +88,13 @@ app.include_router(personnel_router, prefix="/api/personnel", tags=["Personnel W
 app.include_router(sync_router, prefix="/api/sync", tags=["Real-Time Database Synchronization"])
 app.include_router(sync_router, prefix="/sync", include_in_schema=False)
 app.include_router(notifications_router, prefix="/api/notifications", tags=["Notifications & Alerts"])
+app.include_router(reintegration_router, prefix="/api/welfare", tags=["Post-Leave Reintegration (F3)"])
+app.include_router(reintegration_cmd_router, prefix="/api/commander", include_in_schema=False)
+app.include_router(reintegration_personnel_router, prefix="/api/personnel", tags=["Personnel Welfare & Transparency"])
+app.include_router(helper_load_router, prefix="/api/resilience", tags=["Resilience & Team Safety"])
+app.include_router(welfare_notes_router, prefix="/api/welfare", tags=["Welfare Officer Dashboard (Confidential)"])
+app.include_router(policy_sim_router, prefix="/api/resilience", tags=["Resilience & Team Safety"])
+app.include_router(mission_gate_router, prefix="/api/commander", tags=["Commander Dashboard (Aggregates)"])
 
 
 @app.get("/metrics", response_class=Response)
@@ -145,7 +159,7 @@ def _database_metrics() -> dict:
             units = row[8] if row and row[8] else 0
             db_url = settings.DATABASE_URL
             db_path = db_url.replace("sqlite:///", "") if "sqlite:///" in db_url else os.path.join(os.path.dirname(__file__), "prahari.db")
-            size_mb = round(os.path.getsize(db_path) / (1024 * 1024), 2) if os.path.exists(db_path) else 75.78
+            size_mb = round(os.path.getsize(db_path) / (1024 * 1024), 2) if os.path.exists(db_path) else None
             _cached_db_metrics = {
                 "connected": True,
                 "size_mb": size_mb,

@@ -12,7 +12,8 @@ const nextConfig = {
     ];
   },
   typescript: {
-    ignoreBuildErrors: true,
+    // TypeScript gate is enforced in CI/build; never mask regressions.
+    ignoreBuildErrors: false,
   },
   async headers() {
     return [

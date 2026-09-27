@@ -88,7 +88,20 @@ def get_unit_fatigue(
 ):
     _verify_commander_unit_access(current_user, unit_id)
     troopers = get_unit_fatigue_heatmap(db=db, unit_id=unit_id)
-    return {"unit_id": unit_id, "troopers": troopers}
+    from models.personnel import Personnel
+    from sqlalchemy import func
+    unit_total = db.query(func.count(Personnel.id)).filter(Personnel.unit_id == unit_id).scalar() or 0
+    suppression_active = unit_total < 5
+    suppression_msg = (
+        "Unit sample size too small (< 5 personnel) to display individual duty heatmaps without re-identification risk."
+        if suppression_active else None
+    )
+    return {
+        "unit_id": unit_id,
+        "troopers": troopers if not suppression_active else [],
+        "cohort_suppression_active": suppression_active,
+        "suppression_reason": suppression_msg
+    }
 
 
 @router.get("/unit/{unit_id}/command-briefing")

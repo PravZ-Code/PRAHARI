@@ -218,24 +218,24 @@ export const OfflineBanner: React.FC = () => {
     <div
       role="status"
       aria-live="polite"
-      className={`w-full py-2 px-4 text-xs font-semibold border-b flex items-center justify-between transition-colors ${
+      className={`ux4g-alert w-full py-2 px-4 text-xs font-semibold border-b border-t-0 border-x-0 rounded-none flex items-center justify-between transition-colors ${
         isOffline
-          ? "bg-amber-100 border-amber-300 text-amber-900"
+          ? "ux4g-alert-warning bg-amber-100 border-amber-300 text-amber-900"
           : syncSuccess
-          ? "bg-emerald-100 border-emerald-300 text-emerald-900"
-          : "bg-blue-50 border-blue-200 text-blue-900"
+          ? "ux4g-alert-success bg-emerald-100 border-emerald-300 text-emerald-900"
+          : "ux4g-alert-info bg-blue-50 border-blue-200 text-blue-900"
       }`}
     >
       <div className="max-w-7xl mx-auto w-full flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           {isOffline ? (
-            <WifiOff className="w-4 h-4 text-amber-700 animate-pulse" />
+            <WifiOff className="ux4g-alert-icon w-4 h-4 text-amber-700 animate-pulse" />
           ) : syncSuccess ? (
-            <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+            <CheckCircle2 className="ux4g-alert-icon w-4 h-4 text-emerald-700" />
           ) : (
-            <Wifi className="w-4 h-4 text-blue-700" />
+            <Wifi className="ux4g-alert-icon w-4 h-4 text-blue-700" />
           )}
-          <span>
+          <span className="ux4g-alert-message">
             {isOffline ? (
               <>
                 <strong>Offline Mode:</strong> Network disconnected. Welfare requests are saved on this device and will retry when connectivity returns.
@@ -264,7 +264,7 @@ export const OfflineBanner: React.FC = () => {
                 onClick={handleSyncNow}
                 aria-label={`Sync ${queuedCount} queued welfare request${queuedCount === 1 ? "" : "s"}`}
                 disabled={syncing || isOffline}
-                className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-300 rounded text-xs font-bold text-slate-800 shadow-2xs inline-flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                className="ux4g-btn ux4g-btn-outline-neutral ux4g-btn-sm text-xs font-bold inline-flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
               >
                 <RefreshCw className={`w-3 h-3 ${syncing ? "animate-spin" : ""}`} />
                 <span>{syncing ? "Syncing..." : `Sync (${queuedCount})`}</span>
@@ -273,7 +273,7 @@ export const OfflineBanner: React.FC = () => {
                 type="button"
                 onClick={handleClearQueue}
                 title="Discard unsynced offline queue"
-                className="px-2 py-1 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded text-xs font-semibold text-slate-600 transition-colors cursor-pointer"
+                className="ux4g-btn ux4g-btn-text-neutral ux4g-btn-sm text-xs font-semibold cursor-pointer"
               >
                 Discard
               </button>
@@ -285,7 +285,7 @@ export const OfflineBanner: React.FC = () => {
               setDismissed(true);
               sessionStorage.setItem("prahari_offline_banner_dismissed", "true");
             }}
-            className="p-1 text-slate-500 hover:text-slate-800 rounded transition-colors cursor-pointer"
+            className="ux4g-alert-close p-1 text-slate-500 hover:text-slate-800 rounded transition-colors cursor-pointer"
             title="Dismiss notice"
             aria-label="Dismiss banner"
           >

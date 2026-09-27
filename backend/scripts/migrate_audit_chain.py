@@ -14,9 +14,9 @@ def migrate_db(db_path: str):
     if "sequence_number" not in cols:
         cur.execute("ALTER TABLE audit_log ADD COLUMN sequence_number INTEGER")
     if "previous_hash" not in cols:
-        cur.execute(f"ALTER TABLE audit_log ADD COLUMN previous_hash VARCHAR(64) NOT NULL DEFAULT '{zero_hash}'")
+        cur.execute("ALTER TABLE audit_log ADD COLUMN previous_hash VARCHAR(64) NOT NULL DEFAULT '0000000000000000000000000000000000000000000000000000000000000000'")
     if "current_hash" not in cols:
-        cur.execute(f"ALTER TABLE audit_log ADD COLUMN current_hash VARCHAR(64) NOT NULL DEFAULT '{zero_hash}'")
+        cur.execute("ALTER TABLE audit_log ADD COLUMN current_hash VARCHAR(64) NOT NULL DEFAULT '0000000000000000000000000000000000000000000000000000000000000000'")
     conn.commit()
 
     rows = cur.execute("SELECT id, user_id, action, resource_type, resource_id, endpoint, timestamp, details FROM audit_log ORDER BY timestamp ASC").fetchall()

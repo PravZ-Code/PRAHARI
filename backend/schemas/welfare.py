@@ -110,8 +110,19 @@ class SafetyPattern(BaseModel):
     unit: str
     concernTitle: str
     noticedDate: str
+    # Real evidence-gating state derived from the latest calibrated prediction.
+    evidenceVerdict: Optional[str] = None
+    evidenceTone: Optional[str] = None  # 'green' | 'grey'
+    dataTrustTier: Optional[str] = None
+    dataTrustScore: Optional[float] = None
+    abstentionFlag: Optional[bool] = None
     reasons: List[SafetyPatternReason]
     suggestedSupport: List[SafetyPatternSupport]
+    # Evidence observability (derived from the latest real RiskPrediction row;
+    # None when no calibrated prediction exists for the trooper)
+    evidenceVerdict: Optional[str] = None      # GREEN / AMBER / GREY / ABSTAINED
+    dataTrustTier: Optional[str] = None        # HIGH / MODERATE / LOW
+    dataTrustScore: Optional[float] = None     # 0.0 - 1.0
 
 class CaseRecoveryItem(BaseModel):
     ref: str

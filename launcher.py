@@ -188,11 +188,18 @@ def get_base_paths():
     frontend_dir = prahari_dir / "frontend"
     log_dir = prahari_dir / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
+    temp_dir = prahari_dir / "temp"
+    temp_dir.mkdir(parents=True, exist_ok=True)
 
-    return prahari_dir, root_dir, backend_dir, frontend_dir, log_dir
+    return prahari_dir, root_dir, backend_dir, frontend_dir, log_dir, temp_dir
 
-PRAHARI_DIR, ROOT_DIR, BACKEND_DIR, FRONTEND_DIR, LOG_DIR = get_base_paths()
+PRAHARI_DIR, ROOT_DIR, BACKEND_DIR, FRONTEND_DIR, LOG_DIR, TEMP_DIR = get_base_paths()
 MOBILE_DIR = PRAHARI_DIR / "mobile"
+
+# Ensure all launcher processes and subprocesses use local prahari/temp instead of shared OS %TEMP%
+os.environ["TEMP"] = str(TEMP_DIR)
+os.environ["TMP"] = str(TEMP_DIR)
+os.environ["TEMP_DIR"] = str(TEMP_DIR)
 
 def get_db_path() -> Path:
     """Return the absolute path to the unified prahari SQLite database."""
@@ -252,11 +259,11 @@ def find_ollama():
     if bundled.exists():
         return str(bundled)
     for candidate in [
-        r"D:\Tools\Ollama\ollama.exe",
+        os.environ.get("OLLAMA_BIN", ""),
         os.path.expandvars(r"%LOCALAPPDATA%\Programs\Ollama\ollama.exe"),
         r"C:\Program Files\Ollama\ollama.exe",
     ]:
-        if os.path.exists(candidate):
+        if candidate and os.path.exists(candidate):
             return candidate
     p = shutil.which("ollama.exe") or shutil.which("ollama")
     if p:
@@ -266,11 +273,8 @@ def find_ollama():
 def find_flutter():
     """Locate the Flutter SDK executable or batch runner."""
     candidates = [
-        r"D:\Development\flutter\bin\flutter.bat",
-        r"D:\Development\flutter\bin\flutter.exe",
-        str(PRAHARI_DIR / "runtime" / "flutter" / "bin" / "flutter.bat"),
-        str(ROOT_DIR / "Development" / "flutter" / "bin" / "flutter.bat"),
         os.environ.get("FLUTTER_BIN", ""),
+        str(PRAHARI_DIR / "runtime" / "flutter" / "bin" / "flutter.bat"),
     ]
     for candidate in candidates:
         if candidate and os.path.exists(candidate):
@@ -1553,6 +1557,8 @@ def safe_print(*args, **kwargs):
     """Print safely without crashing if sys.stdout is None (GUI subsystem)."""
     try:
         if sys.stdout is not None:
+            if "flush" not in kwargs:
+                kwargs["flush"] = True
             print(*args, **kwargs)
     except Exception:
         pass
@@ -1564,14 +1570,15 @@ def main():
         mgr = ServiceManager(log_callback=safe_print, kill_on_close=kill_on_close)
 
         if arg in ["--start", "-s", "start"]:
+            safe_print("[PRAHARI] Launching all services in supervised background mode...")
             mgr.start_all()
-            safe_print("Starting all PRAHARI services...")
+            safe_print("[PRAHARI] Verifying service connectivity and ports...")
             time.sleep(3)
             for svc, port in PORTS.items():
                 probe = probe_service_health(svc)
                 st = f"ONLINE (HTTP {probe['http_status']})" if probe['alive'] else "STOPPED"
                 safe_print(f"  * {svc.upper():10}: {st} [Port {port}] · {probe['details']}")
-            safe_print("\nPRAHARI background daemon active. Press Ctrl+C to terminate.")
+            safe_print("\n[PRAHARI] All background daemons active. Press Ctrl+C to terminate.")
             try:
                 while True:
                     time.sleep(1)
@@ -1581,13 +1588,14 @@ def main():
                 sys.exit(0)
 
         elif arg in ["--daemon", "--start-daemon", "-d", "daemon"]:
+            safe_print("[PRAHARI] Launching all services in detached background mode...")
             mgr.start_all()
-            safe_print("PRAHARI services active in persistent background mode...")
             time.sleep(2)
             for svc, port in PORTS.items():
                 probe = probe_service_health(svc)
                 st = f"ONLINE (HTTP {probe['http_status']})" if probe['alive'] else "STARTING"
                 safe_print(f"  * {svc.upper():10}: {st} [Port {port}] · {probe['details']}")
+            safe_print("[PRAHARI] Persistent background services established.")
             sys.exit(0)
 
         elif arg in ["--stop", "-k", "stop"]:

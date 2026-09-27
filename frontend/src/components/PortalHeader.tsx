@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { getStoredUser, logout, UserProfile } from "@/lib/auth";
+import { api } from "@/lib/api";
 import {
   Shield,
   LayoutDashboard,
@@ -56,6 +57,11 @@ export const PortalHeader: React.FC = () => {
     setMounted(true);
     const currentUser = getStoredUser();
     setUser(currentUser);
+    if (currentUser && (!currentUser.name || !currentUser.service_number)) {
+      api.get("/auth/me").then((res: any) => {
+        if (res.data) setUser(res.data);
+      }).catch(() => {});
+    }
 
     const handleAuthChange = () => {
       setUser(getStoredUser());
@@ -188,9 +194,9 @@ export const PortalHeader: React.FC = () => {
       { label: "Help", href: "/portal/help", icon: LifeBuoy },
     ];
 
-    const displayName = user?.name || user?.username || "Rajesh Kumar";
-    const serviceNumber = user?.service_number || "CRP-2019-45821";
-    const unitName = user?.unit_name || "Alpha Company • General Duty";
+    const displayName = user?.name || user?.username || "Personnel";
+    const serviceNumber = user?.service_number || "Verified Identity";
+    const unitName = user?.unit_name || "Assigned Battalion";
 
     return (
       <header className="bg-[#072648] text-white border-b-2 border-[#ff9933] shadow-sm sticky top-0 z-40">

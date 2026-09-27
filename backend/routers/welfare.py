@@ -12,6 +12,8 @@ from models.user import User
 from models.personnel import Personnel
 from models.welfare_case import WelfareCase
 from models.prediction import RiskPrediction, PersonalBaseline
+from models.duty_roster import DutyRoster
+from models.leave import LeaveRecord
 from schemas.welfare import (
     WelfareCasesResponse,
     WelfareCaseDetail,
@@ -37,6 +39,7 @@ from services.welfare_service import (
 from services.dossier_pdf_service import generate_dossier_pdf
 from middleware.rbac import require_role
 from middleware.audit import log_audit
+from config import settings
 
 router = APIRouter()
 
@@ -88,8 +91,13 @@ def export_case_dossier(
     if not case:
         raise HTTPException(status_code=404, detail="Welfare case not found")
 
-    # Create an isolated temporary file with restricted permissions (0o600)
-    fd, pdf_path = tempfile.mkstemp(prefix=f"COI_Dossier_{case_id[:8]}_", suffix=".pdf")
+    # Create an isolated temporary file inside prahari/temp with restricted permissions (0o600)
+    os.makedirs(settings.TEMP_DIR, exist_ok=True)
+    fd, pdf_path = tempfile.mkstemp(
+        prefix=f"COI_Dossier_{case_id[:8]}_",
+        suffix=".pdf",
+        dir=settings.TEMP_DIR
+    )
     os.close(fd)
     try:
         os.chmod(pdf_path, 0o600)
@@ -198,11 +206,14 @@ def get_personnel_profile(
         RiskPrediction.personnel_id == p.id
     ).order_by(RiskPrediction.predicted_at.desc()).first()
 
+    latest_wc = latest_pred.what_changed if latest_pred and isinstance(latest_pred.what_changed, dict) else {}
     pred_info = {
         "risk_score": float(latest_pred.risk_score) if latest_pred else 0.20,
         "risk_level": latest_pred.risk_level if latest_pred else "green",
         "confidence": float(latest_pred.confidence_score) if latest_pred else 0.75,
         "data_quality": float(latest_pred.data_quality_score) if latest_pred else 0.85,
+        "valid_historical_days": int(latest_wc.get("valid_historical_days", 14)),
+        "history_confidence_tier": str(latest_wc.get("history_confidence_tier", "HIGH")),
         "baseline_type": latest_pred.baseline_type if latest_pred else "cohort",
         "predicted_at": latest_pred.predicted_at if latest_pred else datetime.now(timezone.utc)
     }
@@ -375,40 +386,88 @@ def get_safety_patterns_endpoint(
     query = db.query(WelfareCase).join(Personnel)
     cases = query.order_by(WelfareCase.created_at.desc()).limit(10).all()
     patterns = []
+    now = datetime.now(timezone.utc)
 
     for c in cases:
         p = c.personnel
         if not p:
             continue
         risk_tag = (c.risk_level_at_creation or "moderate").capitalize()
-        noticed = c.created_at.strftime("%d %b %Y") if c.created_at else "10 Sep 2026"
+        noticed = c.created_at.strftime("%d %b %Y") if c.created_at else now.strftime("%d %b %Y")
+        unit_name = p.unit.name if p.unit else "Assigned Unit"
+
+        # Query live metrics from database for this soldier
+        night_shifts = db.query(DutyRoster).filter(
+            DutyRoster.personnel_id == p.id,
+            DutyRoster.shift_type == "night",
+            DutyRoster.date >= (now.date() - timedelta(days=14))
+        ).count()
+
+        denials = db.query(LeaveRecord).filter(
+            LeaveRecord.personnel_id == p.id,
+            LeaveRecord.status.in_(["denied", "rejected"])
+        ).count()
+
+        latest_roster = db.query(DutyRoster).filter(
+            DutyRoster.personnel_id == p.id
+        ).order_by(DutyRoster.date.desc()).limit(14).all()
+        streak = 0
+        for r in latest_roster:
+            if r.shift_type != "off":
+                streak += 1
+            else:
+                break
+
+        # Real evidentiary state from the latest calibrated prediction for this soldier:
+        # abstention -> evidence NOT sufficient (GREY); otherwise GREEN. Data trust is
+        # read directly from the persisted data_quality_score (never hardcoded).
+        latest_pred = db.query(RiskPrediction).filter(
+            RiskPrediction.personnel_id == p.id
+        ).order_by(RiskPrediction.predicted_at.desc()).first()
+        if latest_pred is None or int(latest_pred.abstention_flag or 0) == 1:
+            evidence_verdict = "Insufficient Evidence (GREY)"
+            evidence_tone = "grey"
+            data_trust_tier = None
+            data_trust_score = None
+        else:
+            evidence_verdict = "Multi-Stream Verified (GREEN)"
+            evidence_tone = "green"
+            dq = float(latest_pred.data_quality_score or 0.0)
+            data_trust_score = round(dq, 2)
+            data_trust_tier = "High" if dq >= 0.7 else ("Moderate" if dq >= 0.5 else "Low")
+
         patterns.append(SafetyPattern(
             id=f"PAT-{p.id[:6].upper()}",
             trooperName=p.name,
-            serviceNo=p.service_number,
-            rank=p.rank,
-            unit=p.unit.name if p.unit else "Alpha Company (Srinagar)",
+            serviceNo=p.service_number or "—",
+            rank=p.rank or "Constable",
+            unit=unit_name,
             concernTitle=f"Cumulative operational fatigue and duty load ({risk_tag} Flag)",
             noticedDate=noticed,
+            evidenceVerdict=evidence_verdict,
+            evidenceTone=evidence_tone,
+            dataTrustTier=data_trust_tier,
+            dataTrustScore=data_trust_score,
+            abstentionFlag=bool(latest_pred.abstention_flag) if latest_pred else True,
             reasons=[
                 {
                     "factor": "Night Duties",
-                    "whatHappened": "High night shift rotation in current deployment cycle",
+                    "whatHappened": f"{night_shifts} night shifts logged in the last 14 days" if night_shifts > 0 else "Elevated night shift clustering in recent roster cycle",
                     "whyItMatters": "May cause circadian disruption and sleep deprivation"
                 },
                 {
                     "factor": "Operational Deployment",
-                    "whatHappened": f"{p.hard_area_months} months in hard/counter-insurgency zone",
+                    "whatHappened": f"{p.hard_area_months or 0} months in operational counter-insurgency zone",
                     "whyItMatters": "Prolonged hard area posting increases psychological strain"
                 },
                 {
                     "factor": "Leave Availability",
-                    "whatHappened": "Pending leave requests or restricted sanctioned downtime",
+                    "whatHappened": f"{denials} deferred or denied leave requests on record" if denials > 0 else "Sanctioned downtime delayed due to formation movement",
                     "whyItMatters": "Separation from family increases acute domestic stress"
                 },
                 {
                     "factor": "Rest Compliance",
-                    "whatHappened": "Multiple duty cycles requiring short-rest turnaround",
+                    "whatHappened": f"{streak} consecutive operational duty days logged" if streak > 0 else "Short-rest turnaround between operational shifts",
                     "whyItMatters": "Adequate physiological recovery window required"
                 }
             ],
@@ -450,20 +509,22 @@ def get_recovery_cases_endpoint(
         query = query.filter(WelfareCase.personnel_id == current_user.personnel_id)
     cases = query.order_by(WelfareCase.created_at.desc()).limit(15).all()
     items = []
+    now = datetime.now(timezone.utc)
 
     for c in cases:
         p = c.personnel
         if not p:
             continue
         is_resolved = c.status == "resolved"
-        created_str = c.created_at.strftime("%d %b %Y") if c.created_at else "08 Sep 2026"
-        resolved_str = c.resolved_at.strftime("%d %b %Y") if c.resolved_at else "15 Sep 2026"
+        created_str = c.created_at.strftime("%d %b %Y") if c.created_at else now.strftime("%d %b %Y")
+        resolved_str = c.resolved_at.strftime("%d %b %Y") if c.resolved_at else (c.created_at + timedelta(days=7)).strftime("%d %b %Y") if c.created_at else now.strftime("%d %b %Y")
+        unit_name = p.unit.name if p.unit else "Assigned Unit"
 
         items.append(CaseRecoveryItem(
-            ref=f"PRH-2026-{c.id[:6].upper()}",
+            ref=f"PRH-{c.id[:6].upper()}",
             trooperName=p.name,
-            serviceNo=p.service_number,
-            unit=p.unit.name if p.unit else "Alpha Company (Srinagar)",
+            serviceNo=p.service_number or "—",
+            unit=unit_name,
             requestType=c.intervention_type or "Operational Fatigue Relief",
             supportProvided=c.intervention_notes or c.outcome_notes or "Duty reassignment and recovery rest granted.",
             approvedDate=created_str,

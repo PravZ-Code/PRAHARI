@@ -82,6 +82,12 @@ def get_unit_readiness_detail(db: Session, unit_id: str) -> Dict[str, Any]:
         dist[lvl] = dist.get(lvl, 0) + 1
 
     total = len(p_ids)
+    cohort_suppression_active = False
+    suppression_reason = None
+    if total < 5:
+        cohort_suppression_active = True
+        suppression_reason = "Unit sample size too small (< 5 personnel) to display aggregate welfare trend without re-identification risk (DPDP Act §12 & SAHAJ Privacy Contract)."
+
     current_readiness = compute_readiness(dist["green"], dist["yellow"], dist["orange"], dist["red"], total)
 
     # 14-day historical trend anchored to real database records via single batch query
@@ -133,9 +139,11 @@ def get_unit_readiness_detail(db: Session, unit_id: str) -> Dict[str, Any]:
         "unit_id": unit.id,
         "unit_name": unit.name,
         "readiness_score": current_readiness,
-        "readiness_trend": trend,
-        "risk_distribution": dist,
-        "personnel_count": total
+        "readiness_trend": trend if not cohort_suppression_active else [],
+        "risk_distribution": dist if not cohort_suppression_active else {"green": 0, "yellow": 0, "orange": 0, "red": 0},
+        "personnel_count": total,
+        "cohort_suppression_active": cohort_suppression_active,
+        "suppression_reason": suppression_reason
     }
 
 def get_unit_risk_distribution(db: Session, unit_id: str) -> Dict[str, Any]:
@@ -198,10 +206,19 @@ def get_unit_risk_distribution(db: Session, unit_id: str) -> Dict[str, Any]:
             }
         trend_7d.append(day_dist)
 
+    total_strength = len(p_ids)
+    cohort_suppression_active = False
+    suppression_reason = None
+    if total_strength < 5:
+        cohort_suppression_active = True
+        suppression_reason = "Unit sample size too small (< 5 personnel) to display aggregate risk distribution without re-identification risk (DPDP Act §12 & SAHAJ Privacy Contract)."
+
     return {
         "unit_id": unit.id,
-        "current": dist,
-        "trend_7d": trend_7d
+        "current": dist if not cohort_suppression_active else {"green": 0, "yellow": 0, "orange": 0, "red": 0},
+        "trend_7d": trend_7d if not cohort_suppression_active else [],
+        "cohort_suppression_active": cohort_suppression_active,
+        "suppression_reason": suppression_reason
     }
 
 def get_unit_workload_trends(db: Session, unit_id: str, days: int = 14) -> List[Dict[str, Any]]:
@@ -462,9 +479,6 @@ def get_unit_dashboard_kpis(db: Session, unit_id: str) -> Dict[str, Any]:
         denied_count = sum(1 for l in leaves if l.status == "denied")
         on_leave = sum(1 for l in leaves if l.status == "approved" and l.start_date and l.end_date and l.start_date <= today <= l.end_date)
     
-    if on_leave == 0 and total_strength > 0:
-        on_leave = max(1, total_strength // 35)
-
     active_on_duty = max(0, total_strength - on_leave)
 
     # Night duty share in past 14 days
@@ -476,21 +490,24 @@ def get_unit_dashboard_kpis(db: Session, unit_id: str) -> Dict[str, Any]:
 
     total_shifts = len(rosters)
     night_shifts = sum(1 for r in rosters if r.shift_type and "night" in r.shift_type.lower())
-    night_duty_share = round((night_shifts / total_shifts * 100.0), 1) if total_shifts > 0 else 22.4
+    night_duty_share = round((night_shifts / total_shifts * 100.0), 1) if total_shifts > 0 else 0.0
 
     # Available rested personnel (> 12h rest)
     available_rested = sum(1 for lvl in latest_levels.values() if lvl == "green")
-    if available_rested == 0:
-        available_rested = max(5, int(total_strength * 0.2))
-
-    # Rest compliance (>8h)
-    rest_compliance = 97.2
-
-    # Leave denial frequency
-    leave_denial_frequency = round((denied_count / total_leave_records * 100.0), 1) if total_leave_records > 0 else 8.2
 
     # Short rest incidents
     short_rest_incidents = max(0, dist["orange"] // 2)
+
+    # Rest compliance (>8h) computed dynamically from duty rosters
+    if total_shifts > 0:
+        standard_rest_shifts = sum(1 for r in rosters if float(r.hours or 8.0) <= 12.0)
+        penalty = (short_rest_incidents / max(1, total_strength)) * 10.0
+        rest_compliance = round(max(50.0, min(100.0, (standard_rest_shifts / total_shifts * 100.0) - penalty)), 1)
+    else:
+        rest_compliance = 100.0
+
+    # Leave denial frequency
+    leave_denial_frequency = round((denied_count / total_leave_records * 100.0), 1) if total_leave_records > 0 else 0.0
 
     return {
         "unit_id": unit.id,

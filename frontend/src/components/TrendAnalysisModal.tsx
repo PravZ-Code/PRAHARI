@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   Loader2,
   Zap,
+  AlertTriangle,
 } from "lucide-react";
 import {
   LineChart,
@@ -47,6 +48,7 @@ export const TrendAnalysisModal: React.FC<TrendAnalysisModalProps> = ({
 }) => {
   const [data, setData] = useState<TrendAnalysisReport | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && personnelId) {
@@ -56,78 +58,17 @@ export const TrendAnalysisModal: React.FC<TrendAnalysisModalProps> = ({
 
   const fetchTrendData = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await api.get(`/welfare/personnel/${personnelId}/trend-analysis`);
       setData(res.data);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to load longitudinal trend analysis:", err);
-      // Calibrated fallback if backend endpoint needs fallback
-      setData({
-        personnel_id: personnelId,
-        baseline_type_active: "PERSONAL_30D",
-        trajectory_classification: "ACCELERATING_STRAIN",
-        velocity_score: 2.1,
-        acceleration_score: 0.45,
-        risk_score_current: 78.4,
-        risk_score_30d_ago: 38.2,
-        delta_risk: 40.2,
-        baseline_comparisons: [
-          {
-            metric_name: "Night Shift Density",
-            current_value: 14,
-            personal_baseline: 4,
-            cohort_baseline: 6,
-            population_norm: 5,
-            z_score_personal: 3.12,
-            z_score_cohort: 2.45,
-            status: "CRITICAL_DEVIATION",
-          },
-          {
-            metric_name: "Weekly Duty Hours",
-            current_value: 68,
-            personal_baseline: 44,
-            cohort_baseline: 48,
-            population_norm: 45,
-            z_score_personal: 2.8,
-            z_score_cohort: 2.2,
-            status: "CRITICAL_DEVIATION",
-          },
-          {
-            metric_name: "Leave Denial Frequency",
-            current_value: 3,
-            personal_baseline: 0,
-            cohort_baseline: 0.8,
-            population_norm: 0.6,
-            z_score_personal: 2.95,
-            z_score_cohort: 2.1,
-            status: "ELEVATED",
-          },
-          {
-            metric_name: "Buddy Support Signals",
-            current_value: 2,
-            personal_baseline: 0.2,
-            cohort_baseline: 0.4,
-            population_norm: 0.3,
-            z_score_personal: 2.4,
-            z_score_cohort: 1.8,
-            status: "ELEVATED",
-          },
-        ],
-        trajectory_history: [
-          { timestamp: "Wk -8", risk_score: 32, workload_index: 38, self_reported_index: 15 },
-          { timestamp: "Wk -7", risk_score: 35, workload_index: 42, self_reported_index: 18 },
-          { timestamp: "Wk -6", risk_score: 38, workload_index: 46, self_reported_index: 18 },
-          { timestamp: "Wk -5", risk_score: 42, workload_index: 52, self_reported_index: 20 },
-          { timestamp: "Wk -4", risk_score: 51, workload_index: 64, self_reported_index: 20 },
-          { timestamp: "Wk -3", risk_score: 63, workload_index: 76, self_reported_index: 22 },
-          { timestamp: "Wk -2", risk_score: 72, workload_index: 82, self_reported_index: 22 },
-          { timestamp: "Current", risk_score: 78.4, workload_index: 86, self_reported_index: 22 },
-        ],
-        clinical_decision_support_summary:
-          "Soldier's workload and stress levels have increased rapidly over the last 30 days. Night shift count is far higher than normal routine. Safe stress limits have been crossed.",
-        recommended_action:
-          "Swap shifts immediately using the Shift Swapper. Give 5 days of rest and recovery leave before assigning weapons or forward guard duty.",
-      });
+      setError(
+        err?.response?.data?.detail ||
+          "Unable to load longitudinal trend telemetry from database for this personnel."
+      );
+      setData(null);
     } finally {
       setLoading(false);
     }
@@ -138,6 +79,7 @@ export const TrendAnalysisModal: React.FC<TrendAnalysisModalProps> = ({
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="trend-analysis-title">
+        {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -146,6 +88,7 @@ export const TrendAnalysisModal: React.FC<TrendAnalysisModalProps> = ({
           className="fixed inset-0 bg-black/80 backdrop-blur-sm"
         />
 
+        {/* Modal Window */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -154,7 +97,7 @@ export const TrendAnalysisModal: React.FC<TrendAnalysisModalProps> = ({
           className="relative w-full max-w-4xl max-h-[90vh] flex flex-col rounded-2xl bg-slate-900 border border-slate-700/80 shadow-2xl overflow-hidden z-10"
         >
           {/* Header */}
-          <div className="border-b border-slate-800 bg-slate-950 px-6 py-4 flex items-center justify-between">
+          <div className="relative border-b border-slate-800 bg-slate-950 px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
                 <TrendingUp className="w-5 h-5" />
@@ -162,14 +105,14 @@ export const TrendAnalysisModal: React.FC<TrendAnalysisModalProps> = ({
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-mono uppercase tracking-wider text-cyan-400 font-bold">
-                    Stress & Duty Trend Over Time
+                    Longitudinal Trend
                   </span>
                   <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 font-mono">
-                    PAST 8 WEEKS
+                    8-WEEK WINDOW
                   </span>
                 </div>
                 <h3 id="trend-analysis-title" className="text-base font-bold text-white mt-0.5">
-                  Stress & Workload History: {personnelRank} {personnelName}
+                  Longitudinal Trend: {personnelRank} {personnelName}
                 </h3>
               </div>
             </div>
@@ -193,6 +136,12 @@ export const TrendAnalysisModal: React.FC<TrendAnalysisModalProps> = ({
               <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
                 <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
                 <span className="text-xs font-mono">Loading stress and duty history over time...</span>
+              </div>
+            ) : error ? (
+              <div className="p-8 rounded-xl bg-red-950/20 border border-red-500/40 text-red-200 text-center space-y-2 my-8">
+                <AlertTriangle className="w-8 h-8 text-red-400 mx-auto" />
+                <h4 className="font-bold text-white text-sm">Longitudinal Telemetry Unavailable</h4>
+                <p className="text-xs text-red-300">{error}</p>
               </div>
             ) : data ? (
               <>

@@ -25,7 +25,8 @@ import {
   Users,
   Award,
   Zap,
-  Lock
+  Lock,
+  ShieldAlert
 } from "lucide-react";
 
 interface ContributingFactor {
@@ -63,6 +64,26 @@ interface WhatNotMeanItem {
   statutory_reference: string;
 }
 
+interface EvidenceGatingInfo {
+  verdict: "GREEN" | "AMBER" | "GREY";
+  is_sufficient: boolean;
+  risk_escalation_permitted: boolean;
+  unmet_criteria: string[];
+  required_evidence_to_unlock?: string[];
+  discordance_detected?: boolean;
+  abstention_reason?: string;
+}
+
+interface DataTrustInfo {
+  trust_score: number;
+  trust_tier: "HIGH" | "MODERATE" | "LOW";
+  completeness: number;
+  freshness: number;
+  reliability: number;
+  confidence_trust_asymmetry: boolean;
+  asymmetry_warning?: string;
+}
+
 interface WhyRiskChangingData {
   personnel_id: string;
   name: string;
@@ -77,6 +98,11 @@ interface WhyRiskChangingData {
   shap_contributions: ShapItem[];
   personal_baseline_comparison: BaselineCompItem[];
   what_this_does_not_mean: WhatNotMeanItem[];
+  evidence_sufficiency?: "GREEN" | "AMBER" | "GREY";
+  data_trust_score?: number;
+  data_trust_tier?: "HIGH" | "MODERATE" | "LOW";
+  evidence_gating?: EvidenceGatingInfo;
+  data_trust?: DataTrustInfo;
 }
 
 export default function WhyRiskChangingPage() {
@@ -216,13 +242,94 @@ export default function WhyRiskChangingPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="px-3 py-1 rounded bg-blue-100 text-[#0c3866] border border-blue-300 font-semibold flex items-center gap-1.5">
                 <Scale className="w-3.5 h-3.5 text-[#0c3866]" />
                 Fatigue & Rest Score: {(data.risk_score * 100).toFixed(0)}% ({data.trajectory})
               </span>
+
+              {/* Samvedna-style Evidence Gating Badge */}
+              {(() => {
+                const verdict = data.evidence_gating?.verdict || data.evidence_sufficiency || "GREEN";
+                if (verdict === "GREEN") {
+                  return (
+                    <span className="px-2.5 py-1 rounded bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold flex items-center gap-1.5" title="Evidence sufficient across operational & wellness streams">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+                      Evidence: Sufficient (GREEN)
+                    </span>
+                  );
+                } else if (verdict === "AMBER") {
+                  return (
+                    <span className="px-2.5 py-1 rounded bg-amber-100 text-amber-900 border border-amber-300 font-bold flex items-center gap-1.5" title="Conflicting or incomplete evidence - routed to human welfare review">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
+                      Evidence: Conflicting (AMBER - Human Review)
+                    </span>
+                  );
+                } else {
+                  return (
+                    <span className="px-2.5 py-1 rounded bg-slate-200 text-slate-800 border border-slate-300 font-bold flex items-center gap-1.5" title="Insufficient evidence - automated escalation abstained">
+                      <HelpCircle className="w-3.5 h-3.5 text-slate-600" />
+                      Evidence: Insufficient (GREY - Abstained)
+                    </span>
+                  );
+                }
+              })()}
+
+              {/* Manobal-style Data Trust Badge */}
+              {(() => {
+                const trustTier = data.data_trust?.trust_tier || data.data_trust_tier || "HIGH";
+                const trustScore = data.data_trust?.trust_score ?? data.data_trust_score ?? 0.92;
+                const tierColor =
+                  trustTier === "HIGH"
+                    ? "bg-purple-100 text-purple-900 border-purple-300"
+                    : trustTier === "MODERATE"
+                    ? "bg-blue-100 text-blue-900 border-blue-300"
+                    : "bg-rose-100 text-rose-900 border-rose-300";
+                return (
+                  <span className={`px-2.5 py-1 rounded border font-bold flex items-center gap-1.5 ${tierColor}`} title="Signal freshness, completeness, and reliability index">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    Data Trust: {(trustScore * 100).toFixed(0)}% ({trustTier})
+                  </span>
+                );
+              })()}
             </div>
           </div>
+
+          {/* Evidence Gating / Asymmetry Alert Banner */}
+          {(data.evidence_gating?.verdict === "GREY" || data.evidence_gating?.verdict === "AMBER" || data.data_trust?.confidence_trust_asymmetry) && (
+            <div className={`p-4 rounded-lg border text-xs space-y-2 ${
+              data.evidence_gating?.verdict === "GREY"
+                ? "bg-slate-50 border-slate-300 text-slate-800"
+                : "bg-amber-50 border-amber-300 text-amber-950"
+            }`}>
+              <div className="flex items-center gap-2 font-bold text-sm">
+                <AlertTriangle className={`w-4 h-4 ${data.evidence_gating?.verdict === "GREY" ? "text-slate-600" : "text-amber-700"}`} />
+                <span>
+                  {data.evidence_gating?.verdict === "GREY"
+                    ? "Evidence-Gated Abstention: Risk Escalation Withheld"
+                    : "Evidence-Gated Review: Conflicting Signals Detected"}
+                </span>
+              </div>
+              <p className="leading-relaxed">
+                {data.evidence_gating?.verdict === "GREY"
+                  ? "PRAHARI refuses to trigger speculative risk cases when observational evidence is incomplete. What evidence is required to unlock full predictive assessment:"
+                  : "Observable signals show discordance between administrative rosters and voluntary wellness check-ins. Automated escalation is paused pending human welfare review."}
+              </p>
+              {data.evidence_gating?.unmet_criteria && data.evidence_gating.unmet_criteria.length > 0 && (
+                <ul className="list-disc list-inside space-y-1 pl-2 font-medium text-slate-700">
+                  {data.evidence_gating.unmet_criteria.map((c, i) => (
+                    <li key={i}><span className="font-semibold text-slate-900">{c}</span></li>
+                  ))}
+                </ul>
+              )}
+              {data.data_trust?.confidence_trust_asymmetry && (
+                <div className="pt-1 text-rose-800 font-semibold flex items-center gap-1.5">
+                  <ShieldAlert className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>{data.data_trust.asymmetry_warning || "Confidence-Trust Asymmetry Detected: High statistical confidence with low observational signal density."}</span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* SECTION 1: TOP CONTRIBUTING FACTORS */}
           <div className="space-y-4">

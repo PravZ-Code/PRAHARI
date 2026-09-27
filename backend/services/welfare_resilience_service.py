@@ -387,7 +387,7 @@ def track_personnel_recovery(db: Session, personnel_id: str) -> Dict[str, Any]:
         status = "RECOVERING_WELL"
         simple_verdict = (
             f"GREAT PROGRESS: {soldier.rank} {soldier.name} is recovering well! Stress has dropped from "
-            f"{initial_score:.2f} to {latest_score:.2f} ({recovery_pct}% recovery). The duty adjustment or leave was effective."
+            f"{initial_score:.2f} to {latest_score:.2f} ({recovery_pct}% recovery). Positive recovery observed following duty adjustment/leave."
         )
     elif delta >= 0.05:
         status = "STABLE"
@@ -597,7 +597,10 @@ def compute_intervention_effectiveness_registry(db: Session) -> Dict[str, Any]:
     resolved_cases = sum(1 for c in cases if c.status == "resolved")
     active_plans = sum(1 for c in cases if c.status in ("plan_created", "intervention_active"))
 
-    # Empirical registry benchmarks derived from operational evaluation data
+    # Reference benchmark archetypes. These percentages are published prototype
+    # evaluation benchmarks (synthetic-data validation), NOT measured outcomes from
+    # the live database; they are explicitly labeled as such so they are never
+    # mistaken for empirical institutional evidence.
     registry = [
         {
             "intervention_id": "24h_recovery",
@@ -660,17 +663,42 @@ def compute_intervention_effectiveness_registry(db: Session) -> Dict[str, Any]:
             "recommended_triggers": "Social isolation, homesickness, signal discordance (stoic under-reporting)."
         }
     ]
+    for entry in registry:
+        entry["data_source"] = "prototype_benchmark"
+        entry["is_measured_from_live_data"] = False
+
+    # Overlay empirically measured outcomes wherever real welfare cases carry an
+    # intervention_type. Live counters are derived from actual case rows only.
+    from sqlalchemy import case as _sa_case
+    measured_rows = db.query(
+        WelfareCase.intervention_type,
+        func.count(WelfareCase.id).label("total"),
+        func.sum(_sa_case((WelfareCase.status == "resolved", 1), else_=0)).label("resolved"),
+    ).filter(WelfareCase.intervention_type.isnot(None)).group_by(WelfareCase.intervention_type).all()
+    live_stats = {
+        (m[0] or "unknown"): {
+            "total_cases": int(m[1] or 0),
+            "resolved_cases": int(m[2] or 0),
+            "resolution_rate_percentage": round(100.0 * (m[2] or 0) / m[1], 1) if m[1] else None,
+        }
+        for m in measured_rows
+    }
 
     return {
         "registry": registry,
         "total_institutional_cases": total_cases,
         "resolved_cases_count": resolved_cases,
         "active_interventions_count": active_plans,
-        "top_performing_intervention": "Emergency Family Leave (94.1% improvement)",
-        "most_cost_effective_intervention": "24h Recovery Rest (Low operational friction, 2-day recovery)",
+        "live_outcome_stats": live_stats,
+        "top_performing_intervention": "Emergency Family Leave (94.1% benchmark improvement)",
+        "most_cost_effective_intervention": "24h Recovery Rest (Low operational friction, 2-day benchmark recovery)",
+        "data_maturity_notice": (
+            "Registry percentages are prototype reference benchmarks from synthetic-data validation, "
+            "not yet measured from field deployments. Live counters reflect real case volumes only."
+        ),
         "institutional_learning_note": (
-            "Empirical evidence demonstrates that early 24h rest interventions prevent 73% of escalated medical leaves. "
-            "Evidence-based planning minimizes operational disruption."
+            "Benchmark evidence indicates early 24h rest interventions are associated with fewer "
+            "escalated medical leaves. Evidence-based planning minimizes operational disruption."
         )
     }
 

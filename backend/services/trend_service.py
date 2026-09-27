@@ -37,8 +37,19 @@ def analyze_personnel_trend(db: Session, personnel_id: str) -> TrendAnalysisRepo
     if not cohort:
         cohort = db.query(CohortTemplate).first()
 
-    cohort_means = cohort.feature_means if (cohort and cohort.feature_means) else {}
-    cohort_stds = cohort.feature_stds if (cohort and cohort.feature_stds) else {}
+    if cohort and cohort.feature_means:
+        cohort_means = cohort.feature_means
+        cohort_stds = cohort.feature_stds
+    else:
+        from ml.cohort_builder import get_cached_cohort_templates
+        cached = get_cached_cohort_templates()
+        if cached:
+            matched = next((c for c in cached if c.get("rank_category") == rank_cat and c.get("area_type") == area_type), cached[0])
+            cohort_means = matched.get("feature_means", {})
+            cohort_stds = matched.get("feature_stds", {})
+        else:
+            cohort_means = {}
+            cohort_stds = {}
     personal_means = personal_baseline.feature_means if (personal_baseline and personal_baseline.feature_means) else {}
     personal_stds = personal_baseline.feature_stds if (personal_baseline and personal_baseline.feature_stds) else {}
 

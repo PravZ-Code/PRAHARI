@@ -31,6 +31,11 @@ interface SafetyPattern {
   unit: string;
   concernTitle: string;
   noticedDate: string;
+  evidenceVerdict?: string | null;
+  evidenceTone?: string | null;
+  dataTrustTier?: string | null;
+  dataTrustScore?: number | null;
+  abstentionFlag?: boolean | null;
   reasons: {
     factor: string;
     whatHappened: string;
@@ -146,11 +151,27 @@ export default function AISafetyNetPage() {
               {/* Header */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="text-xs font-bold text-slate-500 font-mono">{activePattern.id}</span>
                     <span className="ux4g-tag-tonal-warning ux4g-tag-s font-bold">
                       Pattern Noticed
                     </span>
+                    {activePattern.evidenceVerdict && (
+                      <span
+                        className={`px-2 py-0.5 rounded text-[11px] font-bold border ${
+                          activePattern.evidenceTone === "green"
+                            ? "bg-emerald-100 text-emerald-900 border-emerald-300"
+                            : "bg-slate-100 text-slate-700 border-slate-300"
+                        }`}
+                      >
+                        Evidence: {activePattern.evidenceVerdict}
+                      </span>
+                    )}
+                    {activePattern.dataTrustTier && activePattern.dataTrustScore != null && (
+                      <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-100 text-purple-900 border border-purple-300">
+                        Data Trust: {activePattern.dataTrustTier} ({Math.round(activePattern.dataTrustScore * 100)}%)
+                      </span>
+                    )}
                   </div>
                   <h2 className="text-lg font-bold text-slate-900 mt-1 font-heading">
                     {activePattern.concernTitle}

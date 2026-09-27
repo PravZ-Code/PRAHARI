@@ -10,6 +10,30 @@ class EvidenceSourceProvenance(BaseModel):
     freshness_days: float
     evidence_summary: str
 
+class SignalTrustDetail(BaseModel):
+    source_name: str
+    source_category: str  # 'Roster', 'HR', 'Self-Report', 'Peer Signal', 'Wellness'
+    freshness: str        # 'FRESH', 'RECENT', 'STALE', 'UNAVAILABLE'
+    completeness: float = Field(..., ge=0.0, le=1.0)
+    reliability: str      # 'HIGH', 'MEDIUM', 'LOW', 'UNVERIFIED'
+    conflict_status: str  # 'CONCORDANT', 'DISCORDANT', 'NEUTRAL'
+    evidence_summary: Optional[str] = None
+
+class DataTrustAssessment(BaseModel):
+    data_trust_score: float = Field(..., ge=0.0, le=1.0)
+    data_trust_tier: str    # 'HIGH', 'MODERATE', 'LOW'
+    signals: Dict[str, SignalTrustDetail]
+    asymmetry_detected: bool = False
+    asymmetry_advisory: str
+
+class EvidenceGatingReport(BaseModel):
+    sufficiency_state: str  # 'GREEN', 'AMBER', 'GREY'
+    sufficiency_tier: str   # 'SUFFICIENT', 'CONFLICTING_OR_INCOMPLETE', 'INSUFFICIENT'
+    risk_escalation_permitted: bool
+    verdict_statement: str
+    required_evidence_to_unlock: List[str]
+    data_trust: DataTrustAssessment
+
 class EvidenceConflictReport(BaseModel):
     personnel_id: str
     conflict_detected: bool
@@ -24,3 +48,5 @@ class EvidenceConflictReport(BaseModel):
     decision_support_narrative: str
     recommended_welfare_action: str
     provenance_sources: List[EvidenceSourceProvenance]
+    evidence_gating: Optional[EvidenceGatingReport] = None
+

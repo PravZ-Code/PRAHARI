@@ -84,12 +84,18 @@ def run_uro_optimization(
         for r in roster_rows
     ]
 
+    # F1 Helper-Load Ledger: helpers across the burden threshold are removed from
+    # the replacement pool; their payback tasks were queued by the ledger service.
+    from services.helper_load_service import excluded_replacement_ids
+    hard_excluded = excluded_replacement_ids(db, unit_id)
+
     # Execute optimization algorithm with trade matching, 8h rest barrier, fairness cap
     opt_result = optimize_roster(
         personnel_list=p_profiles,
         roster_entries=roster_dicts,
         max_swaps=max_swaps,
-        protect_minimum_manning=protect_minimum_manning
+        protect_minimum_manning=protect_minimum_manning,
+        hard_excluded_helper_ids=hard_excluded,
     )
 
     uro_run = URORun(
@@ -197,6 +203,22 @@ def commit_uro_swaps(db: Session, uro_run: URORun, committed_by_user_id: Optiona
 
     uro_run.roster_committed = True
     uro_run.status = "approved"
+
+    # F1 Helper-Load Ledger: the helper (person_b) absorbs the strain of every committed swap
+    try:
+        from services.helper_load_service import record_absorption
+        for swap in swaps:
+            helper_b = (swap.get("person_b") or {}).get("id")
+            swap_id = swap.get("id") or f"{uro_run.id}:{swap.get('date','')}"
+            if helper_b:
+                record_absorption(
+                    db,
+                    helper_personnel_id=helper_b,
+                    source_type="uro_swap",
+                    source_id=swap_id,
+                )
+    except Exception as ledger_err:
+        logger.warning(f"[F1] helper-load ledger write failed (non-fatal): {ledger_err}")
 
     # Write chained audit log entry
     try:

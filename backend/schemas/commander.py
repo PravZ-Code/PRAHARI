@@ -24,6 +24,8 @@ class UnitReadinessResponse(BaseModel):
     readiness_trend: List[ReadinessTrendPoint]
     risk_distribution: Dict[str, int]
     personnel_count: int
+    cohort_suppression_active: bool = False
+    suppression_reason: Optional[str] = None
 
 class DistributionTrendPoint(BaseModel):
     date: str
@@ -36,6 +38,8 @@ class UnitRiskDistributionResponse(BaseModel):
     unit_id: str
     current: Dict[str, int]
     trend_7d: List[DistributionTrendPoint]
+    cohort_suppression_active: bool = False
+    suppression_reason: Optional[str] = None
 
 class WorkloadTrendPoint(BaseModel):
     date: str
@@ -68,6 +72,8 @@ class TrooperFatigueProfileSchema(BaseModel):
 class UnitFatigueResponse(BaseModel):
     unit_id: str
     troopers: List[TrooperFatigueProfileSchema]
+    cohort_suppression_active: bool = False
+    suppression_reason: Optional[str] = None
 
 class UnitDashboardKPIsResponse(BaseModel):
     unit_id: str

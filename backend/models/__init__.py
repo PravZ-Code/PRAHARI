@@ -14,6 +14,10 @@ from models.audit import AuditLog
 from models.grievance import GrievanceRequest
 from models.resilience_intervention import ResilienceIntervention
 from models.notification import Notification
+from models.reintegration import ReintegrationWindow
+from models.helper_ledger import HelperLoadEntry, PaybackTask
+from models.welfare_note import WelfareNote
+from models.mission_gate import MissionGateAssessment
 
 __all__ = [
     "Base",
@@ -36,5 +40,10 @@ __all__ = [
     "AuditLog",
     "GrievanceRequest",
     "ResilienceIntervention",
-    "Notification"
+    "Notification",
+    "ReintegrationWindow",
+    "HelperLoadEntry",
+    "PaybackTask",
+    "WelfareNote",
+    "MissionGateAssessment",
 ]

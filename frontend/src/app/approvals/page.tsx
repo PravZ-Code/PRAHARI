@@ -52,6 +52,7 @@ interface ApprovalItem {
     overloadBarrier: string;
     tradeMatch: string;
   };
+  followUpTimeline?: string;
   status: "Waiting for Decision" | "Approved" | "Rejected" | "Under Review";
 }
 
@@ -94,8 +95,10 @@ export default function HumanApprovalDocketPage() {
       const res = await api.get("/grievance/pending-queue");
       const list = res.data || [];
       const mapped: ApprovalItem[] = list.map((g: any, idx: number) => {
-        const refCode = `PRH-2026-${g.id.slice(0, 6).toUpperCase()}`;
-        const submitted = g.filed_at ? new Date(g.filed_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "10 Sep 2026";
+        const refCode = g.id ? `PRH-${g.id.slice(0, 6).toUpperCase()}` : "PRH-RECORD";
+        const submitted = g.filed_at
+          ? new Date(g.filed_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+          : new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
         const coverName = g.suggested_replacement_name || "Replacement not assigned";
         const trade = g.trade || "General Duty";
 

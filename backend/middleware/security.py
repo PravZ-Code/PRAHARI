@@ -42,7 +42,13 @@ class SecurityMiddleware(BaseHTTPMiddleware):
     # Path prefixes with (request_limit, window_seconds)
     RATE_LIMITS = {
         "/api/auth/login": (15, 60),      # 15 req/min per IP (defense against brute force)
+        "/api/auth/captcha": (30, 60),    # Captcha challenge issuance
+        "/api/auth/refresh": (30, 60),    # Token refresh abuse guard
+        "/api/auth/logout": (30, 60),
         "/api/gateway": (120, 60),        # 120 req/min per IP (high-throughput field sync)
+        "/api/sync/push": (60, 60),       # Offline queue flushes
+        "/api/copilot": (30, 60),         # Local LLM inference is CPU-bound
+        "/api/grievance/file": (30, 60),  # Prevent grievance spam/JIT-abuse loops
     }
 
     async def dispatch(self, request, call_next):

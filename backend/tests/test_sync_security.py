@@ -158,17 +158,17 @@ def test_cors_rejects_arbitrary_private_subnets():
 
 def test_cors_allows_configured_origins():
     """
-    Verify that explicitly configured origins (e.g. http://localhost:3000) are permitted.
+    Verify that explicitly configured origins (e.g. http://localhost:3000, http://localhost:8080) are permitted.
     """
-    trusted_origin = "http://localhost:3000"
-    response = client.options(
-        "/api/sync/status",
-        headers={
-            "Origin": trusted_origin,
-            "Access-Control-Request-Method": "GET",
-        }
-    )
-    assert response.headers.get("access-control-allow-origin") == trusted_origin
+    for trusted_origin in ["http://localhost:3000", "http://localhost:8080"]:
+        response = client.options(
+            "/api/sync/status",
+            headers={
+                "Origin": trusted_origin,
+                "Access-Control-Request-Method": "GET",
+            }
+        )
+        assert response.headers.get("access-control-allow-origin") == trusted_origin
 
 
 def test_welfare_dossier_temp_cleanup(welfare_headers, sample_welfare_case_id):

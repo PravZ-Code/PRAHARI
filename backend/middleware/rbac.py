@@ -38,6 +38,32 @@ def decode_access_token(token: str) -> dict:
     return jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
 
 
+def is_token_revoked(auth_db: Session, token: str) -> bool:
+    """Check the persistent token blacklist (used by every auth path, incl. WebSockets)."""
+    try:
+        t_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        return auth_db.query(TokenBlacklist).filter(TokenBlacklist.token_hash == t_hash).first() is not None
+    except Exception:
+        return False
+
+
+# Query-string token auth exists only because browser EventSource/WebSocket clients
+# cannot set Authorization headers. It is restricted to the streaming endpoints so
+# tokens never end up in the access logs of unrelated routes.
+_QUERY_TOKEN_ALLOWED_PREFIXES = ("/api/sync/stream", "/api/sync/ws", "/sync/stream", "/sync/ws")
+
+
+def _extract_token(request: Request, credentials: Optional[HTTPAuthorizationCredentials]) -> Optional[str]:
+    if credentials:
+        return credentials.credentials
+    cookie_token = request.cookies.get("prahari_session")
+    if cookie_token:
+        return cookie_token
+    if request.url.path.startswith(_QUERY_TOKEN_ALLOWED_PREFIXES):
+        return request.query_params.get("token")
+    return None
+
+
 def blacklist_token(auth_db: Session, token: str):
     """
     Records revoked JWT in the persistent TokenBlacklist table.
@@ -70,15 +96,12 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    token = credentials.credentials if credentials else (
-        request.cookies.get("prahari_session") or request.query_params.get("token")
-    )
+    token = _extract_token(request, credentials)
     if not token:
         raise credentials_exception
 
     # Verify token is not in server-side blacklist
-    t_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
-    if auth_db.query(TokenBlacklist).filter(TokenBlacklist.token_hash == t_hash).first():
+    if is_token_revoked(auth_db, token):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Session has been terminated / token revoked",
@@ -107,10 +130,10 @@ async def get_optional_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     auth_db: Session = Depends(get_auth_db)
 ) -> Optional[User]:
-    token = credentials.credentials if credentials else (
-        request.cookies.get("prahari_session") or request.query_params.get("token")
-    )
+    token = _extract_token(request, credentials)
     if not token:
+        return None
+    if is_token_revoked(auth_db, token):
         return None
     try:
         payload = jwt.decode(

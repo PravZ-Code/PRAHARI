@@ -119,19 +119,19 @@ export default function PersonnelWellbeingPage() {
     wellbeing?.risk_level
   );
 
-  // Calculate clean, non-diagnostic metrics from backend state or realistic fallbacks
+  // Calculate clean, non-diagnostic metrics from backend state
   const currentState = whatChanged?.current_state || {};
   const prevBaseline = whatChanged?.previous_baseline || {};
 
-  const dutyLoadPct = currentState.consecutive_duty_days
-    ? Math.min(95, Math.round((currentState.consecutive_duty_days / 7) * 55 + 15))
-    : 61;
-  const restBalancePct = currentState.avg_sleep_hours
-    ? Math.min(100, Math.round((currentState.avg_sleep_hours / 8) * 85))
+  const dutyLoadPct = currentState.consecutive_duty_days !== undefined
+    ? Math.min(100, Math.max(10, Math.round((currentState.consecutive_duty_days / 7) * 55 + 15)))
+    : (wellbeing?.risk_score ? Math.round(wellbeing.risk_score * 100) : 50);
+  const restBalancePct = currentState.avg_sleep_hours !== undefined
+    ? Math.min(100, Math.max(10, Math.round((currentState.avg_sleep_hours / 8) * 85)))
     : 75;
-  const consecutiveDays = currentState.consecutive_duty_days || 3;
+  const consecutiveDays = currentState.consecutive_duty_days !== undefined ? currentState.consecutive_duty_days : 0;
   const nightShiftsCount =
-    currentState.night_shifts_14d !== undefined ? currentState.night_shifts_14d : 1;
+    currentState.night_shifts_14d !== undefined ? currentState.night_shifts_14d : 0;
 
   // Recent changes formatted in basic, soldier-friendly English
   const recentChanges = whatChanged?.changed_factors?.slice(0, 3).map((f: any) => {
@@ -140,29 +140,21 @@ export default function PersonnelWellbeingPage() {
       title: formatted.title,
       explanation: formatted.detail,
     };
-  }) || [
-    { title: "Duty load normal", explanation: "Regular shift rotation and recovery schedule." },
-    { title: "Night shifts balanced", explanation: "Standard night patrol schedule." },
-    { title: "Rest pattern stable", explanation: "Normal rest hours between shifts." },
-  ];
+  }) || [];
 
-  // 14-day calm rest and recovery trend
-  const trendDays = [
-    { day: "14d", label: "14d ago", score: 65, hours: "5.5 hrs", status: "Night Duty" },
-    { day: "13d", label: "13d ago", score: 62, hours: "5.2 hrs", status: "Night Duty" },
-    { day: "12d", label: "12d ago", score: 68, hours: "6.0 hrs", status: "Day Patrol" },
-    { day: "11d", label: "11d ago", score: 70, hours: "6.2 hrs", status: "Day Patrol" },
-    { day: "10d", label: "10d ago", score: 60, hours: "5.0 hrs", status: "Night Shift" },
-    { day: "9d", label: "9d ago", score: 64, hours: "5.4 hrs", status: "Night Shift" },
-    { day: "8d", label: "8d ago", score: 72, hours: "6.5 hrs", status: "Day Patrol" },
-    { day: "7d", label: "7d ago", score: 75, hours: "6.8 hrs", status: "Day Patrol" },
-    { day: "6d", label: "6d ago", score: 78, hours: "7.0 hrs", status: "Regular Shift" },
-    { day: "5d", label: "5d ago", score: 82, hours: "7.2 hrs", status: "Off-duty Rest" },
-    { day: "4d", label: "4d ago", score: 85, hours: "7.5 hrs", status: "Stand-down" },
-    { day: "3d", label: "3d ago", score: 80, hours: "7.1 hrs", status: "Regular Shift" },
-    { day: "2d", label: "2d ago", score: 84, hours: "7.4 hrs", status: "Regular Shift" },
-    { day: "Today", label: "Today", score: 88, hours: "7.8 hrs", status: "Rest Stabilized" },
-  ];
+  // 14-day calm rest and recovery trend derived dynamically from backend database
+  const trendDays = (wellbeing?.daily_14d_trend && wellbeing.daily_14d_trend.length > 0)
+    ? wellbeing.daily_14d_trend
+    : Array.from({ length: 14 }).map((_, idx) => {
+        const dAgo = 13 - idx;
+        return {
+          day: dAgo === 0 ? "Today" : `${dAgo}d`,
+          label: dAgo === 0 ? "Today" : `${dAgo}d ago`,
+          score: restBalancePct || 75,
+          hours: `${currentState?.avg_sleep_hours || 7.0} hrs`,
+          status: "Regular Duty",
+        };
+      });
 
   if (loading && !wellbeing) {
     return (
@@ -376,7 +368,7 @@ export default function PersonnelWellbeingPage() {
 
               {/* Flex Bar Columns */}
               <div className="h-32 flex items-end justify-between gap-1 sm:gap-2 relative z-10 pt-4">
-                {trendDays.map((item, idx) => {
+                {trendDays.map((item: any, idx: number) => {
                   const isToday = idx === trendDays.length - 1;
                   const isHighRest = item.score >= 80;
                   return (

@@ -12,11 +12,38 @@ from sklearn.metrics import (
     average_precision_score,
 )
 from ml.feature_engineering import FEATURE_COLUMNS
+from ml.cohort_builder import build_cohort_templates
 
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "model")
 MODEL_PATH = os.path.join(MODEL_DIR, "xgb_model.json")
 COLUMNS_PATH = os.path.join(MODEL_DIR, "feature_columns.json")
 META_PATH = os.path.join(MODEL_DIR, "model_meta.json")
+COHORTS_PATH = os.path.join(MODEL_DIR, "cohort_templates.json")
+
+# XGBoost Monotonic Domain Constraints
+# +1: Increasing feature must NOT decrease predicted risk (operational risk driver)
+# -1: Increasing feature must NOT increase predicted risk (protective wellness factor)
+#  0: Unconstrained (complex/non-linear relationship)
+MONOTONE_CONSTRAINTS = {
+    # Operational strain & administrative drivers (+1)
+    "leave_denial_rate_6m": 1,
+    "consecutive_duty_days": 1,
+    "night_shift_density_14d": 1,
+    "avg_hours_per_day_14d": 1,
+    "stress_level_avg_7d": 1,
+    "stress_level_avg_14d": 1,
+    "unit_buddy_signals_4w": 1,
+    "unit_buddy_avg_concern": 1,
+
+    # Protective wellness factors (-1)
+    "sleep_quality_avg_7d": -1,
+    "sleep_hours_avg_7d": -1,
+    "mood_score_avg_7d": -1,
+    "energy_level_avg_7d": -1,
+    "social_connection_avg_7d": -1,
+}
+MONOTONE_CONSTRAINTS_TUPLE = tuple(MONOTONE_CONSTRAINTS.get(col, 0) for col in FEATURE_COLUMNS)
+MONOTONE_CONSTRAINTS_STR = str(MONOTONE_CONSTRAINTS_TUPLE).replace(" ", "")
 
 def compute_expected_calibration_error(y_true: np.ndarray, y_prob: np.ndarray, n_bins: int = 10) -> float:
     """
@@ -125,12 +152,15 @@ def train_model(
             n_estimators=200,
             max_depth=4,
             learning_rate=0.03,
-            subsample=0.85,
-            colsample_bytree=0.85,
+            subsample=0.80,
+            colsample_bytree=0.65,
+            colsample_bylevel=0.70,
+            colsample_bynode=0.70,
             gamma=0.1,
             reg_alpha=0.05,
             reg_lambda=1.0,
             scale_pos_weight=min(pos_weight, 8.0),
+            monotone_constraints=MONOTONE_CONSTRAINTS_STR,
             eval_metric="logloss",
             random_state=42 + fold,
             enable_categorical=False
@@ -189,12 +219,15 @@ def train_model(
         n_estimators=250,
         max_depth=4,
         learning_rate=0.03,
-        subsample=0.85,
-        colsample_bytree=0.85,
+        subsample=0.80,
+        colsample_bytree=0.65,
+        colsample_bylevel=0.70,
+        colsample_bynode=0.70,
         gamma=0.1,
         reg_alpha=0.05,
         reg_lambda=1.0,
         scale_pos_weight=min(pos_weight, 8.0),
+        monotone_constraints=MONOTONE_CONSTRAINTS_STR,
         eval_metric="logloss",
         random_state=42,
         enable_categorical=False
@@ -203,6 +236,13 @@ def train_model(
 
     # Save native XGBoost model
     final_model.save_model(model_path)
+
+    # 5. Clustering operational cohorts for Cold-Start bootstrapping
+    print("[COHORTS] Clustering operational cohorts for Cold-Start bootstrapping...")
+    cohort_templates = build_cohort_templates(feature_df, n_clusters=6)
+    with open(COHORTS_PATH, "w") as f:
+        json.dump(cohort_templates, f, indent=2)
+    print(f"[COHORTS] Successfully built and serialized {len(cohort_templates)} operational cohort templates to {COHORTS_PATH}.")
 
     # Extract feature importances
     booster = final_model.get_booster()
@@ -282,7 +322,19 @@ def train_model(
             "orange": [0.50, 0.75],
             "red": [0.75, 1.0]
         },
-        "top_predictive_features": feature_rankings[:12]
+        "top_predictive_features": feature_rankings[:12],
+        "monotone_constraints": {
+            feat: MONOTONE_CONSTRAINTS[feat] for feat in FEATURE_COLUMNS if feat in MONOTONE_CONSTRAINTS
+        },
+        "cold_start_cohorts": [
+            {
+                "name": c["name"],
+                "rank_category": c["rank_category"],
+                "area_type": c["area_type"],
+                "sample_size": c["sample_size"]
+            }
+            for c in cohort_templates
+        ]
     }
 
     with open(META_PATH, "w") as f:

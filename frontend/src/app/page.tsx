@@ -330,7 +330,8 @@ export default function HomePage() {
                   <form
                     onSubmit={(e) => {
                       e.preventDefault();
-                      const target = trackRef.trim() || "PRH-2026-000184";
+                      const target = trackRef.trim();
+                      if (!target) return;
                       if (!user) {
                         window.location.href = `/login?redirect=${encodeURIComponent(`/track?ref=${target}`)}`;
                       } else {
@@ -344,16 +345,17 @@ export default function HomePage() {
                         type="text"
                         value={trackRef}
                         onChange={(e) => setTrackRef(e.target.value)}
-                        placeholder="e.g. PRH-2026-000184"
+                        placeholder="Enter reference ID"
                         className="w-full px-3 py-2 text-xs uppercase font-mono tracking-wider bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0c3866]"
                       />
                       <span className="text-[10px] text-slate-400 mt-1 block">
-                        Standard Reference: PRH-2026-XXXXXX
+                        Official Format: PRH-XXXXXX
                       </span>
                     </div>
                     <button
                       type="submit"
-                      className="w-full py-2 bg-[#0c3866] hover:bg-[#072648] text-white text-xs font-bold rounded flex items-center justify-center gap-1.5 shadow-sm transition-colors"
+                      disabled={!trackRef.trim()}
+                      className="w-full py-2 bg-[#0c3866] hover:bg-[#072648] disabled:opacity-50 text-white text-xs font-bold rounded flex items-center justify-center gap-1.5 shadow-sm transition-colors"
                     >
                       <Search className="w-3.5 h-3.5" />
                       <span>{t.hero.quickCheck.btn}</span>
@@ -361,12 +363,12 @@ export default function HomePage() {
                   </form>
 
                   <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                    <span>{t.hero.quickCheck.sampleLabel}:</span>
+                    <span>Self-Service Portal:</span>
                     <Link
-                      href={user ? "/track?ref=PRH-2026-000184" : "/login?redirect=/track?ref=PRH-2026-000184"}
-                      className="font-mono font-bold text-[#0c3866] hover:underline"
+                      href={user ? "/portal/requests" : "/login?redirect=/portal/requests"}
+                      className="font-semibold text-[#0c3866] hover:underline"
                     >
-                      PRH-2026-000184
+                      View All My Requests &rarr;
                     </Link>
                   </div>
                 </div>
@@ -829,7 +831,7 @@ export default function HomePage() {
                     </p>
                   </div>
                   <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-[#0c3866]">
-                    <span><span>Apply for Leave</span></span>
+                    <span>Apply for Leave</span>
                     {user ? (
                       <ArrowRight className="w-4 h-4 group-hover-arrow" />
                     ) : (
@@ -860,7 +862,7 @@ export default function HomePage() {
                       </p>
                   </div>
                   <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-red-700">
-                    <span><span>Emergency SOS (12h)</span></span>
+                    <span>Emergency SOS (12h)</span>
                     {user ? (
                       <ArrowRight className="w-4 h-4 group-hover-arrow" />
                     ) : (
@@ -886,7 +888,7 @@ export default function HomePage() {
                     </p>
                   </div>
                   <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-emerald-700">
-                    <span><span>Request Support</span></span>
+                    <span>Request Support</span>
                     {user ? (
                       <ArrowRight className="w-4 h-4 group-hover-arrow" />
                     ) : (
@@ -912,7 +914,7 @@ export default function HomePage() {
                     </p>
                   </div>
                   <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-amber-800">
-                    <span><span>File Grievance</span></span>
+                    <span>File Grievance</span>
                     {user ? (
                       <ArrowRight className="w-4 h-4 group-hover-arrow" />
                     ) : (
@@ -934,7 +936,7 @@ export default function HomePage() {
                   </h2>
                 </div>
                 <p className="max-w-md text-xs text-slate-600">
-                  Officially sourced force and public-service imagery used to keep the portal grounded in its national mission.
+                  Central Armed Police Forces personnel serving across operational sectors nationwide.
                 </p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -955,82 +957,6 @@ export default function HomePage() {
                     <figcaption className="px-4 py-3 text-xs font-bold text-slate-800">{image.label}</figcaption>
                   </figure>
                 ))}
-              </div>
-            </section>
-
-            {/* ========================================================================= */}
-            {/* NEXT-GEN INNOVATIONS (NIC STYLE: `emerging-technology`)                    */}
-            {/* ========================================================================= */}
-            <section className="space-y-6">
-              <div className="text-center space-y-1">
-                <span className="text-[11px] font-bold tracking-widest text-[#29136C] uppercase font-heading">
-                  Next-Gen Innovations
-                </span>
-                <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 font-heading">
-                  Emerging Technologies for Force Welfare
-                </h2>
-                <p className="text-xs text-slate-600 max-w-xl mx-auto">
-                  Architected with clinical safety guardrails, statutory record integrity, and duty rest safeguards.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Innovation 1 */}
-                <div className="nic-card hover-lift active-press animate-fade-in-up stagger-1 p-6 bg-white space-y-3 border-t-4 border-t-[#29136C] group">
-                  <div className="w-10 h-10 rounded-lg bg-indigo-50 text-[#29136C] flex items-center justify-center font-bold group-hover-bounce">
-                    <Cpu className="w-5 h-5" />
-                  </div>
-                  <h3 className="text-base font-bold text-slate-900 font-heading group-hover:text-[#29136C] transition-colors">
-                    {t.innovations.guardrails.title}
-                  </h3>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    Automatic clinical sanitization compliant with Mental Healthcare Act 2017 (Section 21 and Section 115). Converts clinical diagnosis terms into non-stigmatizing operational stress terminology.
-                  </p>
-                  <div className="pt-2">
-                    <span className="text-[11px] font-bold text-[#29136C] flex items-center gap-1">
-                      <span>MHA Section 21 Compliant</span>
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    </span>
-                  </div>
-                </div>
-
-                {/* Innovation 2 */}
-                <div className="nic-card hover-lift active-press animate-fade-in-up stagger-2 p-6 bg-white space-y-3 border-t-4 border-t-emerald-600 group">
-                  <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold group-hover-bounce">
-                    <Scale className="w-5 h-5" />
-                  </div>
-                  <h3 className="text-base font-bold text-slate-900 font-heading group-hover:text-emerald-700 transition-colors">
-                    {t.innovations.uro.title}
-                  </h3>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    Mixed-integer shift optimization enforcing strict trade compatibility (GD to GD, Armorer to Armorer), rolling 8-hour rest barriers, and unit fairness caps.
-                  </p>
-                  <div className="pt-2">
-                    <Link href="/what-if" className="text-[11px] font-bold text-emerald-700 hover:underline flex items-center gap-1">
-                      <span>Explore Tactical Roster Engine</span>
-                      <ArrowRight className="w-3.5 h-3.5 group-hover-arrow" />
-                    </Link>
-                  </div>
-                </div>
-
-                {/* Innovation 3 */}
-                <div className="nic-card hover-lift active-press animate-fade-in-up stagger-3 p-6 bg-white space-y-3 border-t-4 border-t-amber-600 group">
-                  <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-800 flex items-center justify-center font-bold group-hover-bounce">
-                    <Database className="w-5 h-5" />
-                  </div>
-                  <h3 className="text-base font-bold text-slate-900 font-heading group-hover:text-amber-800 transition-colors">
-                    Cryptographic Audit Ledger
-                  </h3>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    SHA-256 block hash chaining for all administrative actions. Meets Section 63 of Bharatiya Sakshya Adhiniyam 2023 for Court of Inquiry electronic record admissibility.
-                  </p>
-                  <div className="pt-2">
-                    <Link href={getServiceLink("/admin")} className="text-[11px] font-bold text-amber-800 hover:underline flex items-center gap-1">
-                      <span>Verify Ledger Integrity (SHA-256)</span>
-                      <ArrowRight className="w-3.5 h-3.5 group-hover-arrow" />
-                    </Link>
-                  </div>
-                </div>
               </div>
             </section>
 

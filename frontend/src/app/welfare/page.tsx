@@ -13,6 +13,7 @@ import { CopilotDrawer } from "@/components/CopilotDrawer";
 import { PrahariVaniSimulator } from "@/components/PrahariVaniSimulator";
 import { EvidenceConflictModal } from "@/components/EvidenceConflictModal";
 import { TrendAnalysisModal } from "@/components/TrendAnalysisModal";
+import { InterventionEffectivenessModal } from "@/components/InterventionEffectivenessModal";
 import { playSuccessChime, playTacticalClick } from "@/lib/sound";
 import { formatTrigger, formatRecoveryStatus } from "@/lib/formatters";
 import {
@@ -63,6 +64,7 @@ export default function WelfarePage() {
   // Modals
   const [isConflictOpen, setIsConflictOpen] = useState(false);
   const [isTrendOpen, setIsTrendOpen] = useState(false);
+  const [isEffectivenessOpen, setIsEffectivenessOpen] = useState(false);
 
   // Closed-loop Reassessment
   const [reassessing, setReassessing] = useState(false);
@@ -325,7 +327,7 @@ export default function WelfarePage() {
             </span>
             <span className="text-xs font-bold px-2 py-0.5 rounded bg-cyan-50 text-cyan-900 border border-cyan-300 font-mono hidden sm:inline-flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
-              <span>{dbStats?.personnel || "1,001"} Troopers · {dbStats?.cases || "57"} Dockets · {dbStats?.surveys ? Number(dbStats.surveys).toLocaleString() : "79,666"} Surveys Connected</span>
+              <span>{dbStats?.personnel ? Number(dbStats.personnel).toLocaleString() : cases.length} Troopers · {dbStats?.cases ?? cases.length} Dockets · {dbStats?.surveys ? Number(dbStats.surveys).toLocaleString() : "Active"} Telemetry Records Connected</span>
             </span>
           </div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight mt-1.5">
@@ -355,6 +357,32 @@ export default function WelfarePage() {
             <CalendarCheck className="w-3.5 h-3.5 text-amber-300" />
             <span>Shift Swapper (URO)</span>
           </Link>
+          <Link
+            href="/welfare/reintegration"
+            onClick={() => playTacticalClick()}
+            className="px-3 py-1.5 rounded bg-cyan-50 hover:bg-cyan-100 text-cyan-900 border border-cyan-300 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-colors"
+          >
+            <CalendarCheck className="w-3.5 h-3.5 text-cyan-700" />
+            <span>Reintegration Windows</span>
+          </Link>
+          <Link
+            href="/welfare/notes"
+            onClick={() => playTacticalClick()}
+            className="px-3 py-1.5 rounded bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-300 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-colors"
+          >
+            <FileText className="w-3.5 h-3.5 text-purple-700" />
+            <span>Secure Case Notes</span>
+          </Link>
+          <button
+            onClick={() => {
+              playTacticalClick();
+              setIsEffectivenessOpen(true);
+            }}
+            className="px-3 py-1.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-colors"
+          >
+            <Award className="w-3.5 h-3.5 text-emerald-700" />
+            <span>Effectiveness Registry</span>
+          </button>
           <Link
             href="/welfare/what-if"
             onClick={() => playTacticalClick()}
@@ -603,7 +631,9 @@ export default function WelfarePage() {
                     <span className="text-sm font-black text-amber-300">
                       {selectedCaseDetail.latest_prediction?.prob_7d !== undefined
                         ? `${(selectedCaseDetail.latest_prediction.prob_7d * 100).toFixed(0)}%`
-                        : "24%"}
+                        : selectedCaseDetail.latest_prediction?.risk_score !== undefined
+                        ? `${((selectedCaseDetail.latest_prediction.risk_score * 0.85) * 100).toFixed(0)}%`
+                        : "—"}
                     </span>
                   </div>
                   <div className="p-2 bg-white/10 rounded">
@@ -611,7 +641,9 @@ export default function WelfarePage() {
                     <span className="text-sm font-black text-white">
                       {selectedCaseDetail.latest_prediction?.prob_14d !== undefined
                         ? `${(selectedCaseDetail.latest_prediction.prob_14d * 100).toFixed(0)}%`
-                        : `${((selectedCaseDetail.latest_prediction?.risk_score || 0.25) * 100).toFixed(0)}%`}
+                        : selectedCaseDetail.latest_prediction?.risk_score !== undefined
+                        ? `${(selectedCaseDetail.latest_prediction.risk_score * 100).toFixed(0)}%`
+                        : "—"}
                     </span>
                   </div>
                   <div className="p-2 bg-white/10 rounded">
@@ -619,7 +651,9 @@ export default function WelfarePage() {
                     <span className="text-sm font-black text-slate-300">
                       {selectedCaseDetail.latest_prediction?.prob_30d !== undefined
                         ? `${(selectedCaseDetail.latest_prediction.prob_30d * 100).toFixed(0)}%`
-                        : "28%"}
+                        : selectedCaseDetail.latest_prediction?.risk_score !== undefined
+                        ? `${((selectedCaseDetail.latest_prediction.risk_score * 1.1) * 100).toFixed(0)}%`
+                        : "—"}
                     </span>
                   </div>
                 </div>
@@ -667,7 +701,7 @@ export default function WelfarePage() {
                   <span className="text-sm font-bold text-[#0c3866] mt-0.5 block">
                     {selectedCaseDetail.latest_prediction?.data_quality !== undefined
                       ? `${(selectedCaseDetail.latest_prediction.data_quality * 100).toFixed(0)}%`
-                      : "85%"}
+                      : "—"}
                   </span>
                   <span className="text-[10px] text-slate-400">Feature Density</span>
                 </div>
@@ -952,6 +986,12 @@ export default function WelfarePage() {
       <PrahariVaniSimulator
         isOpen={showVaniSimulator}
         onClose={() => setShowVaniSimulator(false)}
+      />
+
+      {/* Section 28: Intervention Effectiveness Registry Modal */}
+      <InterventionEffectivenessModal
+        isOpen={isEffectivenessOpen}
+        onClose={() => setIsEffectivenessOpen(false)}
       />
     </div>
   );

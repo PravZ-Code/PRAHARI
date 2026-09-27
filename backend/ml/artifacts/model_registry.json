@@ -1,42 +1,42 @@
 {
   "model_id": "PRAHARI-XGB-V2-DEFENSE",
   "architecture": "Calibrated Regularized Gradient Boosted Trees (XGBoost 3.4)",
-  "trained_at": "2026-09-21T12:44:36.341584+00:00",
-  "sample_size_troopers": 1000,
+  "trained_at": "2026-09-22T17:12:54.565341+00:00",
+  "sample_size_troopers": 6030,
   "training_horizon_days": 180,
-  "total_observations": 14000,
+  "total_observations": 84420,
   "primary_metrics": {
-    "auroc": 1.0,
-    "pr_auc": 1.0,
-    "f1_score": 0.991,
-    "brier_score": 0.001,
-    "expected_calibration_error": 0.001,
+    "auroc": 0.9684,
+    "pr_auc": 0.9352,
+    "f1_score": 0.8564,
+    "brier_score": 0.0474,
+    "expected_calibration_error": 0.0115,
     "false_positive_rate_green": 0.008
   },
   "calibration_bins": [
     {
       "bin": "0.0 - 0.25 (Green)",
-      "predicted_prob": 0.0,
-      "empirical_prob": 0.0,
-      "count": 944
+      "predicted_prob": 0.035,
+      "empirical_prob": 0.037,
+      "count": 4522
     },
     {
       "bin": "0.25 - 0.50 (Yellow)",
-      "predicted_prob": 0.375,
-      "empirical_prob": 0.375,
-      "count": 0
+      "predicted_prob": 0.379,
+      "empirical_prob": 0.384,
+      "count": 242
     },
     {
       "bin": "0.50 - 0.75 (Orange)",
-      "predicted_prob": 0.625,
-      "empirical_prob": 0.625,
-      "count": 0
+      "predicted_prob": 0.609,
+      "empirical_prob": 0.552,
+      "count": 192
     },
     {
       "bin": "0.75 - 1.0 (Red)",
-      "predicted_prob": 1.0,
-      "empirical_prob": 0.982,
-      "count": 56
+      "predicted_prob": 0.962,
+      "empirical_prob": 0.965,
+      "count": 1074
     }
   ],
   "subgroup_fairness_audit": {
@@ -63,34 +63,34 @@
   },
   "top_global_shap_factors": [
     {
-      "feature": "sleep_quality_avg_7d",
-      "display": "Sleep Quality Avg 7D",
-      "mean_abs_shap": 1.169
-    },
-    {
-      "feature": "sleep_quality_avg_14d",
-      "display": "Sleep Quality Avg 14D",
-      "mean_abs_shap": 0.987
-    },
-    {
-      "feature": "mood_score_avg_7d",
-      "display": "Mood Score Avg 7D",
-      "mean_abs_shap": 0.212
-    },
-    {
-      "feature": "mood_score_avg_14d",
-      "display": "Mood Score Avg 14D",
-      "mean_abs_shap": 0.009
-    },
-    {
-      "feature": "sleep_hours_avg_7d",
-      "display": "Sleep Hours Avg 7D",
-      "mean_abs_shap": 0.008
+      "feature": "energy_level_avg_7d",
+      "display": "Energy Level Avg 7D",
+      "mean_abs_shap": 1.396
     },
     {
       "feature": "social_connection_avg_7d",
       "display": "Social Connection Avg 7D",
-      "mean_abs_shap": 0.008
+      "mean_abs_shap": 1.367
+    },
+    {
+      "feature": "stress_level_avg_14d",
+      "display": "Stress Level Avg 14D",
+      "mean_abs_shap": 1.005
+    },
+    {
+      "feature": "leave_denial_rate_6m",
+      "display": "Leave Denial Rate 6M",
+      "mean_abs_shap": 0.858
+    },
+    {
+      "feature": "appetite_score_avg_7d",
+      "display": "Appetite Score Avg 7D",
+      "mean_abs_shap": 0.608
+    },
+    {
+      "feature": "stress_level_avg_7d",
+      "display": "Stress Level Avg 7D",
+      "mean_abs_shap": 0.5
     }
   ]
 }

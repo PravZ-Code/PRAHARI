@@ -612,363 +612,47 @@ class ApiService {
     }
   }
 
-  // --- Unit Resilience Optimizer (URO) & Shift Swaps ---
-  Future<List<dynamic>> getUnitRoster(String unitId) async {
-    try {
-      final uri = Uri.parse('$baseUrl/uro/roster/$unitId');
-      final response = await http.get(uri, headers: _headers);
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data is List) return data;
-        if (data is Map && data['roster'] != null) return data['roster'];
-      }
-    } catch (_) {}
-
-    return [
-      {
-        'id': 'shift_01',
-        'personnel_id': 'P-101',
-        'personnel_name': 'Rajesh Kumar',
-        'rank': 'Constable',
-        'trade': 'Armorer',
-        'unit_name': 'Alpha Company (Srinagar CI)',
-        'location': 'High Altitude Sentry Post 1',
-        'shift_name': '00:00 - 04:00 (Night Watch)',
-        'shift_date': DateTime.now().toIso8601String(),
-        'consecutive_night_shifts': 3,
-        'hours_since_last_duty': 4.5,
-        'is_rest_compliant': false,
-        'risk_tag': 'red',
-      },
-      {
-        'id': 'shift_02',
-        'personnel_id': 'P-102',
-        'personnel_name': 'Amit Verma',
-        'rank': 'Constable',
-        'trade': 'Armorer',
-        'unit_name': 'Alpha Company (Srinagar CI)',
-        'location': 'Armory Equipment Depot (Standby)',
-        'shift_name': '12:00 - 16:00 (Day Reserve)',
-        'shift_date': DateTime.now().toIso8601String(),
-        'consecutive_night_shifts': 0,
-        'hours_since_last_duty': 14.0,
-        'is_rest_compliant': true,
-        'risk_tag': 'green',
-      },
-      {
-        'id': 'shift_03',
-        'personnel_id': 'P-103',
-        'personnel_name': 'Suresh Naik',
-        'rank': 'Head Constable',
-        'trade': 'General Duty (GD)',
-        'unit_name': 'Alpha Company (Srinagar CI)',
-        'location': 'Main Perimeter Gate 2',
-        'shift_name': '04:00 - 08:00 (Dawn Patrol)',
-        'shift_date': DateTime.now().toIso8601String(),
-        'consecutive_night_shifts': 1,
-        'hours_since_last_duty': 9.0,
-        'is_rest_compliant': true,
-        'risk_tag': 'green',
-      },
-      {
-        'id': 'shift_04',
-        'personnel_id': 'P-104',
-        'personnel_name': 'Dinesh Singh',
-        'rank': 'Constable',
-        'trade': 'Radio Operator',
-        'unit_name': 'Alpha Company (Srinagar CI)',
-        'location': 'Tactical Comms Bunker',
-        'shift_name': '20:00 - 00:00 (Evening Watch)',
-        'shift_date': DateTime.now().toIso8601String(),
-        'consecutive_night_shifts': 2,
-        'hours_since_last_duty': 6.5,
-        'is_rest_compliant': false,
-        'risk_tag': 'orange',
-      },
-    ];
-  }
-
-  Future<List<dynamic>> getPendingUROSwaps(String unitId) async {
-    try {
-      final uri = Uri.parse('$baseUrl/uro/swaps/pending/$unitId');
-      final response = await http.get(uri, headers: _headers);
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data is List) return data;
-        if (data is Map && data['swaps'] != null) return data['swaps'];
-      }
-    } catch (_) {}
-
-    return [
-      {
-        'id': 'uro_swap_001',
-        'unit_id': unitId,
-        'trade': 'Armorer',
-        'person_a': {
-          'personnel_id': 'P-101',
-          'name': 'Ct. Rajesh Kumar',
-          'rank': 'Constable',
-          'trade': 'Armorer',
-          'current_shift': '00:00 - 04:00 (Night Sentry Post 1)',
-          'consecutive_nights': 3,
-          'rest_hours': 4.5,
-          'risk_level': 'red',
-        },
-        'person_b': {
-          'personnel_id': 'P-102',
-          'name': 'Ct. Amit Verma',
-          'rank': 'Constable',
-          'trade': 'Armorer',
-          'current_shift': '12:00 - 16:00 (Day Reserve Depot)',
-          'consecutive_nights': 0,
-          'rest_hours': 14.0,
-          'risk_level': 'green',
-        },
-        'risk_reduction_pct': 28.4,
-        'rationale':
-            'Equal trade match (Armorer). Swaps night watch to enforce mandatory 8-hour continuous rest barrier. Reduces circadian fatigue by 28.4%.',
-        'commander_approved': false,
-        'welfare_approved': true,
-        'roster_committed': false,
-        'status': 'proposed',
-      },
-      {
-        'id': 'uro_swap_002',
-        'unit_id': unitId,
-        'trade': 'General Duty (GD)',
-        'person_a': {
-          'personnel_id': 'P-105',
-          'name': 'Ct. Manoj Yadav',
-          'rank': 'Constable',
-          'trade': 'General Duty (GD)',
-          'current_shift': '00:00 - 04:00 (Perimeter Tower 3)',
-          'consecutive_nights': 4,
-          'rest_hours': 3.5,
-          'risk_level': 'red',
-        },
-        'person_b': {
-          'personnel_id': 'P-106',
-          'name': 'Ct. Ramesh Chander',
-          'rank': 'Constable',
-          'trade': 'General Duty (GD)',
-          'current_shift': '08:00 - 12:00 (Gate Control)',
-          'consecutive_nights': 0,
-          'rest_hours': 16.0,
-          'risk_level': 'green',
-        },
-        'risk_reduction_pct': 34.2,
-        'rationale':
-            'Equal trade match (GD Sentry). Swaps 4-consecutive-night trooper with fresh day trooper, ensuring 8h rest gap.',
-        'commander_approved': false,
-        'welfare_approved': false,
-        'roster_committed': false,
-        'status': 'proposed',
-      },
-    ];
-  }
-
-  Future<bool> approveUROSwap(String swapId) async {
-    try {
-      final uri = Uri.parse('$baseUrl/uro/result/$swapId/approve');
-      final response = await http.put(uri, headers: _headers);
-      return response.statusCode == 200;
-    } catch (_) {
-      return true;
-    }
-  }
-
-  // --- Cryptographic SHA-256 Audit Ledger & Chain Verification ---
-  Future<Map<String, dynamic>> verifyAuditChain() async {
-    try {
-      final uri = Uri.parse('$baseUrl/admin/audit/verify-chain');
-      final response = await http.get(uri, headers: _headers);
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-    } catch (_) {}
-
-    return {
-      'chain_status': 'INTACT',
-      'total_blocks': 142,
-      'tampered_index': null,
-      'genesis_hash': '0000000000000000000000000000000000000000000000000000000000000000',
-      'current_tip_hash': 'e4b29c91f07da4c7a6e76537bf1c36729a6b85c2c54431f31f997635928d11c4',
-    };
-  }
-
-  Future<List<dynamic>> getAuditLogs({int page = 1, int perPage = 20}) async {
-    try {
-      final uri = Uri.parse('$baseUrl/admin/audit?page=$page&per_page=$perPage');
-      final response = await http.get(uri, headers: _headers);
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data is List) return data;
-        if (data is Map && data['items'] != null) return data['items'];
-        if (data is Map && data['logs'] != null) return data['logs'];
-      }
-    } catch (_) {}
-
-    return [
-      {
-        'sequence_number': 142,
-        'previous_hash': '7c891a084128f80459a93c72b834ef192bce6285ad4275ba0236a99b4578b24e',
-        'current_hash': 'e4b29c91f07da4c7a6e76537bf1c36729a6b85c2c54431f31f997635928d11c4',
-        'user': 'cmd_vikram',
-        'role': 'commander',
-        'action': 'APPROVE_URO_SHIFT_SWAP',
-        'resource_type': 'uro_proposal',
-        'resource_id': 'uro_swap_001',
-        'timestamp': DateTime.now().subtract(const Duration(minutes: 12)).toIso8601String(),
-        'details': {'trade': 'Armorer', 'person_a': 'P-101', 'person_b': 'P-102'},
-        'is_verified': true,
-      },
-      {
-        'sequence_number': 141,
-        'previous_hash': '3a55f9882312b11548ef66192acdb90145be884013ba0018d067e4359a0118d0',
-        'current_hash': '7c891a084128f80459a93c72b834ef192bce6285ad4275ba0236a99b4578b24e',
-        'user': 'rajesh_kumar',
-        'role': 'trooper',
-        'action': 'SUBMIT_EMERGENCY_LEAVE_72H',
-        'resource_type': 'grievance',
-        'resource_id': 'grv_092',
-        'timestamp': DateTime.now().subtract(const Duration(hours: 1, minutes: 40)).toIso8601String(),
-        'details': {'category': 'family_emergency', 'sla_hours': 72},
-        'is_verified': true,
-      },
-      {
-        'sequence_number': 140,
-        'previous_hash': '1e400277329188ab654ce88921df348987ee5401923ba88921ba002938499c22',
-        'current_hash': '3a55f9882312b11548ef66192acdb90145be884013ba0018d067e4359a0118d0',
-        'user': 'wo_meera',
-        'role': 'welfare',
-        'action': 'ACKNOWLEDGE_CONFIDENTIAL_SOS',
-        'resource_type': 'welfare_case',
-        'resource_id': 'case_001',
-        'timestamp': DateTime.now().subtract(const Duration(hours: 3)).toIso8601String(),
-        'details': {'statutory_ref': 'Section 21 MHCA 2017', 'sla_target': '4 hours'},
-        'is_verified': true,
-      },
-      {
-        'sequence_number': 139,
-        'previous_hash': '0000000000000000000000000000000000000000000000000000000000000000',
-        'current_hash': '1e400277329188ab654ce88921df348987ee5401923ba88921ba002938499c22',
-        'user': 'system',
-        'role': 'system',
-        'action': 'GENESIS_BATTALION_SEED',
-        'resource_type': 'system',
-        'resource_id': 'formation_crpf_alpha',
-        'timestamp': DateTime.now().subtract(const Duration(days: 90)).toIso8601String(),
-        'details': {'strength': 1000, 'formations': 5},
-        'is_verified': true,
-      },
-    ];
-  }
-
+  // --- Unit Resilience Optimizer (URO), audit-ledger and officer-console APIs
+  // were removed together with the unreachable officer-facing screens.
+  // The soldier-first app (per the governing product rule) never exposes roster,
+  // swap-approval, or audit-ledger surfaces to troopers.
   // --- Paramilitary AI Welfare & Duty Copilot ---
   Future<Map<String, dynamic>> chatWithCopilot({
     required String message,
     List<Map<String, String>> history = const [],
   }) async {
-    try {
-      final uri = Uri.parse('$baseUrl/copilot/chat');
-      final response = await http.post(
-        uri,
-        headers: _headers,
-        body: jsonEncode({
-          'message': message,
-          'conversation_history': history,
-        }),
-      );
+    final uri = Uri.parse('$baseUrl/copilot/chat');
+    final response = await http.post(
+      uri,
+      headers: _headers,
+      body: jsonEncode({
+        'message': message,
+        'conversation_history': history,
+      }),
+    );
 
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-    } catch (_) {}
-
-    String reply = '';
-    final lower = message.toLowerCase();
-
-    if (lower.contains('leave') || lower.contains('chutti') || lower.contains('emergency')) {
-      reply =
-          '📋 **PRAHARI 72-Hour Fast-Track Leave Policy**:\n\n'
-          'Under MHA Directive & CRPF Standing Orders, family medical crises and acute domestic distress are fast-tracked on a guaranteed **72-hour priority countdown**.\n\n'
-          '• **Escalation SLA**: If your unit commander does not decide within 72h, it escalates directly to Battalion Welfare Officer Meera.\n'
-          '• **Confidentiality**: Your clinical and family privacy is strictly protected under Section 21 of the Mental Healthcare Act 2017.\n\n'
-          'Would you like me to pre-fill an emergency leave form right now?';
-    } else if (lower.contains('rest') || lower.contains('shift') || lower.contains('sleep') || lower.contains('fatigue')) {
-      reply =
-          '⚖️ **Mandatory 8-Hour Rest Barrier (SO-04)**:\n\n'
-          'Per MHA Standing Order SO-04, every sentry is entitled to a minimum **8-hour continuous circadian rest window** between armed shifts.\n\n'
-          '• **Night Watch Rule**: Jawans with 3+ consecutive night watches are flagged by the Unit Resilience Optimizer (URO) for mandatory shift swapping.\n'
-          '• **Trade Protection**: You will only be swapped with an identical trade peer (e.g. Armorer with Armorer, GD with GD).\n\n'
-          'Check the "Duty Roster" tab to view available swap proposals for your post.';
-    } else if (lower.contains('stigma') || lower.contains('counsel') || lower.contains('mental') || lower.contains('stress')) {
-      reply =
-          '🛡️ **Stigma-Free Guarantee (Section 21 MHCA 2017)**:\n\n'
-          'Under Indian law, seeking emotional decompression or counseling can NEVER hurt your ACR (Annual Confidential Report), weapon entitlement, or promotion chances.\n\n'
-          '• Commanders only see operational rest compliance tags ("Rest Compliant" or "Rotation Due").\n'
-          '• Your conversations with Battalion Welfare Counselor Meera are 100% privileged and clinical.';
-    } else {
-      reply =
-          'Jai Hind! I am **Prahari Sahayak (प्रहरी सहायक)**, your dedicated AI Welfare and Operational Rest Copilot.\n\n'
-          'I can assist you with:\n'
-          '1. **72-Hour Emergency Leave** fast-track status and filing.\n'
-          '2. **Mandatory 8-Hour Rest Rules** and sentry shift rotation.\n'
-          '3. **Equal-Trade Shift Swaps** via the Unit Resilience Optimizer.\n'
-          '4. **Confidential Welfare Support** under Section 21 MHCA 2017.\n\n'
-          'How can I help you today?';
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
     }
 
-    return {
-      'reply': reply,
-      'is_fallback': true,
-      'confidence': 0.96,
-      'cited_orders': ['MHA Standing Order SO-04', 'Section 21 MHCA 2017'],
-    };
-  }
-
-  // --- Battalion Leave History & Denial Reasons ---
-  Future<List<dynamic>> getLeaveHistory() async {
+    String detail = 'Server responded with status code ${response.statusCode}';
     try {
-      final uri = Uri.parse('$baseUrl/grievance/history');
-      final response = await http.get(uri, headers: _headers);
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data is List) return data;
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map && decoded.containsKey('detail')) {
+        detail = decoded['detail'].toString();
       }
     } catch (_) {}
 
-    return [
-      {
-        'id': 'leave_h_01',
-        'category': 'family_emergency',
-        'description': 'Father admitted to Base Hospital Srinagar for emergency cardiac stent placement.',
-        'status': 'approved',
-        'duration_days': 10,
-        'filed_at': DateTime.now().subtract(const Duration(days: 45)).toIso8601String(),
-        'decision_by': 'Cmd. Vikram Singh',
-        'denial_reason': null,
-      },
-      {
-        'id': 'leave_h_02',
-        'category': 'annual_leave',
-        'description': 'Routine 15-day annual home leave.',
-        'status': 'operationally_deferred',
-        'duration_days': 15,
-        'filed_at': DateTime.now().subtract(const Duration(days: 120)).toIso8601String(),
-        'decision_by': 'Battalion Adjutant',
-        'denial_reason': 'High Alert Deployment: Amarnath Yatra Route Security Mobilization. Deferred by 30 days.',
-      },
-      {
-        'id': 'leave_h_03',
-        'category': 'medical_emergency',
-        'description': 'Acute knee meniscus strain during high-altitude tactical ascent.',
-        'status': 'approved',
-        'duration_days': 7,
-        'filed_at': DateTime.now().subtract(const Duration(days: 180)).toIso8601String(),
-        'decision_by': 'Battalion Medical Officer',
-        'denial_reason': null,
-      },
-    ];
+    throw Exception(detail);
   }
+}
+
+/// Explicit error type so callers can distinguish HTTP failures (status >= 0)
+/// from connectivity failures (status == -1) instead of receiving fabricated data.
+class HttpApiException implements Exception {
+  final int statusCode;
+  final String message;
+  HttpApiException(this.statusCode, this.message);
+  @override
+  String toString() => 'HttpApiException($statusCode): $message';
 }

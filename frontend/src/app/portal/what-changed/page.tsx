@@ -67,104 +67,6 @@ interface WhatChangedData {
   summary: string;
 }
 
-const FALLBACK_WHAT_CHANGED: WhatChangedData = {
-  personnel_id: "c4d80d99-3f40-48d5-b67f-35287cfb6720",
-  name: "Rajesh Kumar",
-  rank: "Constable (GD)",
-  service_number: "CRP-2019-45821",
-  unit_name: "Alpha Company, 142 Bn CRPF",
-  direction_of_change: "WORSENING_MODERATE",
-  direction_label: "Elevated Operational Strain (+38% schedule density)",
-  direction_tone: "negative",
-  trajectory: "ELEVATED",
-  previous_baseline: {
-    night_shifts_14d: 2.0,
-    avg_sleep_hours: 6.8,
-    consecutive_duty_days: 4.0,
-    rest_gap_hours: 14.5,
-    leave_denial_count: 0,
-    checkin_stress_level: 1.8,
-    baseline_window: "Previous 90 Days Rolling"
-  },
-  current_state: {
-    night_shifts_14d: 5.0,
-    avg_sleep_hours: 5.2,
-    consecutive_duty_days: 9.0,
-    rest_gap_hours: 8.0,
-    leave_denial_count: 1,
-    checkin_stress_level: 3.4,
-    observation_window: "Recent 14 Days"
-  },
-  changed_factors: [
-    {
-      id: "factor_1",
-      name: "Night Shift Clustering",
-      category: "Roster Schedule",
-      baseline_value: "2 shifts / 14d",
-      current_value: "5 shifts / 14d",
-      delta_numeric: 3.0,
-      delta_display: "+3 shifts",
-      pct_change: "+150%",
-      impact_direction: "worsening",
-      severity: "HIGH",
-      explanation: "Frequent night duties compress restorative deep sleep cycles."
-    },
-    {
-      id: "factor_2",
-      name: "Rest Gap Compression",
-      category: "Rest Barriers",
-      baseline_value: "14.5 hrs gap",
-      current_value: "8.0 hrs gap",
-      delta_numeric: -6.5,
-      delta_display: "-6.5 hrs",
-      pct_change: "-44.8%",
-      impact_direction: "worsening",
-      severity: "HIGH",
-      explanation: "Rest interval between consecutive duty assignments operates at the minimum regulatory boundary."
-    },
-    {
-      id: "factor_3",
-      name: "Consecutive Operational Days",
-      category: "Fatigue Exposure",
-      baseline_value: "4 consecutive days",
-      current_value: "9 consecutive days",
-      delta_numeric: 5.0,
-      delta_display: "+5 days",
-      pct_change: "+125%",
-      impact_direction: "worsening",
-      severity: "MODERATE",
-      explanation: "Continuous active duty without off-day recovery increases cumulative fatigue exposure."
-    },
-    {
-      id: "factor_4",
-      name: "Average Nightly Sleep",
-      category: "Physiological Wellness",
-      baseline_value: "6.8 hrs / night",
-      current_value: "5.2 hrs / night",
-      delta_numeric: -1.6,
-      delta_display: "-1.6 hrs",
-      pct_change: "-23.5%",
-      impact_direction: "worsening",
-      severity: "MODERATE",
-      explanation: "Self-reported sleep quality reflects reduced restorative hours."
-    },
-    {
-      id: "factor_5",
-      name: "Administrative Leave Sanction",
-      category: "Administrative Welfare",
-      baseline_value: "0 denials",
-      current_value: "1 deferred request",
-      delta_numeric: 1.0,
-      delta_display: "+1 deferred",
-      pct_change: "N/A",
-      impact_direction: "worsening",
-      severity: "LOW",
-      explanation: "Routine leave application deferred due to formation movement schedule."
-    }
-  ],
-  summary: "This analysis evaluates operational telemetry exclusively to identify opportunities for restorative duty rotation. In accordance with Section 21 of the Mental Healthcare Act 2017, these metrics do not affect disciplinary records or performance appraisals."
-};
-
 export default function WhatChangedPage() {
   const router = useRouter();
   const { lang } = useTranslation();
@@ -188,11 +90,14 @@ export default function WhatChangedPage() {
       if (res.data && res.data.changed_factors) {
         setData(res.data);
       } else {
-        setData(FALLBACK_WHAT_CHANGED);
+        setError("Operational telemetry schedule comparison is currently unavailable.");
       }
     } catch (err: any) {
-      console.warn("Using baseline fallback for What Changed telemetry:", err);
-      setData(FALLBACK_WHAT_CHANGED);
+      console.error("Failed to load What Changed telemetry:", err);
+      setError(
+        err?.response?.data?.detail ||
+          "Unable to load live schedule telemetry from database. Please check connection and try again."
+      );
     } finally {
       setLoading(false);
     }

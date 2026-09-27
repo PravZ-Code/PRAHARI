@@ -253,9 +253,9 @@ export const translations = {
       } as Record<number, { title: string; type: string; desc: string; authority: string }>,
     },
     services: {
-      tag: "Technical Service Offerings",
+      tag: "Welfare Services",
       title: "Core Welfare & Redressal Services",
-      desc: "Select a government service below to initiate a formal welfare workflow with real-time digital tracking.",
+      desc: "Official welfare and grievance redressal services for frontline personnel.",
       leave: {
         title: "Request Leave",
         desc: "Apply for earned, casual, or duty-rest leave. System automatically checks coverage and rest barriers for rapid commanding officer sign-off.",
@@ -560,9 +560,9 @@ export const translations = {
       },
     },
     services: {
-      tag: "तकनीकी सेवा पेशकश",
+      tag: "कार्मिक कल्याण सेवाएं",
       title: "प्रमुख कल्याण एवं निवारण सेवाएं",
-      desc: "वास्तविक समय डिजिटल ट्रैकिंग के साथ औपचारिक कल्याण प्रक्रिया शुरू करने के लिए नीचे दी गई सरकारी सेवा चुनें।",
+      desc: "सीमांत जवानों के लिए आधिकारिक कल्याण एवं शिकायत निवारण सेवाएं।",
       leave: {
         title: "छुट्टी का आवेदन",
         desc: "अर्जित, आकस्मिक या विश्राम अवकाश के लिए आवेदन करें। प्रणाली अधिकारी के त्वरित अनुमोदन के लिए स्वचालित रूप से ड्यूटी कवरेज की जांच करती है।",
@@ -867,9 +867,9 @@ export const translations = {
       } as Record<number, { title: string; type: string; desc: string; authority: string }>,
     },
     services: {
-      tag: "தொழில்நுட்ப சேவை வசதிகள்",
+      tag: "பணியாளர் நல சேவைகள்",
       title: "முக்கிய நலன் மற்றும் தீர்வு சேவைகள்",
-      desc: "நிகழ்நேர டிஜிட்டல் கண்காணிப்புடன் கூடிய அதிகாரப்பூர்வ நல சேவையை பெற கீழேயுள்ள விருப்பத்தை தேர்வு செய்யவும்.",
+      desc: "பணியாளர்களுக்கான அதிகாரப்பூர்வ நலன் மற்றும் குறை தீர்க்கும் சேவைகள்.",
       leave: {
         title: "விடுப்பு விண்ணப்பம்",
         desc: "ஈட்டிய, தற்செயல் அல்லது ஓய்வு விடுப்புகளுக்கு விண்ணப்பிக்கவும். அதிகாரி விரைந்து ஒப்புதல் அளிக்க பணிச்சுமை தானாக சோதிக்கப்படுகிறது.",

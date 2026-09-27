@@ -161,3 +161,22 @@ def sample_welfare_case_id():
         return case.id if case else None
     finally:
         db.close()
+
+
+@pytest.fixture(autouse=True)
+def mock_copilot_llm_for_tests(monkeypatch):
+    """
+    Mock query_ollama in test suite to ensure fast, deterministic offline execution
+    without requiring a running local Ollama daemon.
+    """
+    import services.copilot_service as cs
+
+    async def fake_query_ollama(prompt: str, system_prompt=None):
+        return (
+            "Operational Stress Intelligence Brief generated for soldier welfare monitoring under Standing Order SO-04. "
+            "Recommend roster restructuring and leave approval to mitigate operational burnout. "
+            "[CITED: MHA SO-04 - Rest Mandate]",
+            "qwen3:0.6b-test"
+        )
+
+    monkeypatch.setattr(cs, "query_ollama", fake_query_ollama)

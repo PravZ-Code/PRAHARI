@@ -99,35 +99,34 @@ class AuthProvider with ChangeNotifier {
             } catch (_) {}
           }
 
-          _user ??= UserModel(
-            id: 'offline_soldier',
-            username: sNum.toLowerCase(),
-            role: 'personnel',
-            serviceNumber: sNum,
-            name: cachedProf?['name'] ?? 'Frontline Trooper',
-            rank: cachedProf?['rank'] ?? 'Constable',
-            unitName: cachedProf?['unit_name'] ?? 'Alpha Company',
-          );
-
-          if (cachedProf != null) {
-            _profile = PersonnelProfile(
-              id: 'offline_profile',
-              serviceNumber: sNum,
-              name: cachedProf['name'] ?? 'Frontline Trooper',
-              rank: cachedProf['rank'] ?? 'Constable',
-              trade: 'General Duty (GD)',
-              company: cachedProf['unit_name'] ?? 'Alpha Company',
-              contactNumber: '+91 98765 43210',
-              unitId: 'unit_alpha',
-              unitName: cachedProf['unit_name'] ?? 'Alpha Company',
-              formation: '102 Bn CRPF',
-              operationalArea: 'hard',
-              dateOfJoining: '2019-01-01',
-              currentPostingDate: '2023-01-01',
-              hardAreaMonths: 18,
-              totalTransfers: 2,
-            );
+          // Offline identity must come from data cached during a real online
+          // session. Never synthesize a fabricated soldier profile.
+          if (_user == null || cachedProf == null) {
+            _user = null;
+            _errorMessage =
+                'No verified offline profile found. Please connect to the network once to activate offline login.';
+            _isLoading = false;
+            notifyListeners();
+            return false;
           }
+
+          _profile = PersonnelProfile(
+            id: (cachedProf['id'] ?? 'offline_profile').toString(),
+            serviceNumber: sNum,
+            name: (cachedProf['name'] ?? _user!.name ?? 'Personnel').toString(),
+            rank: (cachedProf['rank'] ?? _user!.rank ?? '').toString(),
+            trade: (cachedProf['trade'] ?? 'General Duty (GD)').toString(),
+            company: (cachedProf['unit_name'] ?? _user!.unitName ?? '').toString(),
+            contactNumber: (cachedProf['contact_number'] ?? '').toString(),
+            unitId: (cachedProf['unit_id'] ?? _user!.unitId ?? '').toString(),
+            unitName: (cachedProf['unit_name'] ?? _user!.unitName ?? '').toString(),
+            formation: (cachedProf['formation'] ?? '').toString(),
+            operationalArea: (cachedProf['operational_area'] ?? '').toString(),
+            dateOfJoining: (cachedProf['date_of_joining'] ?? '').toString(),
+            currentPostingDate: (cachedProf['current_posting_date'] ?? '').toString(),
+            hardAreaMonths: (cachedProf['hard_area_months'] as num?)?.toInt() ?? 0,
+            totalTransfers: (cachedProf['total_transfers'] as num?)?.toInt() ?? 0,
+          );
 
           _isBackendConnected = false;
           _isLoading = false;

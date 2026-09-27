@@ -179,12 +179,12 @@ def ensure_schema_compatibility():
                                             "is_active": bool(r[6]),
                                             "created_at": r[7]
                                         })
-                                print(f"[MIGRATION] Migrated {len(legacy_users)} user accounts to prahari_auth.db")
+                                logger.info("Migrated %d user accounts to prahari_auth.db", len(legacy_users))
                                 with engine.begin() as ops_tx:
                                     ops_tx.execute(text("DROP TABLE IF EXISTS users"))
-                                print("[MIGRATION] Dropped legacy users table from prahari.db")
+                                logger.info("Dropped legacy users table from prahari.db")
     except Exception as e:
-        print(f"[MIGRATION NOTICE] Multi-DB user migration check: {e}")
+        logger.warning("Multi-DB user migration check did not complete cleanly: %s", e)
 
     try:
         inspector = inspect(engine)
@@ -204,7 +204,8 @@ def ensure_schema_compatibility():
                 if "buddy_signals" in table_names:
                     conn.execute(text("CREATE INDEX IF NOT EXISTS idx_buddy_sync ON buddy_signals (submitted_at, unit_id)"))
                 if "welfare_cases" in table_names:
-                    conn.execute(text("CREATE INDEX IF NOT EXISTS idx_welfare_case_sync ON welfare_cases (created_at, unit_id, risk_level)"))
+                    # welfare_cases columns: created_at, status, personnel_id (no unit_id/risk_level)
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS idx_welfare_case_sync ON welfare_cases (created_at, status, personnel_id)"))
                 if "notifications" in table_names:
                     conn.execute(text("CREATE INDEX IF NOT EXISTS idx_notifications_sync ON notifications (recipient_role, is_read, created_at)"))
                     conn.execute(text("CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications (user_id, is_read)"))
@@ -217,5 +218,5 @@ def ensure_schema_compatibility():
                     if "outcome_definition" not in prediction_cols:
                         conn.execute(text("ALTER TABLE risk_predictions ADD COLUMN outcome_definition VARCHAR(64)"))
                     conn.execute(text("CREATE INDEX IF NOT EXISTS idx_prediction_outcome_maturity ON risk_predictions (outcome_14d, predicted_at)"))
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Schema compatibility migration incomplete (will retry on next start): %s", e)

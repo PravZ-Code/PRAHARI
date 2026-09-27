@@ -503,8 +503,8 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
 
                       <div className="flex items-center justify-between gap-2 pt-1 text-[10px] text-slate-400 font-mono">
                         {msg.model_used && (
-                          <span className="text-[9px] text-slate-400">
-                            {msg.model_used} {msg.is_fallback ? "(Automatic Welfare Rules)" : ""}
+                          <span className="text-[9px] text-slate-400 font-mono">
+                            Local AI ({msg.model_used})
                           </span>
                         )}
                         <span className="ml-auto">{msg.timestamp}</span>

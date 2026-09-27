@@ -140,10 +140,21 @@ class DatabaseSyncBroadcaster:
         if not settings.SYNC_REDIS_ENABLED or not settings.REDIS_URL:
             return
 
-        try:
+        async def _try_connect():
             import redis.asyncio as aioredis
-            self._redis = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+            from redis.retry import Retry
+            from redis.backoff import NoBackoff
+            # Disable built-in retries so socket_connect_timeout is respected
+            no_retry = Retry(NoBackoff(), 0)
+            self._redis = aioredis.from_url(
+                settings.REDIS_URL, decode_responses=True,
+                socket_connect_timeout=2, socket_timeout=2,
+                retry=no_retry, retry_on_timeout=False
+            )
             await self._redis.ping()
+
+        try:
+            await asyncio.wait_for(_try_connect(), timeout=5.0)
             self._redis_available = True
             logger.info(f"Connected to distributed sync bus via Redis ({settings.REDIS_URL})")
 

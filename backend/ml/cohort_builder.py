@@ -1,7 +1,11 @@
+import os
+import json
 import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
 from typing import List, Dict, Tuple, Any
+
+COHORTS_FILE = os.path.join(os.path.dirname(__file__), "model", "cohort_templates.json")
 
 HR_FEATURE_SUBSET = [
     "hard_area_months",
@@ -38,20 +42,28 @@ def build_cohort_templates(hr_features_df: pd.DataFrame, n_clusters: int = 6) ->
     for i in range(n_clusters):
         cluster_rows = hr_features_df[labels == i]
         name = COHORT_LABELS[i] if i < len(COHORT_LABELS) else f"Operational Cohort {i+1}"
-
-        means = cluster_rows.mean().to_dict()
-        stds = cluster_rows.std().fillna(0.1).to_dict()
+        numeric_cluster_rows = cluster_rows.select_dtypes(include=[np.number])
+        means = numeric_cluster_rows.mean().to_dict()
+        stds = numeric_cluster_rows.std().fillna(0.1).to_dict()
 
         templates.append({
+            "cohort_id": f"cohort_cluster_{i+1}",
             "name": name,
+            "cohort_name": name,
             "rank_category": "constable" if means.get("rank_encoded", 0) <= 1 else "officer",
             "area_type": "hard" if means.get("area_type_encoded", 0) >= 1.5 else "peace",
-            "deployment_months_min": int(cluster_rows["hard_area_months"].min()) if "hard_area_months" in cluster_rows else 0,
-            "deployment_months_max": int(cluster_rows["hard_area_months"].max()) if "hard_area_months" in cluster_rows else 36,
-            "feature_means": {k: round(float(v), 4) for k, v in means.items() if not np.isnan(v)},
-            "feature_stds": {k: round(float(v), 4) for k, v in stds.items() if not np.isnan(v)},
+            "deployment_months_min": int(numeric_cluster_rows["hard_area_months"].min()) if "hard_area_months" in numeric_cluster_rows else 0,
+            "deployment_months_max": int(numeric_cluster_rows["hard_area_months"].max()) if "hard_area_months" in numeric_cluster_rows else 36,
+            "feature_means": {k: round(float(v), 4) for k, v in means.items() if pd.notna(v)},
+            "feature_stds": {k: round(float(v), 4) for k, v in stds.items() if pd.notna(v)},
             "sample_size": len(cluster_rows),
-            "cluster_center": [round(float(v), 4) for v in kmeans.cluster_centers_[i]]
+            "cluster_center": [round(float(v), 4) for v in kmeans.cluster_centers_[i]],
+            "centroid": {k: round(float(means.get(k, 0.0)), 4) for k in HR_FEATURE_SUBSET},
+            "baseline_stats": {
+                "sleep_quality_mean": round(float(means.get("sleep_quality_avg_7d", 3.0)), 2),
+                "stress_level_mean": round(float(means.get("stress_level_avg_7d", 2.5)), 2),
+                "mood_score_mean": round(float(means.get("mood_score_avg_7d", 3.5)), 2)
+            }
         })
 
     return templates
@@ -104,3 +116,14 @@ def blend_baseline(cohort_means: dict, personal_means: dict, days_active: int) -
             blended[k] = round(float(c_val), 4)
 
     return blended, confidence, b_type
+ 
+def get_cached_cohort_templates(cohorts_path: str = COHORTS_FILE) -> List[Dict[str, Any]]:
+    """Retrieves pre-clustered cohort templates from disk or returns empty list."""
+    if os.path.exists(cohorts_path):
+        try:
+            with open(cohorts_path, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return []
+

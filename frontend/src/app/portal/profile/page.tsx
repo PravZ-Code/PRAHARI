@@ -33,9 +33,13 @@ export default function PersonnelProfilePage() {
     }
     const currentUser = getStoredUser();
     setUser(currentUser);
-    api.get("/auth/me")
+    api.get("/personnel/me")
       .then((res) => {
         setProfile(res.data);
+      })
+      .catch((err) => {
+        console.warn("Personnel profile endpoint not available, trying /auth/me:", err);
+        return api.get("/auth/me").then((res) => setProfile(res.data));
       })
       .catch((err) => {
         console.error("Profile load error:", err);
@@ -50,11 +54,22 @@ export default function PersonnelProfilePage() {
     router.push("/");
   };
 
-  const name = profile?.name || user?.name || user?.username || "Rajesh Kumar";
-  const serviceNumber = profile?.service_number || user?.service_number || "CRP-2019-45821";
-  const rank = profile?.rank || user?.rank || "Constable (GD)";
+  const name = profile?.name || user?.name || user?.username || "Trooper";
+  const serviceNumber = profile?.service_number || user?.service_number || "—";
+  const rank = profile?.rank || user?.rank || "Personnel";
   const trade = profile?.trade || user?.trade || "General Duty";
-  const unitName = profile?.unit_name || user?.unit_name || "Alpha Company, 142 Bn CRPF";
+  const unitName = profile?.unit_name || user?.unit_name || "Assigned Battalion";
+  const joiningDate = profile?.date_of_joining
+    ? new Date(profile.date_of_joining).toLocaleDateString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    : "Verified on record";
+  const hardAreaMonths =
+    profile?.hard_area_months !== undefined && profile?.hard_area_months !== null
+      ? `${profile.hard_area_months} Months`
+      : "Standard Deployment";
 
   if (loading && !profile) {
     return (
@@ -120,12 +135,12 @@ export default function PersonnelProfilePage() {
               <p className="text-sm font-medium text-slate-900">CRPF Directorate General, MHA</p>
             </div>
             <div className="space-y-1">
-              <span className="font-semibold text-slate-500 block">Duty Station</span>
-              <p className="text-sm font-medium text-slate-900">Srinagar Sector HQ</p>
+              <span className="font-semibold text-slate-500 block">Date of Enlistment</span>
+              <p className="text-sm font-medium text-slate-900">{joiningDate}</p>
             </div>
             <div className="space-y-1">
-              <span className="font-semibold text-slate-500 block">Blood Group</span>
-              <p className="text-sm font-medium text-slate-900">B+ (Positive)</p>
+              <span className="font-semibold text-slate-500 block">Hard Area Service Duration</span>
+              <p className="text-sm font-medium text-slate-900">{hardAreaMonths}</p>
             </div>
           </div>
         </section>

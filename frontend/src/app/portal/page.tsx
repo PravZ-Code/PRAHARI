@@ -59,6 +59,36 @@ export default function PersonnelHomePage() {
   const [emergencySubmitting, setEmergencySubmitting] = useState(false);
   const [emergencySuccess, setEmergencySuccess] = useState<string | null>(null);
 
+  // Re-entry Pulse state (F3 Post-Leave Reintegration)
+  const [showPulseCard, setShowPulseCard] = useState(false);
+  const [familyRating, setFamilyRating] = useState(4);
+  const [settledRating, setSettledRating] = useState(4);
+  const [pulseText, setPulseText] = useState("");
+  const [pulseSubmitting, setPulseSubmitting] = useState(false);
+  const [pulseResult, setPulseResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleSendPulse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPulseSubmitting(true);
+    setPulseResult(null);
+    try {
+      const res = await api.post("/personnel/reintegration-pulse", {
+        family_time_rating: familyRating,
+        settled_back_rating: settledRating,
+        free_text: pulseText || null,
+      });
+      if (res.data?.recorded) {
+        setPulseResult({ success: true, message: "Thank you. Your post-leave touchpoint has been logged with the unit welfare officer." });
+      } else {
+        setPulseResult({ success: false, message: res.data?.reason || "No active post-leave window for this trooper right now." });
+      }
+    } catch (err: any) {
+      setPulseResult({ success: false, message: err.response?.data?.detail || "Unable to submit re-entry pulse." });
+    } finally {
+      setPulseSubmitting(false);
+    }
+  };
+
   // Real-time synchronization: silently refresh data on backend mutations
   useDataSync({
     onGrievanceChange: () => {
@@ -111,6 +141,15 @@ export default function PersonnelHomePage() {
       }
       if (wellbeingRes.status === "fulfilled") {
         setWellbeing(wellbeingRes.value.data);
+      }
+
+      // F3: surface optional re-entry pulse card only when a reintegration window is ACTIVE
+      try {
+        const pulseRes = await api.get("/personnel/reintegration-status");
+        const d = pulseRes.data || {};
+        setShowPulseCard(Boolean(d.active_window) && !d.pulse_submitted);
+      } catch {
+        // pulse card is best-effort; absence never blocks the portal
       }
     } catch (err) {
       console.error("Failed to load personnel portal data:", err);
@@ -192,8 +231,8 @@ export default function PersonnelHomePage() {
     profile?.name?.split(" ")[0] ||
     user?.name?.split(" ")[0] ||
     user?.username ||
-    "Rajesh";
-  const unitName = profile?.unit_name || user?.unit_name || "Alpha Company";
+    "Trooper";
+  const unitName = profile?.unit_name || user?.unit_name || "Assigned Unit";
   const tradeOrRank = profile?.trade || profile?.rank || user?.trade || "General Duty";
 
   // Active / in-progress request (first pending or fast-tracked request)
@@ -279,6 +318,130 @@ export default function PersonnelHomePage() {
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
+        </section>
+
+        {/* =======================================================
+            SECTION B.1: POST-LEAVE RE-ENTRY PULSE (OPTIONAL)
+            ======================================================= */}
+        <section
+          aria-labelledby="reentry-heading"
+          className="ux4g-card ux4g-card-outline bg-white rounded-xl border border-slate-200 p-5 shadow-xs"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  Post-Leave Check-in
+                </span>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Voluntary Check-in
+                </span>
+              </div>
+              <h3 id="reentry-heading" className="text-sm font-bold text-slate-900">
+                Returning from Leave? Re-entry Pulse
+              </h3>
+              <p className="text-xs text-slate-600 max-w-xl">
+                Let your welfare officer know how your return is going. Completely voluntary and never used for disciplinary evaluation.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowPulseCard(!showPulseCard)}
+              className="ux4g-btn ux4g-btn-outline-primary ux4g-btn-sm text-xs shrink-0"
+            >
+              {showPulseCard ? "Close Pulse" : "Check In"}
+            </button>
+          </div>
+
+          {showPulseCard && (
+            <form onSubmit={handleSendPulse} className="mt-4 pt-4 border-t border-slate-100 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Family Time Quality (1 = Strained, 5 = Recharging)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((val) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setFamilyRating(val)}
+                        className={`w-9 h-9 rounded-lg font-bold text-xs border transition-colors ${
+                          familyRating === val
+                            ? "bg-[#0c3866] text-white border-[#0c3866]"
+                            : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                        }`}
+                      >
+                        {val}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Settling Back to Routine (1 = Difficult, 5 = Smooth)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((val) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setSettledRating(val)}
+                        className={`w-9 h-9 rounded-lg font-bold text-xs border transition-colors ${
+                          settledRating === val
+                            ? "bg-[#0c3866] text-white border-[#0c3866]"
+                            : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                        }`}
+                      >
+                        {val}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Private Note to Welfare Officer (Optional)
+                </label>
+                <textarea
+                  rows={2}
+                  value={pulseText}
+                  onChange={(e) => setPulseText(e.target.value)}
+                  placeholder="Anything you'd like your welfare officer to know (confidential under MHCA §21)..."
+                  className="w-full text-xs p-2.5 rounded-lg border border-slate-200 focus:outline-none focus:border-[#0c3866]"
+                />
+              </div>
+
+              {pulseResult && (
+                <div
+                  className={`p-3 rounded-lg text-xs flex items-center gap-2 ${
+                    pulseResult.success
+                      ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                      : "bg-amber-50 text-amber-800 border border-amber-200"
+                  }`}
+                >
+                  {pulseResult.success ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  ) : (
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                  )}
+                  <span>{pulseResult.message}</span>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="submit"
+                  disabled={pulseSubmitting}
+                  className="ux4g-btn ux4g-btn-primary ux4g-btn-sm text-xs font-semibold"
+                >
+                  {pulseSubmitting ? "Submitting..." : "Send Re-entry Pulse"}
+                </button>
+              </div>
+            </form>
+          )}
         </section>
 
         {/* =======================================================

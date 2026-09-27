@@ -442,11 +442,12 @@ def commit_plan_endpoint(
         if replacement.trade != target.trade:
             raise HTTPException(status_code=409, detail="Replacement trade does not match target trade")
 
-    # Plan identifiers are deliberately opaque but must be one produced by the
-    # what-if endpoint; arbitrary client-supplied plans must never reach the roster.
-    if req.plan_id not in {"plan-a", "plan-b", "plan-c"}:
+    # Plan identifiers are deliberately validated; must be one produced by the
+    # what-if or counterfactual simulator; arbitrary client-supplied plans must never reach the roster.
+    valid_plans = {"plan-a", "plan-b", "plan-c", "counterfactual-flagship-plan"}
+    if req.plan_id not in valid_plans:
         raise HTTPException(status_code=400, detail="Unknown resilience plan")
-    if req.plan_id in {"plan-a", "plan-b"} and not replacement:
+    if req.plan_id in {"plan-a", "plan-b", "counterfactual-flagship-plan"} and not replacement:
         raise HTTPException(status_code=400, detail="This plan requires a replacement personnel")
     if req.plan_id == "plan-c":
         raise HTTPException(status_code=409, detail="Reserve rotation is not available for direct commitment")

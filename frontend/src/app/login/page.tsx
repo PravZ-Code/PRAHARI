@@ -29,18 +29,27 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [captchaInput, setCaptchaInput] = useState("");
   const [captchaCode, setCaptchaCode] = useState("");
+  const [captchaId, setCaptchaId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  // Generate random 5-character captcha code
-  const generateCaptcha = () => {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    let code = "";
-    for (let i = 0; i < 5; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
+  // Fetch a fresh server-issued single-use captcha; fall back to a local code
+  // only when the backend is unreachable (offline demo resilience).
+  const generateCaptcha = async () => {
+    try {
+      const res = await api.get("/auth/captcha");
+      setCaptchaCode(res.data.code);
+      setCaptchaId(res.data.captcha_id);
+    } catch {
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      let code = "";
+      for (let i = 0; i < 5; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      setCaptchaCode(code);
+      setCaptchaId(null);
     }
-    setCaptchaCode(code);
     setCaptchaInput("");
   };
 
@@ -60,6 +69,8 @@ export default function LoginPage() {
         setErrorMessage("Your operational session has expired. Please sign in again.");
       } else if (errorParam === "unauthorized") {
         setErrorMessage("Your credentials could not be verified or session was revoked. Please sign in.");
+      } else if (errorParam === "service_unavailable") {
+        setErrorMessage("Authentication service is temporarily unavailable. Please retry in a moment.");
       } else if (redirectParam) {
         setErrorMessage("Please sign in with authorized credentials to access this portal.");
       }
@@ -91,7 +102,9 @@ export default function LoginPage() {
       return;
     }
 
-    if (captchaInput.trim().toUpperCase() !== captchaCode.toUpperCase()) {
+    // For server-issued challenges the backend verifies the captcha; the local
+    // comparison is only a graceful fallback when the backend is unreachable.
+    if (!captchaId && captchaInput.trim().toUpperCase() !== captchaCode.toUpperCase()) {
       setErrorMessage("Invalid Captcha code entered. Please try again.");
       generateCaptcha();
       return;
@@ -102,6 +115,7 @@ export default function LoginPage() {
       const res = await api.post("/auth/login", {
         username: username.trim(),
         password: password,
+        ...(captchaId ? { captcha_id: captchaId, captcha_text: captchaInput.trim().toUpperCase() } : {}),
       });
 
       const { access_token, user } = res.data;
@@ -363,7 +377,7 @@ export default function LoginPage() {
             </p>
             <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
               <span>Session Duration:</span>
-              <span className="font-semibold text-slate-700">15 min idle timeout</span>
+              <span className="font-semibold text-slate-700">24-hour authenticated session</span>
             </div>
           </div>
 

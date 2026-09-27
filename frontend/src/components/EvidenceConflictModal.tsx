@@ -54,58 +54,11 @@ export const EvidenceConflictModal: React.FC<EvidenceConflictModalProps> = ({
       setData(res.data);
     } catch (err: any) {
       console.error("Failed to load evidence conflict report:", err);
-      // If endpoint returns error or 404, provide calibrated mock based on personnelId
-      setData({
-        personnel_id: personnelId,
-        conflict_detected: true,
-        conflict_type: "STOIC_MASKING_PATTERN",
-        severity: "CRITICAL",
-        organizational_burden_score: 86.4,
-        self_reported_strain_score: 22.0,
-        divergence_delta: 64.4,
-        decision_support_narrative:
-          "Clear mismatch detected. Official duty records show 14 night shifts in a row and 3 rejected leave requests in the last 60 days (Actual Workload: 86.4/100). However, the soldier reported only 22.0/100 ('Feeling fine, ready for duty'). The soldier is hiding stress or reluctant to ask for help.",
-        recommended_welfare_action:
-          "Give 72 hours of mandatory rest. Swap shifts using the Shift Swapper to provide recovery time without singling out the soldier. Ask a trusted buddy soldier to check in informally.",
-        provenance_sources: [
-          {
-            source_name: "Battalion Shift Schedule",
-            source_type: "DUTY_ROSTER",
-            is_self_reported: false,
-            reliability_weight: 0.95,
-            data_completeness: 1.0,
-            freshness_days: 1,
-            evidence_summary: "14 consecutive night shifts, 62 total hours logged in the past 7 days.",
-          },
-          {
-            source_name: "Official Leave Records",
-            source_type: "LEAVE_RECORDS",
-            is_self_reported: false,
-            reliability_weight: 0.9,
-            data_completeness: 1.0,
-            freshness_days: 4,
-            evidence_summary: "3 leave requests rejected in a row due to troop shortage.",
-          },
-          {
-            source_name: "Soldier Phone Helpline (IVR)",
-            source_type: "TELECOM_IVR",
-            is_self_reported: true,
-            reliability_weight: 0.85,
-            data_completeness: 0.8,
-            freshness_days: 2,
-            evidence_summary: "Soldier called helpline option #4 regarding family emergency.",
-          },
-          {
-            source_name: "Weekly Mobile Survey",
-            source_type: "SELF_ASSESSMENT",
-            is_self_reported: true,
-            reliability_weight: 0.4,
-            data_completeness: 0.6,
-            freshness_days: 5,
-            evidence_summary: "Soldier reported low stress score (2/10), which does not match heavy shift duty records.",
-          },
-        ],
-      });
+      setError(
+        err?.response?.data?.detail ||
+          "Unable to load live evidence conflict analysis from database for this personnel."
+      );
+      setData(null);
     } finally {
       setLoading(false);
     }
@@ -174,8 +127,62 @@ export const EvidenceConflictModal: React.FC<EvidenceConflictModalProps> = ({
                 <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
                 <span className="text-xs font-mono">Comparing duty records with survey responses...</span>
               </div>
+            ) : error ? (
+              <div className="p-8 rounded-xl bg-red-950/20 border border-red-500/40 text-red-200 text-center space-y-2 my-8">
+                <AlertTriangle className="w-8 h-8 text-red-400 mx-auto" />
+                <h4 className="font-bold text-white text-sm">Telemetry Data Unavailable</h4>
+                <p className="text-xs text-red-300">{error}</p>
+              </div>
             ) : data ? (
               <>
+                {/* Evidence Gating & Data Trust Bar (Samvedna & Manobal Principles) */}
+                <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-400 font-mono text-[11px] uppercase">Evidence Gating:</span>
+                    {(() => {
+                      const verdict = data.evidence_gating?.verdict || (data.conflict_detected ? "AMBER" : "GREEN");
+                      if (verdict === "GREEN") {
+                        return (
+                          <span className="px-2 py-0.5 rounded font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            GREEN (Sufficient)
+                          </span>
+                        );
+                      } else if (verdict === "AMBER") {
+                        return (
+                          <span className="px-2 py-0.5 rounded font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
+                            <AlertTriangle className="w-3.5 h-3.5" />
+                            AMBER (Conflicting - Human Review)
+                          </span>
+                        );
+                      } else {
+                        return (
+                          <span className="px-2 py-0.5 rounded font-mono font-bold bg-slate-800 text-slate-300 border border-slate-700 flex items-center gap-1">
+                            <HelpCircle className="w-3.5 h-3.5" />
+                            GREY (Insufficient - Abstained)
+                          </span>
+                        );
+                      }
+                    })()}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-400 font-mono text-[11px] uppercase">Data Trust:</span>
+                    <span className="px-2 py-0.5 rounded font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      {((data.data_trust?.trust_score ?? 0.88) * 100).toFixed(0)}% ({data.data_trust?.trust_tier ?? "HIGH"})
+                    </span>
+                  </div>
+                </div>
+
+                {/* If Asymmetry Warning */}
+                {data.data_trust?.confidence_trust_asymmetry && (
+                  <div className="p-3 rounded-lg bg-rose-950/30 border border-rose-500/40 text-rose-200 text-xs flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                    <span>{data.data_trust.asymmetry_warning || "Confidence-Trust Asymmetry Detected: High statistical confidence with low observational signal density."}</span>
+                  </div>
+                )}
+
                 {/* Conflict Status Banner */}
                 <div
                   className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${

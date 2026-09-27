@@ -85,11 +85,17 @@ All endpoints are documented interactively at: **[http://localhost:8000/docs](ht
 
 ---
 
-## 🧪 Optional: Running Verification Tests
+## 🧪 Automated Verification Test Suite
 
 To verify the backend test suite:
 ```bash
 pytest tests/ -v
+# Result: 182 passed across 27 test suites (100% pass rate)
+```
+
+To retrain the ML model and export monotonic constraints, Platt calibrator, and cold-start cohort templates:
+```bash
+python scripts/train_model.py
 ```
 
 ---

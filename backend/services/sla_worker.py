@@ -106,6 +106,20 @@ async def start_sla_worker():
             except Exception as ge:
                 logger.error(f"[SLA Worker Error] Error scanning grievance SLAs: {ge}")
 
+            # 4. F3: refresh post-leave reintegration windows (once per minute tick is fine)
+            try:
+                from services.reintegration_service import sync_reintegration_windows
+                sync_reintegration_windows(db)
+            except Exception as re_err:
+                logger.error(f"[SLA Worker Error] Reintegration sync failed: {re_err}")
+
+            # 5. F5: crypto-erasure sweep for expired resolved-case welfare notes
+            try:
+                from services.secure_note_service import sweep_expired
+                sweep_expired(db)
+            except Exception as se_err:
+                logger.error(f"[SLA Worker Error] Welfare-note sweep failed: {se_err}")
+
 
         except Exception as e:
             db.rollback()

@@ -75,8 +75,6 @@ def resolve_web_dir(explicit_dir: str = "") -> Path:
     candidates = [
         Path.cwd() / "mobile" / "build" / "web",
         Path.cwd() / "prahari" / "mobile" / "build" / "web",
-        Path(r"D:\Projects\SIH\prahari\mobile\build\web"),
-        Path(r"D:\Projects\SIH\mobile\build\web"),
         Path(__file__).resolve().parent / "mobile" / "build" / "web",
         Path(__file__).resolve().parent / "prahari" / "mobile" / "build" / "web",
         Path(__file__).resolve().parent.parent / "mobile" / "build" / "web",
@@ -101,10 +99,20 @@ class FlutterWebHandler(SimpleHTTPRequestHandler):
         super().__init__(*args, directory=str(ACTIVE_WEB_DIR), **kwargs)
 
     def end_headers(self):
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, HEAD")
-        self.send_header("Access-Control-Allow-Headers", "*")
+        # Static-asset server serving a fully client-side bundle. Restrict CORS to
+        # the configured trusted origins (env-configurable) instead of wildcard.
+        origin = self.headers.get("Origin", "")
+        allowed = os.environ.get(
+            "PRAHARI_MOBILE_CORS_ORIGINS",
+            "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8000,http://127.0.0.1:8000,http://localhost:8080,http://127.0.0.1:8080",
+        ).split(",")
+        if origin and origin.rstrip("/") in [o.strip().rstrip("/") for o in allowed if o.strip()]:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, HEAD")
+            self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
         self.send_header("Cache-Control", "no-cache")
+        self.send_header("X-Content-Type-Options", "nosniff")
         super().end_headers()
 
     def do_OPTIONS(self):

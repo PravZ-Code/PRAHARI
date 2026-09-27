@@ -128,9 +128,22 @@ export async function proxy(request: NextRequest) {
     return redirectResponse;
   }
 
-  // If backend returned verified payload, use it; if backend is temporarily booting/offline,
-  // permit unexpired signed token so client-side connection resilience can handle data state
-  const effectivePayload = (backendCheck.valid && backendCheck.payload) ? backendCheck.payload : parsedPayload;
+  // If the backend could not be reached, FAIL CLOSED: never trust a locally
+  // decoded (signature-unverified) JWT payload for role gating. The edge has no
+  // signing key, so expiry/format checks alone are not an authorization decision.
+  if (!backendCheck.valid || !backendCheck.payload) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = "";
+    url.searchParams.set("redirect", `${pathname}${request.nextUrl.search}`);
+    url.searchParams.set("error", "service_unavailable");
+    const redirectResponse = NextResponse.redirect(url);
+    redirectResponse.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    redirectResponse.headers.set("Pragma", "no-cache");
+    redirectResponse.headers.set("Expires", "0");
+    return redirectResponse;
+  }
+  const effectivePayload = backendCheck.payload;
 
   // 3. Role-Based Access Control (RBAC) & Route Isolation
   const allowedRoles = ROLE_ROUTES[matchedRoute];

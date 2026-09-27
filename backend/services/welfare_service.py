@@ -119,11 +119,14 @@ def get_welfare_case_detail(db: Session, case_id: str) -> Optional[Dict[str, Any
                 "contribution_pct": contrib_pct
             })
 
+        pred_wc = getattr(pred, "what_changed", {}) or {}
         pred_summary = {
             "risk_score": float(pred.risk_score),
             "risk_level": pred.risk_level,
             "confidence": float(pred.confidence_score),
             "data_quality": float(pred.data_quality_score),
+            "valid_historical_days": int(pred_wc.get("valid_historical_days", 14)) if isinstance(pred_wc, dict) else 14,
+            "history_confidence_tier": str(pred_wc.get("history_confidence_tier", "HIGH")) if isinstance(pred_wc, dict) else "HIGH",
             "trajectory": getattr(pred, "trajectory", "STABLE") or "STABLE",
             "prob_7d": float(pred.prob_7d) if getattr(pred, "prob_7d", None) is not None else float(pred.risk_score),
             "prob_14d": float(pred.prob_14d) if getattr(pred, "prob_14d", None) is not None else float(pred.risk_score),
@@ -131,7 +134,7 @@ def get_welfare_case_detail(db: Session, case_id: str) -> Optional[Dict[str, Any
             "abstention_flag": bool(getattr(pred, "abstention_flag", 0)),
             "abstention_reason": getattr(pred, "abstention_reason", None),
             "signal_reliability": getattr(pred, "signal_reliability", "high") or "high",
-            "what_changed": getattr(pred, "what_changed", {}) or {},
+            "what_changed": pred_wc,
             "shap_top_factors": shap_factors
         }
 

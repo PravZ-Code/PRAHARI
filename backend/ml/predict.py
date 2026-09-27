@@ -77,6 +77,11 @@ def get_model(model_path: str = MODEL_PATH):
 
     model = xgb.XGBClassifier()
     model.load_model(resolved_path)
+    meta = get_model_metadata()
+    if meta and "monotone_constraints" in meta:
+        mono_dict = meta["monotone_constraints"]
+        mono_tuple = tuple(mono_dict.get(col, 0) for col in FEATURE_COLUMNS)
+        model.set_params(monotone_constraints=mono_tuple)
     explainer = None
     if shap is not None:
         try:
@@ -93,22 +98,215 @@ def _normalise_feature_frame(feature_records: list) -> pd.DataFrame:
     return frame.apply(pd.to_numeric, errors="coerce").astype(float)
 
 
-def _abstained_prediction(data_quality: float, reason: str, status: str) -> dict:
+def compute_data_trust_and_evidence_gating(
+    row: pd.Series,
+    raw_rec: dict,
+    data_quality: float,
+    valid_hist_days: int,
+    confidence: float
+) -> dict:
+    """
+    Evaluates multi-source signal trust (Manobal-AI concept) and performs
+    evidence gating (Samvedna concept) before any risk escalation is permitted.
+    Distinguishes:
+    - risk_score (calibrated probability)
+    - confidence_score (statistical certainty given feature inputs)
+    - evidence_sufficiency (GREEN / AMBER / GREY)
+    - data_trust_tier (HIGH / MODERATE / LOW)
+    - confidence_data_trust_asymmetry (Flag if high confidence on low data trust)
+    """
+    signals = {}
+
+    # 1. Roster / Duty Signal
+    roster_present = pd.notna(row.get("night_shift_density_14d")) or pd.notna(row.get("consecutive_duty_days"))
+    roster_complete = 1.0 if (pd.notna(row.get("night_shift_density_14d")) and pd.notna(row.get("avg_hours_per_day_14d"))) else (0.5 if roster_present else 0.0)
+    consec_val = int(row.get("consecutive_duty_days", 0)) if pd.notna(row.get("consecutive_duty_days")) else 0
+    night_val = int(row.get("night_shift_density_14d", 0)) if pd.notna(row.get("night_shift_density_14d")) else 0
+    signals["ROSTER_DUTY"] = {
+        "source_name": "Company Duty Roster",
+        "source_category": "Roster",
+        "freshness": "FRESH" if roster_present else "UNAVAILABLE",
+        "completeness": round(float(roster_complete), 2),
+        "reliability": "HIGH" if roster_complete >= 0.8 else ("MEDIUM" if roster_present else "UNVERIFIED"),
+        "conflict_status": "CONCORDANT",
+        "evidence_summary": f"Duty streak: {consec_val} days, Nights: {night_val}" if roster_present else "Roster data unavailable"
+    }
+
+    # 2. Administrative / Leave Records
+    leave_present = pd.notna(row.get("leave_denial_rate_6m"))
+    leave_rate = float(row.get("leave_denial_rate_6m", 0.0)) if leave_present else 0.0
+    signals["LEAVE_ADMIN"] = {
+        "source_name": "Battalion Leave Registry",
+        "source_category": "HR",
+        "freshness": "FRESH" if leave_present else "UNAVAILABLE",
+        "completeness": 1.0 if leave_present else 0.0,
+        "reliability": "HIGH" if leave_present else "UNVERIFIED",
+        "conflict_status": "CONCORDANT",
+        "evidence_summary": f"Leave denial rate: {leave_rate:.0%}" if leave_present else "No active leave records"
+    }
+
+    # 3. Voluntary Self-Assessment Check-ins
+    self_present = pd.notna(row.get("stress_level_avg_7d")) or pd.notna(row.get("mood_score_avg_7d"))
+    self_comp = float(row.get("assessment_compliance_14d", 0.0)) if pd.notna(row.get("assessment_compliance_14d")) else (0.75 if self_present else 0.0)
+    cur_stress = float(row.get("stress_level_avg_7d", 2.5)) if self_present else 2.5
+    night_density = float(row.get("night_shift_density_14d", 0.0)) if pd.notna(row.get("night_shift_density_14d")) else 0.0
+    is_discordant = bool(
+        (cur_stress <= 2.0 and night_density >= 5.0) or
+        (cur_stress >= 4.0 and night_density <= 1.0 and consec_val <= 2)
+    )
+
+    signals["SELF_ASSESSMENT"] = {
+        "source_name": "Trooper Voluntary Check-in",
+        "source_category": "Self-Report",
+        "freshness": "RECENT" if self_present else "UNAVAILABLE",
+        "completeness": round(float(self_comp), 2),
+        "reliability": "MEDIUM" if self_present else "UNVERIFIED",
+        "conflict_status": "DISCORDANT" if is_discordant else "CONCORDANT",
+        "evidence_summary": f"Stress={cur_stress:.1f}/5.0 (Voluntary)" if self_present else "Voluntary self-report absent (Respecting personal agency)"
+    }
+
+    # 4. Buddy / Peer Signal
+    buddy_present = pd.notna(row.get("unit_buddy_signals_4w"))
+    buddy_vol = int(row.get("unit_buddy_signals_4w", 0)) if buddy_present else 0
+    signals["PEER_BUDDY"] = {
+        "source_name": "Anonymous Buddy Signals",
+        "source_category": "Peer Signal",
+        "freshness": "RECENT" if buddy_present else "UNAVAILABLE",
+        "completeness": 1.0 if buddy_present else 0.0,
+        "reliability": "HIGH" if buddy_present else "UNVERIFIED",
+        "conflict_status": "NEUTRAL",
+        "evidence_summary": f"Peer concern volume: {buddy_vol}" if buddy_present else "No active peer concerns"
+    }
+
+    # 5. Physiological / Wellness (Sleep)
+    sleep_present = pd.notna(row.get("sleep_quality_avg_7d"))
+    sleep_val = float(row.get("sleep_quality_avg_7d", 0.0)) if sleep_present else 0.0
+    signals["PHYSIOLOGICAL_WELLNESS"] = {
+        "source_name": "Sleep & Rest Quality",
+        "source_category": "Wellness",
+        "freshness": "RECENT" if sleep_present else "UNAVAILABLE",
+        "completeness": 1.0 if sleep_present else 0.0,
+        "reliability": "HIGH" if sleep_present else "UNVERIFIED",
+        "conflict_status": "CONCORDANT",
+        "evidence_summary": f"Sleep quality: {sleep_val:.1f}/5.0" if sleep_present else "No sleep records"
+    }
+
+    # Composite Data Trust Score
+    weights = {
+        "ROSTER_DUTY": 0.35,
+        "LEAVE_ADMIN": 0.25,
+        "SELF_ASSESSMENT": 0.20,
+        "PEER_BUDDY": 0.10,
+        "PHYSIOLOGICAL_WELLNESS": 0.10
+    }
+    rel_mult = {"HIGH": 1.0, "MEDIUM": 0.75, "LOW": 0.40, "UNVERIFIED": 0.10}
+
+    raw_trust = 0.0
+    for k, w in weights.items():
+        sig = signals[k]
+        raw_trust += w * sig["completeness"] * rel_mult.get(sig["reliability"], 0.2)
+
+    data_trust_score = round(float(np.clip(raw_trust, 0.05, 0.98)), 4)
+    if data_trust_score >= 0.70:
+        data_trust_tier = "HIGH"
+    elif data_trust_score >= 0.45:
+        data_trust_tier = "MODERATE"
+    else:
+        data_trust_tier = "LOW"
+
+    # Asymmetry Detection: High Model Confidence vs Low Data Trust
+    asymmetry_detected = bool(confidence >= 0.75 and data_trust_score < 0.50)
+    if asymmetry_detected:
+        asymmetry_advisory = (
+            f"Asymmetry Alert: Model exhibits high statistical confidence ({confidence:.2f}) "
+            f"on limited/sparse evidence (Data Trust: {data_trust_tier} [{data_trust_score:.2f}]). "
+            f"Verification of underlying administrative records required before operational decisions."
+        )
+    else:
+        asymmetry_advisory = (
+            f"Model confidence ({confidence:.2f}) is well-supported by underlying evidence trust "
+            f"({data_trust_tier} [{data_trust_score:.2f}])."
+        )
+
+    # Samvedna Evidence Sufficiency Gating
+    required_evidence = []
+    if valid_hist_days < 7:
+        required_evidence.append(f"Additional shift history required: {max(1, 7 - valid_hist_days)} more observation days needed for reliable baseline.")
+    if not self_present:
+        required_evidence.append("Voluntary wellbeing check-in (optional, would establish subjective baseline).")
+    if not leave_present:
+        required_evidence.append("Verification of 6-month leave sanction/denial records from company clerk.")
+    if is_discordant:
+        required_evidence.append("Discreet peer check-in or clerk review to reconcile duty load with reported wellbeing.")
+
+    if data_quality < 0.40 or valid_hist_days < 4 or data_trust_score < 0.30:
+        sufficiency_state = "GREY"
+        sufficiency_tier = "INSUFFICIENT"
+        risk_escalation_permitted = False
+        verdict = "Insufficient evidence for a reliable welfare-risk assessment."
+    elif is_discordant or valid_hist_days < 7 or data_quality < 0.60:
+        sufficiency_state = "AMBER"
+        sufficiency_tier = "CONFLICTING_OR_INCOMPLETE"
+        risk_escalation_permitted = False
+        verdict = "Conflicting or incomplete evidence detected — routing to human welfare review."
+    else:
+        sufficiency_state = "GREEN"
+        sufficiency_tier = "SUFFICIENT"
+        risk_escalation_permitted = True
+        verdict = "Sufficient multi-source evidence verified for prospective assessment."
+
+    return {
+        "evidence_sufficiency": sufficiency_state,
+        "sufficiency_tier": sufficiency_tier,
+        "risk_escalation_permitted": risk_escalation_permitted,
+        "evidence_verdict": verdict,
+        "required_evidence_to_unlock": required_evidence,
+        "data_trust_score": data_trust_score,
+        "data_trust_tier": data_trust_tier,
+        "data_trust_signals": signals,
+        "confidence_data_trust_asymmetry": asymmetry_detected,
+        "asymmetry_advisory": asymmetry_advisory
+    }
+
+
+def _abstained_prediction(data_quality: float, reason: str, status: str, valid_historical_days: int = 0) -> dict:
     """Return a complete, non-actionable result for unsafe inference conditions."""
     return {
         "risk_score": 0.0,
         "risk_level": "insufficient_evidence",
         "confidence_score": 0.0,
         "data_quality_score": round(data_quality, 4),
+        "valid_historical_days": int(valid_historical_days),
+        "history_confidence_tier": "INSUFFICIENT",
+        "evidence_sufficiency": "GREY",
+        "sufficiency_tier": "INSUFFICIENT",
+        "risk_escalation_permitted": False,
+        "evidence_verdict": "Insufficient evidence for a reliable welfare-risk assessment.",
+        "required_evidence_to_unlock": [
+            "Minimum 7 days continuous duty shift logs",
+            "Recent voluntary self-assessment check-in",
+            "Current leave entitlement and denial records",
+            "Extended 14-day observation window"
+        ],
+        "data_trust_score": round(max(0.10, float(data_quality) * 0.5), 4),
+        "data_trust_tier": "LOW",
+        "data_trust_signals": {},
+        "confidence_data_trust_asymmetry": False,
+        "asymmetry_advisory": "Model abstained due to insufficient evidence. Risk escalation prohibited.",
         "prob_7d": 0.0,
         "prob_14d": 0.0,
         "prob_30d": 0.0,
+        "forecast_method": "abstained — no forecast issued",
         "trajectory": "INDETERMINATE",
         "abstention_flag": True,
         "abstention_reason": reason,
         "signal_reliability": "abstained",
         "prediction_status": status,
-        "what_changed": {"summary": "No automated assessment was issued."},
+        "what_changed": {
+            "summary": "No automated assessment was issued.",
+            "valid_historical_days": int(valid_historical_days),
+            "history_confidence_tier": "INSUFFICIENT",
+        },
         "shap_values": [],
     }
 
@@ -163,11 +361,32 @@ def predict_batch(feature_records: list, model_path: str = MODEL_PATH) -> list:
     results = []
     for i in range(len(df)):
         data_quality = float(data_quality_by_row.iloc[i])
+        raw_rec = feature_records[i] if i < len(feature_records) and isinstance(feature_records[i], dict) else {}
+        valid_hist_days = raw_rec.get("valid_historical_days")
+        if valid_hist_days is None:
+            non_null_count = int(df.iloc[i].notna().sum())
+            valid_hist_days = max(0, int(round((non_null_count / max(1, len(FEATURE_COLUMNS))) * 14)))
+        else:
+            try:
+                valid_hist_days = int(valid_hist_days)
+            except (ValueError, TypeError):
+                valid_hist_days = 0
+
+        if valid_hist_days < 4 or data_quality < 0.40:
+            history_tier = "INSUFFICIENT"
+        elif valid_hist_days < 7 or data_quality < 0.60:
+            history_tier = "LOW"
+        elif valid_hist_days < 14 or data_quality < 0.85:
+            history_tier = "MEDIUM"
+        else:
+            history_tier = "HIGH"
+
         if data_quality < 0.40:
             results.append(_abstained_prediction(
                 data_quality,
                 "INSUFFICIENT_EVIDENCE: Operational history and wellness data below minimum threshold (< 40% complete). Model abstains to prevent false-negative under-detection.",
                 "abstained",
+                valid_historical_days=valid_hist_days,
             ))
             continue
 
@@ -202,8 +421,11 @@ def predict_batch(feature_records: list, model_path: str = MODEL_PATH) -> list:
         else:
             level = "red"
 
-        # 3. Multi-Horizon Risk Estimates (Continuous Survival Hazard Formulation)
-        # 7-day acute escalation risk: sensitive to immediate circadian shock and acute stress acceleration
+        # 3. Multi-Horizon Risk Estimates (Derived Projection — NOT separately validated)
+        # IMPORTANT: only the 14-day probability is a trained, calibrated model output.
+        # The 7d/30d horizons are deterministic projections of prob_14d via a continuous
+        # survival hazard formulation (P(t) = 1 - (1 - P_14)^w(t)) using hand-set domain
+        # weights. They are planning aids, not independently validated probabilities.
         w_7d = (7.0 / 14.0) * max(0.2, (1.0 + 0.45 * stress_trend + 0.08 * min(night_shifts, 6.0)))
         # 30-day cumulative chronic risk: cumulative hazard driven by hard-area tenure and leave denial friction
         w_30d = (30.0 / 14.0) * max(0.5, (1.0 + 0.015 * min(hard_months, 36.0) + 0.25 * leave_denial))
@@ -244,10 +466,12 @@ def predict_batch(feature_records: list, model_path: str = MODEL_PATH) -> list:
             "sleep_quality_delta": round(sleep_7 - sleep_14, 2),
             "consecutive_duty_days": consec_days,
             "night_shifts_14d": int(night_shifts),
+            "valid_historical_days": valid_hist_days,
+            "history_confidence_tier": history_tier,
             "summary": (
                 f"Recent 7d stress {'increased' if stress_delta > 0 else 'decreased'} by {abs(stress_delta):.1f} pts; "
                 f"sleep quality {'dropped' if sleep_7 < sleep_14 else 'rose'} by {abs(sleep_7 - sleep_14):.1f} pts; "
-                f"{consec_days} consecutive duty days."
+                f"{consec_days} consecutive duty days; {valid_hist_days} valid historical days ({history_tier} history confidence)."
             )
         }
 
@@ -285,59 +509,42 @@ def predict_batch(feature_records: list, model_path: str = MODEL_PATH) -> list:
                     "impact": round(float(imp), 4)
                 })
 
+        gating_trust = compute_data_trust_and_evidence_gating(
+            row=row,
+            raw_rec=raw_rec,
+            data_quality=data_quality,
+            valid_hist_days=valid_hist_days,
+            confidence=confidence
+        )
+
         results.append({
             "risk_score": round(prob_14d, 4),
             "risk_level": level,
             "confidence_score": round(confidence, 4),
             "data_quality_score": round(data_quality, 4),
+            "valid_historical_days": valid_hist_days,
+            "history_confidence_tier": history_tier,
+            "evidence_sufficiency": gating_trust["evidence_sufficiency"],
+            "sufficiency_tier": gating_trust["sufficiency_tier"],
+            "risk_escalation_permitted": gating_trust["risk_escalation_permitted"],
+            "evidence_verdict": gating_trust["evidence_verdict"],
+            "required_evidence_to_unlock": gating_trust["required_evidence_to_unlock"],
+            "data_trust_score": gating_trust["data_trust_score"],
+            "data_trust_tier": gating_trust["data_trust_tier"],
+            "data_trust_signals": gating_trust["data_trust_signals"],
+            "confidence_data_trust_asymmetry": gating_trust["confidence_data_trust_asymmetry"],
+            "asymmetry_advisory": gating_trust["asymmetry_advisory"],
             "prob_7d": round(prob_7d, 4),
             "prob_14d": round(prob_14d, 4),
             "prob_30d": round(prob_30d, 4),
+            "forecast_method": "7d/30d horizons are deterministic survival-hazard projections of the calibrated 14-day model probability (derived, not separately validated)",
             "trajectory": trajectory,
             "abstention_flag": abstention_flag,
             "abstention_reason": abstention_reason,
             "signal_reliability": reliability,
             "prediction_status": "ok",
             "what_changed": what_changed,
-            "what_changed": what_changed,
             "shap_values": factors
         })
 
     return results
-
-def _heuristic_predict(rec: dict) -> dict:
-    """Fallback scoring in the event model file is not ready."""
-    hard_area = rec.get("hard_area_months", 0)
-    leave_denial = rec.get("leave_denial_rate_6m", 0)
-    night_shifts = rec.get("night_shift_density_14d", 0)
-    stress = rec.get("stress_level_avg_7d", 2.5) if pd.notna(rec.get("stress_level_avg_7d")) else 2.5
-    consec = rec.get("consecutive_duty_days", 0)
-
-    # Multi-stream calibrated linear score
-    score = 0.12 + (min(hard_area, 36) / 36.0) * 0.25 + (leave_denial * 0.22) + (min(night_shifts, 10) / 10.0) * 0.22 + (min(consec, 14) / 14.0) * 0.14 + ((stress - 1.0) / 4.0) * 0.15
-    score = float(np.clip(score, 0.05, 0.95))
-
-    level = "green" if score < 0.25 else ("yellow" if score < 0.50 else ("orange" if score < 0.75 else "red"))
-    p_7d = float(np.clip(1.0 - (1.0 - score) ** 0.55, 0.01, 0.99))
-    p_30d = float(np.clip(1.0 - (1.0 - score) ** 1.85, 0.01, 0.99))
-    return {
-        "risk_score": round(score, 4),
-        "risk_level": level,
-        "confidence_score": 0.82,
-        "data_quality_score": 0.88,
-        "prob_7d": round(p_7d, 4),
-        "prob_14d": round(score, 4),
-        "prob_30d": round(p_30d, 4),
-        "trajectory": "STABLE",
-        "abstention_flag": False,
-        "abstention_reason": None,
-        "signal_reliability": "high",
-        "prediction_status": "ok",
-        "what_changed": {"summary": "Standard operational baseline."},
-        "shap_values": [
-            {"feature": "hard_area_months", "display_name": "[HR] Hard-Area Deployment Tenure (Months)", "source_category": "HR", "value": hard_area, "impact": 0.18},
-            {"feature": "leave_denial_rate_6m", "display_name": "[HR] 6-Month Leave Denial Ratio", "source_category": "HR", "value": leave_denial, "impact": 0.15},
-            {"feature": "night_shift_density_14d", "display_name": "[HR] Night Shift Fatigue (14d)", "source_category": "HR", "value": night_shifts, "impact": 0.14},
-            {"feature": "consecutive_duty_days", "display_name": "[HR] Continuous Duty Without Rest", "source_category": "HR", "value": consec, "impact": 0.10},
-        ]
-    }

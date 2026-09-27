@@ -6,6 +6,8 @@ class LoginRequest(BaseModel):
     service_number: Optional[str] = None
     password: Optional[str] = None
     pin: Optional[str] = None
+    captcha_id: Optional[str] = None
+    captcha_text: Optional[str] = None
 
 class UserProfile(BaseModel):
     id: str

@@ -84,9 +84,13 @@ export const NotificationBell: React.FC = () => {
       }
     };
 
+    // Listen for live sync events dispatched by the SyncEngine (prahari_db_sync)
+    window.addEventListener("prahari_db_sync", handleSyncEvent);
+    // Backward compatibility with any legacy dispatchers
     window.addEventListener("prahari_sync_event", handleSyncEvent);
     return () => {
       clearInterval(interval);
+      window.removeEventListener("prahari_db_sync", handleSyncEvent);
       window.removeEventListener("prahari_sync_event", handleSyncEvent);
     };
   }, [isOpen]);

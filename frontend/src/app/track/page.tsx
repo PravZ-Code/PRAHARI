@@ -46,10 +46,10 @@ interface TrackRecord {
 }
 
 function buildTrackRecord(g: any): TrackRecord {
-  const refCode = `PRH-2026-${g.id.slice(0, 6).toUpperCase()}`;
+  const refCode = g.id ? `PRH-${g.id.slice(0, 6).toUpperCase()}` : "PRH-RECORD";
   const submitted = g.filed_at
     ? new Date(g.filed_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-    : "10 Sep 2026";
+    : new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
   const isApproved = g.status === "approved";
   const isRejected = g.status === "rejected";
   const isEscalated = g.status === "escalated" || g.escalation_level > 0;
@@ -154,7 +154,8 @@ function TrackContent() {
       if (initialRef && map[initialRef]) {
         setActiveRef(initialRef);
       } else if (list.length > 0) {
-        setActiveRef(`PRH-2026-${list[0].id.slice(0, 6).toUpperCase()}`);
+        const first = buildTrackRecord(list[0]);
+        setActiveRef(first.ref);
       }
     } catch (e) {
       console.error("Failed to load requests:", e);
@@ -175,7 +176,8 @@ function TrackContent() {
     }
 
     try {
-      const res = await api.get(`/grievance/${clean.replace("PRH-2026-", "").toLowerCase()}`);
+      const cleanId = clean.replace(/^PRH-(2026-)?/i, "").toLowerCase();
+      const res = await api.get(`/grievance/${cleanId}`);
       if (res.data) {
         const rec = buildTrackRecord(res.data);
         setRecords((prev) => ({ ...prev, [rec.ref]: rec }));
@@ -183,8 +185,17 @@ function TrackContent() {
         setSearchError(null);
         return;
       }
-    } catch (err) {
-      setSearchError(`No active record found for reference "${clean}". Please check the number.`);
+    } catch (err: any) {
+      const status = err?.response?.status;
+      if (status === 404) {
+        setSearchError(`No active record found for reference "${clean}". Please check the number.`);
+      } else if (status === 401 || status === 403) {
+        setSearchError("Your session does not allow viewing this record. Please sign in again with the correct account.");
+      } else if (!err?.response) {
+        setSearchError("Unable to reach the server. Please check your connection and try again.");
+      } else {
+        setSearchError(`Could not retrieve record (${status}). Please try again later.`);
+      }
     }
   };
 

@@ -185,3 +185,41 @@ def test_api_what_if_test_expanded_levers(welfare_headers, db):
     assert "shap_waterfall_shifts" in data
     assert "multi_horizon_forecast" in data
     assert "squad_cascade_safety" in data
+
+
+def test_api_commit_counterfactual_flagship_plan(welfare_headers, db):
+    """Verifies that counterfactual-flagship-plan committed from simulator is accepted by backend."""
+    from models.resilience_intervention import ResilienceIntervention
+    target = db.query(Personnel).first()
+    assert target is not None
+    replacement = db.query(Personnel).filter(
+        Personnel.unit_id == target.unit_id,
+        Personnel.trade == target.trade,
+        Personnel.id != target.id,
+    ).first()
+    assert replacement is not None
+    target_date_str = str(date.today() + timedelta(days=200))
+
+    # Clean prior test interventions if any
+    db.query(ResilienceIntervention).filter(
+        ResilienceIntervention.plan_id == "counterfactual-flagship-plan",
+        ResilienceIntervention.personnel_id == target.id,
+        ResilienceIntervention.target_date == target_date_str,
+    ).delete()
+    db.commit()
+
+    client = TestClient(fastapi_app)
+    payload = {
+        "plan_id": "counterfactual-flagship-plan",
+        "personnel_id": target.id,
+        "replacement_personnel_id": replacement.id,
+        "target_date": target_date_str,
+        "proposed_shift": "day",
+        "duty_type": "guard",
+    }
+
+    res = client.post("/api/resilience/commit-plan", json=payload, headers=welfare_headers)
+    assert res.status_code == 200
+    assert res.json()["status"] in ["AWAITING_DUAL_APPROVAL", "COMMITTED"]
+    assert res.json()["plan_id"] == "counterfactual-flagship-plan"
+

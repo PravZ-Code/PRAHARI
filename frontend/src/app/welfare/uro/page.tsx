@@ -29,8 +29,15 @@ export default function UROPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [units, setUnits] = useState<UnitCardData[]>([]);
   const [selectedUnitId, setSelectedUnitId] = useState<string>("");
-  const [startDate, setStartDate] = useState<string>("2026-09-05");
-  const [endDate, setEndDate] = useState<string>("2026-09-12");
+  const [startDate, setStartDate] = useState<string>(() => {
+    const d = new Date();
+    return d.toISOString().split("T")[0];
+  });
+  const [endDate, setEndDate] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().split("T")[0];
+  });
   const [maxSwaps, setMaxSwaps] = useState<number>(10);
   const [loading, setLoading] = useState(false);
   const [approving, setApproving] = useState(false);
